@@ -16,6 +16,7 @@ if (hasTwilio) {
 
 // ---- Lead endpoint (Wix will POST here) ----
 app.post("/lead/new", async (req, res) => {
+  console.log("✅ HIT /lead", req.body);
   const express = require("express");
 const cors = require("cors");
 
