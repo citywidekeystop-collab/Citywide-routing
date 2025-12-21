@@ -1,33 +1,17 @@
-console.log("✅ HIT /lead", req.body);
-
-// ---- Twilio (only init if env vars exist) ----
-let twilioClient = null;
-const hasTwilio =
-  process.env.TWILIO_ACCOUNT_SID &&
-  process.env.TWILIO_AUTH_TOKEN &&
-  process.env.TWILIO_NUMBER;
-
-if (hasTwilio) {
-  const twilio = require("twilio");
-  twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-} else {
-  console.log("Twilio not configured yet. Add env vars in Render: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_NUMBER");
-}
-
-// ---- Lead endpoint (Wix will POST here) ----
-app.post("/lead/new", async (req, res) => {
-  console.log("✅ HIT /lead", req.body);
-  const express = require("express");
+const express = require("express");
 const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ---- Health check (Render needs this) ----
+// Health check for Render
 app.get("/health", (req, res) => res.status(200).send("OK"));
 
-// ---- Twilio (only init if env vars exist) ----
+// Optional root so you don’t see “Cannot GET /”
+app.get("/", (req, res) => res.status(200).send("Citywide routing is live"));
+
+// Twilio (only init if env vars exist)
 let twilioClient = null;
 const hasTwilio =
   process.env.TWILIO_ACCOUNT_SID &&
@@ -38,15 +22,17 @@ if (hasTwilio) {
   const twilio = require("twilio");
   twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 } else {
-  console.log("Twilio not configured yet. Add env vars in Render: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_NUMBER");
+  console.log("Twilio not configured yet. Add env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_NUMBER");
 }
 
-// ---- Lead endpoint (Wix will POST here) ----
+// Lead endpoint (Wix will POST here)
 app.post("/lead/new", async (req, res) => {
   try {
+    console.log("✅ HIT /lead/new", req.body);
+
     const lead = req.body || {};
 
-    // IMPORTANT: adjust these fields to match your Wix form IDs
+    // Adjust these names if your Wix sends different keys
     const firstName = lead.firstName || lead.first || "";
     const lastName = lead.lastName || lead.last || "";
     const name = `${firstName} ${lastName}`.trim() || lead.name || "New Lead";
@@ -55,101 +41,43 @@ app.post("/lead/new", async (req, res) => {
     const service = lead.service || lead.selectedService || "Service Request";
     const details = lead.details || lead.message || "";
 
-    // respond success to Wix immediately
+    // Respond to Wix immediately
     res.status(200).json({ ok: true });
 
-    // send SMS after response (doesn't block Wix)
+    // Send SMS after response
     if (twilioClient) {
       const from = process.env.TWILIO_NUMBER;
-      const owner = process.env.OWNER_NUMBER;
+      const owner = process.env.OWNER_NUMBER; // <-- YOU MUST ADD THIS ENV VAR in Render
 
       const msgToOwner =
-        `🔥 NEW LEAD\n` +
+        `🔔 NEW LEAD\n` +
         `Name: ${name}\n` +
         `Phone: ${phone}\n` +
         `Email: ${email}\n` +
         `Service: ${service}\n` +
         `Details: ${details}`;
 
-      // notify you
       if (owner) {
         await twilioClient.messages.create({
           from,
           to: owner,
           body: msgToOwner,
         });
+        console.log("✅ SMS sent to owner");
+      } else {
+        console.log("⚠️ OWNER_NUMBER not set — no SMS destination");
       }
-
-      // confirm customer
-      if (phone && phone.startsWith("+")) {
-        await twilioClient.messages.create({
-          from,
-          to: phone,
-          body: `✅ Citywide Leads: We received your request for "${service}". A provider will contact you shortly.`,
-        });
-      }
+    } else {
+      console.log("⚠️ Twilio not ready — no SMS sent");
     }
-  } catch (err) {
-    console.error("Lead error:", err);
-    // If something fails after response, it will show in Render logs
+  } catch (e) {
+    console.log("❌ Error in /lead/new:", e);
+    // If Wix is still waiting, respond safely
+    try {
+      res.status(500).json({ ok: false });
+    } catch (_) {}
   }
 });
 
-// ---- Render port ----
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port", PORT));
-  try {
-    const lead = req.body || {};
-
-    // IMPORTANT: adjust these fields to match your Wix form IDs
-    const firstName = lead.firstName || lead.first || "";
-    const lastName = lead.lastName || lead.last || "";
-    const name = `${firstName} ${lastName}`.trim() || lead.name || "New Lead";
-    const phone = lead.phone || lead.customerPhone || "";
-    const email = lead.email || "";
-    const service = lead.service || lead.selectedService || "Service Request";
-    const details = lead.details || lead.message || "";
-
-    // respond success to Wix immediately
-    res.status(200).json({ ok: true });
-
-    // send SMS after response (doesn't block Wix)
-    if (twilioClient) {
-      const from = process.env.TWILIO_NUMBER;
-      const owner = process.env.OWNER_NUMBER;
-
-      const msgToOwner =
-        `🔥 NEW LEAD\n` +
-        `Name: ${name}\n` +
-        `Phone: ${phone}\n` +
-        `Email: ${email}\n` +
-        `Service: ${service}\n` +
-        `Details: ${details}`;
-
-      // notify you
-      if (owner) {
-        await twilioClient.messages.create({
-          from,
-          to: owner,
-          body: msgToOwner,
-        });
-      }
-
-      // confirm customer
-      if (phone && phone.startsWith("+")) {
-        await twilioClient.messages.create({
-          from,
-          to: phone,
-          body: `✅ Citywide Leads: We received your request for "${service}". A provider will contact you shortly.`,
-        });
-      }
-    }
-  } catch (err) {
-    console.error("Lead error:", err);
-    // If something fails after response, it will show in Render logs
-  }
-});
-
-// ---- Render port ----
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port", PORT));
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log("✅ Server running on port", PORT));
