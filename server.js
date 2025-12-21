@@ -1,12 +1,4 @@
-const express = require("express");
-const cors = require("cors");
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// ---- Health check (Render needs this) ----
-app.get("/health", (req, res) => res.status(200).send("OK"));
+console.log("✅ HIT /lead", req.body);
 
 // ---- Twilio (only init if env vars exist) ----
 let twilioClient = null;
