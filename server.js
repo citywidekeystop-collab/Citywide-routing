@@ -98,7 +98,7 @@ app.post("/lead/new", async (req, res) => {
     const owner = process.env.OWNER_NUMBER; // MUST be like +14435781686
 
     // Log the REAL number value so you can confirm it changed
-    console.log("OWNER_NUMBER env value =", owner);
+    consoleconsole.log("📲 SMS sent to", owner, "| SID:", result.sid);
 
     if (!twilioClient || !owner) {
       console.log("❌ SMS skipped (missing twilioClient or OWNER_NUMBER)");
