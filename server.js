@@ -1,27 +1,15 @@
-/**
- * Citywide-routing — Wix Forms → Render → Twilio SMS
- * Endpoints:
- *   GET  /health   -> "OK"
- *   GET  /         -> "Citywide routing is live"
- *   POST /lead/new -> Wix Automation "Send HTTP request" posts here
- */
-
 const express = require("express");
 const cors = require("cors");
 
 const app = express();
 app.use(cors());
-app.use(express.json()); // Wix sends JSON
+app.use(express.json());
 
-// --------------------
-// Health / root routes
-// --------------------
+// ---------- Health routes (Render uses this) ----------
 app.get("/health", (req, res) => res.status(200).send("OK"));
 app.get("/", (req, res) => res.status(200).send("Citywide routing is live"));
 
-// --------------------
-// Twilio init (MUST be ABOVE /lead/new)
-// --------------------
+// ---------- Twilio init (MUST be ABOVE /lead/new) ----------
 let twilioClient = null;
 
 const hasTwilio =
@@ -34,74 +22,41 @@ if (hasTwilio) {
   twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
   console.log("✅ Twilio initialized. From number:", process.env.TWILIO_NUMBER);
 } else {
-  console.log("⚠️ Twilio not configured. Missing env vars (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_NUMBER)");
+  console.log("⚠️ Twilio NOT configured. Missing env vars.");
 }
 
-// --------------------
-// Lead endpoint (Wix will POST here)
-// --------------------
+// ---------- Lead endpoint (Wix will POST here) ----------
 app.post("/lead/new", async (req, res) => {
   try {
     console.log("✅ HIT /lead/new", req.body);
 
-    // Wix Automations "Entire payload" can be nested — try common shapes
-    const raw = req.body || {};
-    const data =
-      raw.data ||
-      raw.payload ||
-      raw.submission ||
-      raw ||
-      {};
+    const lead = req.body || {};
 
-    // Try to extract fields from different possible Wix payload formats
-    const firstName =
-      data.firstName ||
-      data.first_name ||
-      (data.contact && data.contact.name && data.contact.name.first) ||
-      "";
+    // Try multiple possible field names from Wix payload
+    const firstName = lead.firstName || lead.first_name || "";
+    const lastName = lead.lastName || lead.last_name || "";
+    const name = `${firstName} ${lastName}`.trim() || lead.name || "New Lead";
 
-    const lastName =
-      data.lastName ||
-      data.last_name ||
-      (data.contact && data.contact.name && data.contact.name.last) ||
-      "";
+    const phone = lead.phone || lead.customerPhone || lead.contactPhone || "";
+    const email = lead.email || lead.customerEmail || "";
+    const service = lead.service || lead.selectedService || lead.select_a_service || "Service Request";
+    const details = lead.details || lead.message || lead.give_us_more_details || "";
 
-    const name = `${firstName} ${lastName}`.trim() || data.name || "New Lead";
-
-    const email =
-      data.email ||
-      (data.contact && data.contact.email) ||
-      "";
-
-    const phone =
-      data.phone ||
-      data.customerPhone ||
-      (data.contact && (data.contact.phone || (Array.isArray(data.contact.phones) ? data.contact.phones[0] : ""))) ||
-      "";
-
-    const service =
-      data.service ||
-      data.selectedService ||
-      data.select_a_service ||
-      "Service Request";
-
-    const details =
-      data.details ||
-      data.message ||
-      data.give_us_more_details ||
-      "";
-
-    // Respond to Wix immediately (so automation doesn’t fail)
+    // Respond to Wix immediately (important so Wix doesn't time out)
     res.status(200).json({ ok: true });
 
-    // Send SMS
-    const owner = process.env.OWNER_NUMBER; // MUST be like +14435781686
+    // ----- SMS after response -----
+    const owner = (process.env.OWNER_NUMBER || "").trim(); // MUST be like +14435781686
 
-    // Log the REAL number value so you can confirm it changed
-    console.log("📲 SMS sent to", owner, "| SID:", result.sid);
+    console.log("OWNER_NUMBER env value =", owner);
 
-    if (!twilioClient || !owner) {
-      console.log("❌ SMS skipped (missing twilioClient or OWNER_NUMBER)");
+    if (!twilioClient) {
+      console.log("❌ SMS skipped (Twilio not initialized)");
+      return;
+    }
+
+    if (!owner.startsWith("+")) {
+      console.log("❌ OWNER_NUMBER must start with + (E.164). Current:", owner);
       return;
     }
 
@@ -113,20 +68,19 @@ app.post("/lead/new", async (req, res) => {
       `Service: ${service}\n` +
       `Details: ${details}`;
 
-    const result = await twilioClient.messages.create({
+    const message = await twilioClient.messages.create({
       from: process.env.TWILIO_NUMBER,
       to: owner,
       body: msg,
     });
 
-    console.log("📲 SMS sent to", owner, "| SID:", result.sid);
+    console.log(`📲 SMS sent to ${owner} | SID: ${message.sid}`);
   } catch (e) {
-    console.log("❌ /lead/new error", e);
+    console.log("❌ /lead/new error:", e);
+    // NOTE: response already sent above; this is just logging
   }
 });
 
-// --------------------
-// Start server (Render uses PORT)
-// --------------------
+// ---------- Start server ----------
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Server running on port", PORT));
+app.listen(PORT, () => console.log("✅ Server running on port", PORT));
