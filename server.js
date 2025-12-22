@@ -58,7 +58,7 @@ app.post("/lead/new", async (req, res) => {
         body: msg,
       });
 
-      console.log("📲 SMS sent to OWNER_NUMBER");
+      console.log("📲 SMS sent to OWNER");
     } else {
       console.log("SMS skipped (missing Twilio or OWNER_NUMBER)");
     }
