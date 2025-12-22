@@ -53,7 +53,8 @@ await twilioClient.messages.create({
   body: msgToOwner
 });
 
-console.log("✅ SMS sent to", owner);
+console.log("📲 SMS sent to", process.env.OWNER_NUMBER);
+
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
