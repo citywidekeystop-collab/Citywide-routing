@@ -45,15 +45,18 @@ app.post("/lead/new", async (req, res) => {
     // Send SMS after response
    const owner = process.env.OWNER_NUMBER; // MUST be +14435781686
 
-console.log("OWNER_NUMBER env =", owner);
+// Send SMS after response
+const owner = process.env.OWNER_NUMBER; // MUST be +14435781686
+console.log("OWNER_NUMBER env value =", process.env.OWNER_NUMBER);
 
 await twilioClient.messages.create({
-  from,
+  from: process.env.TWILIO_NUMBER,
   to: owner,
   body: msgToOwner
 });
 
-console.log("📲 SMS sent to", process.env.OWNER_NUMBER);
+console.log("📲 SMS sent to", owner);
+
 
 const express = require("express");
 const cors = require("cors");
