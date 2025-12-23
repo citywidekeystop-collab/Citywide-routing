@@ -120,7 +120,256 @@ app.post("/lead/new", async (req, res) => {
 // ============================
 
 // Get providers
-app.get("/admin/api/providers", requireAdmin, async (req, res) => {
+app.get("/admin", requireAdmin, async (req, res) => {
+  const key = req.query.key;
+  res.send(`
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width,initial-scale=1"/>
+      <title>Citywide Admin</title>
+      <style>
+        body{font-family:Arial;margin:0;background:#0b1220;color:#e8eefc}
+        .top{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 16px;background:#0f1b33;position:sticky;top:0}
+        .brand{font-weight:800}
+        .box{background:#0f1b33;border:1px solid #223055;border-radius:12px;padding:12px}
+        .grid{display:grid;grid-template-columns: 1.2fr .8fr;gap:12px;padding:12px}
+        @media(max-width:980px){.grid{grid-template-columns:1fr}}
+        table{width:100%;border-collapse:collapse}
+        th,td{border-bottom:1px solid #223055;padding:10px;font-size:13px;vertical-align:top}
+        th{color:#9fb3e8;text-align:left}
+        select,input,button{background:#0b1220;color:#e8eefc;border:1px solid #223055;border-radius:10px;padding:8px}
+        button{cursor:pointer}
+        .pill{padding:4px 10px;border-radius:999px;font-size:12px;display:inline-block}
+        .new{background:#0b3d2e}
+        .sent{background:#2b3b10}
+        .closed{background:#3a1520}
+        .spam{background:#2b2b2b}
+        .rowActions{display:flex;gap:8px;flex-wrap:wrap}
+        .muted{color:#9fb3e8}
+        .map{height:360px;border-radius:12px;overflow:hidden;background:#0b1220;border:1px solid #223055}
+        .small{font-size:12px}
+      </style>
+    </head>
+    <body>
+      <div class="top">
+        <div>
+          <div class="brand">Citywide Routing Dashboard</div>
+          <div class="muted small">Live Lead Intake • Admin Console</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input id="search" placeholder="Search phone / zip / service" />
+          <button onclick="refresh()">Refresh</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="box">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-weight:700">Leads (latest 300)</div>
+            <div class="muted small" id="counts"></div>
+          </div>
+          <div style="overflow:auto;max-height:520px">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Phone</th>
+                  <th>Service</th>
+                  <th>ZIP</th>
+                  <th>Status</th>
+                  <th>Assigned</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="box">
+          <div style="font-weight:700;margin-bottom:8px">Map View (Phase 1)</div>
+          <div class="muted small" style="margin-bottom:10px">
+            Map will pin leads once we add ZIP→lat/lng lookup or collect address fields.
+          </div>
+          <div class="map" id="mapBox" style="display:flex;align-items:center;justify-content:center">
+            <div class="muted">Map placeholder (next upgrade)</div>
+          </div>
+
+          <hr style="border:0;border-top:1px solid #223055;margin:14px 0"/>
+
+          <div style="font-weight:700;margin-bottom:8px">Quick Add Provider</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="pName" placeholder="Provider name" />
+            <input id="pPhone" placeholder="Provider phone +1..." />
+            <button onclick="addProvider()">Add</button>
+          </div>
+          <div class="muted small" style="margin-top:8px">Providers appear in the “Assigned” dropdowns.</div>
+        </div>
+      </div>
+
+      <script>
+        const KEY = ${JSON.stringify(key)};
+
+        let providers = [];
+        let leads = [];
+
+        function pillClass(status){
+          return status === 'new' ? 'new' :
+                 status === 'sent' ? 'sent' :
+                 status === 'closed' ? 'closed' : 'spam';
+        }
+
+        function fmtTime(ts){
+          try { return new Date(ts).toLocaleString(); } catch(e){ return ts; }
+        }
+
+        async function api(path, opts){
+          const res = await fetch(path + (path.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(KEY), opts);
+          return res.json();
+        }
+
+        async function loadProviders(){
+          const r = await api('/admin/api/providers');
+          if(!r.ok){ alert(r.error||'Failed providers'); return; }
+          providers = r.providers || [];
+        }
+
+        async function loadLeads(){
+          const r = await api('/admin/api/leads');
+          if(!r.ok){ alert(r.error||'Failed leads'); return; }
+          leads = r.leads || [];
+        }
+
+        function providerOptions(selectedId){
+          const opts = ['<option value="">Unassigned</option>'];
+          for(const p of providers){
+            const sel = String(p.id) === String(selectedId) ? 'selected' : '';
+            opts.push(\`<option value="\${p.id}" \${sel}>\${p.name} (\${p.phone})</option>\`);
+          }
+          return opts.join('');
+        }
+
+        async function setStatus(id, status){
+          await api('/admin/api/leads/' + id + '/status', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ status })
+          });
+          await refresh();
+        }
+
+        async function assignProvider(id, providerId){
+          const payload = { providerId: providerId ? Number(providerId) : null };
+          await api('/admin/api/leads/' + id + '/assign', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+          });
+          await refresh();
+        }
+
+        async function sendSms(to, body){
+          const r = await api('/admin/api/sms', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ to, body })
+          });
+          if(!r.ok) alert(r.error||'SMS failed');
+          else alert('SMS sent');
+        }
+
+        async function addProvider(){
+          const name = document.getElementById('pName').value.trim();
+          const phone = document.getElementById('pPhone').value.trim();
+          if(!name || !phone) return alert('Enter provider name and phone');
+          const r = await api('/admin/api/providers', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ name, phone, active:true })
+          });
+          if(!r.ok) return alert(r.error||'Add provider failed');
+          document.getElementById('pName').value = '';
+          document.getElementById('pPhone').value = '';
+          await refresh();
+        }
+
+        function render(){
+          const q = (document.getElementById('search').value || '').toLowerCase().trim();
+          const filtered = leads.filter(l => {
+            if(!q) return true;
+            return String(l.phone||'').toLowerCase().includes(q) ||
+                   String(l.zip||'').toLowerCase().includes(q) ||
+                   String(l.service||'').toLowerCase().includes(q);
+          });
+
+          const counts = {
+            new: filtered.filter(l=>l.status==='new').length,
+            sent: filtered.filter(l=>l.status==='sent').length,
+            closed: filtered.filter(l=>l.status==='closed').length,
+            spam: filtered.filter(l=>l.status==='spam').length,
+          };
+          document.getElementById('counts').innerText =
+            \`New: \${counts.new} • Sent: \${counts.sent} • Closed: \${counts.closed} • Spam: \${counts.spam}\`;
+
+          const tbody = document.getElementById('tbody');
+          tbody.innerHTML = filtered.map(l => {
+            const status = l.status || 'new';
+            const providerLabel = l.provider_name ? (l.provider_name + ' (' + (l.provider_phone||'') + ')') : 'Unassigned';
+
+            return \`
+              <tr>
+                <td>\${fmtTime(l.created_at)}</td>
+                <td>\${l.phone||''}<div class="muted small">\${l.email||''}</div></td>
+                <td>\${l.service||''}</td>
+                <td>\${l.zip||''}</td>
+                <td>
+                  <span class="pill \${pillClass(status)}">\${status.toUpperCase()}</span><br/>
+                  <select onchange="setStatus(\${l.id}, this.value)">
+                    <option value="new" \${status==='new'?'selected':''}>New</option>
+                    <option value="sent" \${status==='sent'?'selected':''}>Sent</option>
+                    <option value="closed" \${status==='closed'?'selected':''}>Closed</option>
+                    <option value="spam" \${status==='spam'?'selected':''}>Spam</option>
+                  </select>
+                </td>
+                <td>
+                  <div class="muted small">\${providerLabel}</div>
+                  <select onchange="assignProvider(\${l.id}, this.value)">
+                    \${providerOptions(l.assigned_provider_id)}
+                  </select>
+                </td>
+                <td>
+                  <div class="rowActions">
+                    <a href="tel:\${(l.phone||'').replace(/[^0-9+]/g,'')}" style="text-decoration:none">
+                      <button>Call Lead</button>
+                    </a>
+                    <button onclick="sendSms(l.phone, 'Citywide Leads: We received your request. Reply YES to confirm.')">Text Lead</button>
+                    \${l.provider_phone ? \`
+                      <a href="tel:\${(l.provider_phone||'').replace(/[^0-9+]/g,'')}" style="text-decoration:none">
+                        <button>Call Provider</button>
+                      </a>
+                      <button onclick="sendSms(l.provider_phone, 'New lead assigned. Check dashboard now.')">Text Provider</button>
+                    \` : \`\`}
+                  </div>
+                </td>
+              </tr>
+            \`;
+          }).join('') || "<tr><td colspan='7'>No leads found</td></tr>";
+        }
+
+        async function refresh(){
+          await loadProviders();
+          await loadLeads();
+          render();
+        }
+
+        document.getElementById('search').addEventListener('input', render);
+
+        refresh();
+      </script>
+    </body>
+  </html>
+  `);
+});
   try {
     const r = await pool.query(
       "SELECT id, name, phone, active FROM providers ORDER BY active DESC, name ASC"
