@@ -82,15 +82,20 @@ for (const provider of providerNumbers) {
   });
 }
 
-    });
+  app.post("/lead/new", async (req, res) => {
+  try {
+    const payload = req.body;
 
-    console.log(`📲 SMS sent to ${owner} | SID: ${message.sid}`);
-  } catch (e) {
-    console.log("❌ /lead/new error:", e);
-    // NOTE: response already sent above; this is just logging
+    // ✅ (your existing logic here)
+    // parse form data
+    // pick owner number
+    // send SMS with Twilio
+    // etc...
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("❌ /lead/new error:", err);
+    return res.status(500).json({ ok: false, error: err.message });
   }
 });
-
-// ---------- Start server ----------
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("✅ Server running on port", PORT));
+;
