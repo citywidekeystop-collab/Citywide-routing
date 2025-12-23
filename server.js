@@ -115,7 +115,103 @@ app.post("/lead/new", async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+// ============================
+// ADMIN API ENDPOINTS
+// ============================
 
+// Get providers
+app.get("/admin/api/providers", requireAdmin, async (req, res) => {
+  try {
+    const r = await pool.query(
+      "SELECT id, name, phone, active FROM providers ORDER BY active DESC, name ASC"
+    );
+    res.json({ ok: true, providers: r.rows });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Add provider
+app.post("/admin/api/providers", requireAdmin, async (req, res) => {
+  try {
+    const { name, phone, active = true } = req.body;
+    if (!name || !phone) return res.status(400).json({ ok: false, error: "name and phone required" });
+
+    const r = await pool.query(
+      "INSERT INTO providers (name, phone, active) VALUES ($1,$2,$3) RETURNING *",
+      [name, phone, active]
+    );
+    res.json({ ok: true, provider: r.rows[0] });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Get leads
+app.get("/admin/api/leads", requireAdmin, async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT l.id, l.created_at, l.phone, l.email, l.service, l.zip, l.status,
+             l.assigned_provider_id
+      FROM leads l
+      ORDER BY l.created_at DESC
+      LIMIT 300
+    `);
+    res.json({ ok: true, leads: r.rows });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Update lead status
+app.post("/admin/api/leads/:id/status", requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { status } = req.body;
+    const allowed = ["new", "sent", "closed", "spam"];
+    if (!allowed.includes(status)) return res.status(400).json({ ok: false, error: "bad status" });
+
+    await pool.query("UPDATE leads SET status=$1 WHERE id=$2", [status, id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Assign provider
+app.post("/admin/api/leads/:id/assign", requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { providerId } = req.body; // number or null
+
+    await pool.query("UPDATE leads SET assigned_provider_id=$1 WHERE id=$2", [
+      providerId || null,
+      id
+    ]);
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Send SMS (admin)
+app.post("/admin/api/sms", requireAdmin, async (req, res) => {
+  try {
+    const { to, body } = req.body;
+    if (!to || !body) return res.status(400).json({ ok: false, error: "to and body required" });
+
+    await client.messages.create({
+      from: process.env.TWILIO_FROM_NUMBER,
+      to,
+      body
+    });
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
