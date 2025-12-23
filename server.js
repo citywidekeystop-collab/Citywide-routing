@@ -41,9 +41,48 @@ async function initDb() {
   console.log("Database ready: leads table exists");
 }
 
-initDb().catch(err => {
-  console.error("Database init failed:", err);
-});
+async function initDb() {
+  // 1) Leads table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS leads (
+      id SERIAL PRIMARY KEY,
+      created_at TIMESTAMP DEFAULT NOW(),
+      first_name TEXT,
+      last_name  TEXT,
+      email      TEXT,
+      phone      TEXT,
+      service    TEXT,
+      details    TEXT,
+      zip        TEXT,
+      status     TEXT DEFAULT 'new',
+      assigned_provider_id INT,
+      raw JSONB
+    );
+  `);
+
+  // 2) Providers table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS providers (
+      id SERIAL PRIMARY KEY,
+      created_at TIMESTAMP DEFAULT NOW(),
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      active BOOLEAN DEFAULT TRUE
+    );
+  `);
+
+  // 3) Add columns safely (if you previously created a smaller leads table)
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'new';`);
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS assigned_provider_id INT;`);
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS zip TEXT;`);
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS service TEXT;`);
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS details TEXT;`);
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS email TEXT;`);
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS first_name TEXT;`);
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS last_name TEXT;`);
+
+  console.log("✅ DB ready: leads/providers tables ready");
+}
 
 // Health check
 app.get("/", (req, res) => {
