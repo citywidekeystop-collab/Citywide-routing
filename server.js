@@ -68,10 +68,20 @@ app.post("/lead/new", async (req, res) => {
       `Service: ${service}\n` +
       `Details: ${details}`;
 
-    const message = await twilioClient.messages.create({
-      from: process.env.TWILIO_NUMBER,
-      to: owner,
-      body: msg,
+    const providerNumbers = [
+  "+1410XXXXXXX", // Provider 1
+  "+1443XXXXXXX", // Provider 2
+  "+1301XXXXXXX"  // Provider 3
+];
+
+for (const provider of providerNumbers) {
+  await client.messages.create({
+    body: message,
+    from: process.env.TWILIO_FROM,
+    to: provider
+  });
+}
+
     });
 
     console.log(`📲 SMS sent to ${owner} | SID: ${message.sid}`);
