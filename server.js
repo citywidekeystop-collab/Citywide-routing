@@ -1,278 +1,344 @@
-// server.js (ESM / Render-ready)
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import twilio from "twilio";
 import pg from "pg";
-import path from "path";
-import { fileURLToPath } from "url";
-
 const { Pool } = pg;
 
-// ---- ESM __dirname fix
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// ---- App
 const app = express();
+
+// ---------- Middleware ----------
 app.use(cors());
-app.use(bodyParser.json({ limit: "1mb" }));
+app.use(bodyParser.json({ limit: "2mb" }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// ---- ENV (Render Env Vars)
-const {
-  DATABASE_URL,
-  TWILIO_ACCOUNT_SID,
-  TWILIO_AUTH_TOKEN,
-  TWILIO_FROM_NUMBER, // your Twilio number like +1XXXXXXXXXX
-  ADMIN_TOKEN, // set this in Render env
-  PORT = 10000,
-} = process.env;
+// ---------- ENV ----------
+const PORT = process.env.PORT || 10000;
 
-if (!DATABASE_URL) console.warn("⚠️ Missing DATABASE_URL in env");
-if (!ADMIN_TOKEN) console.warn("⚠️ Missing ADMIN_TOKEN in env");
+// IMPORTANT: set this in Render env vars
+// ADMIN_TOKEN = something-secret
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 
-// ---- Postgres pool
+// Your Render Postgres connection string
+// DATABASE_URL = postgres://user:pass@host:5432/db
+const DATABASE_URL = process.env.DATABASE_URL || process.env.DataBase_URL || "";
+
+// Twilio
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
+const TWILIO_NUMBER = process.env.TWILIO_NUMBER || process.env.TWILIO_FROM_NUMBER || "";
+const OWNER_NUMBER = process.env.OWNER_NUMBER || ""; // where YOU want lead alerts texted
+
+if (!DATABASE_URL) console.warn("⚠️ Missing DATABASE_URL in env vars");
+if (!ADMIN_TOKEN) console.warn("⚠️ Missing ADMIN_TOKEN in env vars");
+if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) console.warn("⚠️ Missing Twilio SID/TOKEN");
+if (!TWILIO_NUMBER) console.warn("⚠️ Missing TWILIO_NUMBER");
+if (!OWNER_NUMBER) console.warn("⚠️ Missing OWNER_NUMBER");
+
+// ---------- DB ----------
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: false }, // required for many hosted Postgres providers
 });
 
-// ---- Twilio client (optional if you only want DB first)
-const twilioClient =
+// ---------- Twilio Client ----------
+const smsClient =
   TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN
     ? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     : null;
 
-// -----------------------------
-// STEP A — DATABASE SETUP
-// -----------------------------
-async function initDb() {
-  const sql = `
-    CREATE TABLE IF NOT EXISTS leads (
-      id SERIAL PRIMARY KEY,
-      created_at TIMESTAMP DEFAULT NOW(),
-      name TEXT,
-      phone TEXT,
-      service TEXT,
-      zip TEXT,
-      notes TEXT,
-      status TEXT DEFAULT 'new',
-      assigned_provider_id INTEGER,
-      raw JSONB
-    );
-
-    CREATE TABLE IF NOT EXISTS providers (
-      id SERIAL PRIMARY KEY,
-      created_at TIMESTAMP DEFAULT NOW(),
-      name TEXT,
-      phone TEXT,
-      service TEXT,
-      zip TEXT,
-      active BOOLEAN DEFAULT TRUE
-    );
-  `;
-  await pool.query(sql);
-  console.log("✅ Database ready: leads + providers tables exist");
-}
-initDb().catch((err) => console.error("❌ Database init failed:", err));
-
-// -----------------------------
-// Serve dashboard files
-// -----------------------------
-app.use(express.static(path.join(__dirname, "public")));
-
-app.get("/dashboard", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-});
-
-// -----------------------------
-// Helpers
-// -----------------------------
+// ---------- Admin Auth ----------
 function requireAdmin(req, res, next) {
-  const token = req.headers["x-admin-token"] || req.query.token;
-  if (!ADMIN_TOKEN) return res.status(500).json({ ok: false, error: "ADMIN_TOKEN not set on server" });
-  if (!token || token !== ADMIN_TOKEN) return res.status(401).json({ ok: false, error: "Unauthorized" });
+  const token = req.headers["x-admin-token"] || req.query.token || "";
+  if (!ADMIN_TOKEN) return res.status(500).json({ error: "ADMIN_TOKEN not set on server" });
+  if (token !== ADMIN_TOKEN) return res.status(401).json({ error: "Unauthorized" });
   next();
 }
 
-async function sendSms(to, body) {
-  if (!twilioClient) throw new Error("Twilio not configured (missing SID/TOKEN)");
-  if (!TWILIO_FROM_NUMBER) throw new Error("Missing TWILIO_FROM_NUMBER");
-  return twilioClient.messages.create({ from: TWILIO_FROM_NUMBER, to, body });
+// ---------- STEP A: DB INIT (creates tables) ----------
+async function initDb() {
+  // leads table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS leads (
+      id SERIAL PRIMARY KEY,
+      created_at TIMESTAMP DEFAULT NOW(),
+      phone TEXT,
+      name TEXT,
+      service TEXT,
+      zipcode TEXT,
+      status TEXT DEFAULT 'pending',
+      assigned_provider_id INTEGER,
+      raw JSONB
+    );
+  `);
+
+  // providers table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS providers (
+      id SERIAL PRIMARY KEY,
+      created_at TIMESTAMP DEFAULT NOW(),
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      service TEXT,
+      zipcode TEXT,
+      active BOOLEAN DEFAULT true,
+      notes TEXT
+    );
+  `);
+
+  console.log("✅ Database ready: leads + providers tables exist");
 }
 
-// -----------------------------
-// Health check
-// -----------------------------
-app.get("/", (req, res) => res.send("Citywide routing server running ✅"));
+initDb().catch((err) => console.error("❌ Database init failed:", err));
 
-// -----------------------------
-// PUBLIC: Create a new lead (from Wix form)
+// ---------- Static dashboard files ----------
+app.use(express.static("public"));
+
+// Dashboard route (serves /public/dashboard.html)
+app.get("/dashboard", (req, res) => {
+  res.sendFile(process.cwd() + "/public/dashboard.html");
+});
+
+// ---------- Health check ----------
+app.get("/", (req, res) => {
+  res.send("✅ Nationwide Leads routing server running");
+});
+
+// =====================================================
+// LEAD INTAKE
+// =====================================================
+
+// Create a new lead
 // POST /lead/new
-// Body: { name, phone, service, zip, notes, raw }
-// -----------------------------
+// body can be anything; we try to pick out common fields
 app.post("/lead/new", async (req, res) => {
   try {
-    const { name, phone, service, zip, notes, raw } = req.body || {};
-    const cleanedPhone = phone || raw?.phone || raw?.Phone || raw?.fields?.Phone || "UNKNOWN";
+    const raw = req.body || {};
+
+    const phone =
+      raw.phone ||
+      raw.Phone ||
+      raw.customerPhone ||
+      raw?.fields?.phone ||
+      raw?.fields?.Phone ||
+      "UNKNOWN";
+
+    const name =
+      raw.name ||
+      raw.Name ||
+      raw.customerName ||
+      raw?.fields?.name ||
+      raw?.fields?.Name ||
+      "";
+
+    const service =
+      raw.service ||
+      raw.Service ||
+      raw.jobType ||
+      raw?.fields?.service ||
+      raw?.fields?.Service ||
+      "";
+
+    const zipcode =
+      raw.zip ||
+      raw.zipcode ||
+      raw.Zip ||
+      raw?.fields?.zip ||
+      raw?.fields?.zipcode ||
+      "";
 
     const insert = await pool.query(
-      `INSERT INTO leads (name, phone, service, zip, notes, raw)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       RETURNING id, created_at`,
-      [
-        name || raw?.name || raw?.Name || null,
-        cleanedPhone,
-        service || raw?.service || raw?.Service || null,
-        zip || raw?.zip || raw?.Zip || null,
-        notes || raw?.notes || raw?.Notes || null,
-        raw || req.body || null,
-      ]
+      `INSERT INTO leads (phone, name, service, zipcode, raw)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [phone, name, service, zipcode, raw]
     );
 
-    // Optional: ping your own phone when a lead comes in
-    // (edit the number below or remove)
-    // await sendSms("+14108166818", `🧲 New Lead: ${cleanedPhone}`);
+    const lead = insert.rows[0];
 
-    res.json({ ok: true, leadId: insert.rows[0].id, created_at: insert.rows[0].created_at });
+    // Text YOU (owner) that a lead came in
+    if (smsClient && TWILIO_NUMBER && OWNER_NUMBER) {
+      const msg =
+        `📥 New Lead Received\n` +
+        `ID: ${lead.id}\n` +
+        `Name: ${lead.name || "-"}\n` +
+        `Phone: ${lead.phone}\n` +
+        `Service: ${lead.service || "-"}\n` +
+        `Zip: ${lead.zipcode || "-"}\n` +
+        `Status: ${lead.status}`;
+
+      await smsClient.messages.create({
+        from: TWILIO_NUMBER,
+        to: OWNER_NUMBER,
+        body: msg,
+      });
+    }
+
+    res.json({ ok: true, lead });
   } catch (err) {
     console.error("❌ /lead/new error:", err);
-    res.status(500).json({ ok: false, error: String(err?.message || err) });
+    res.status(500).json({ ok: false, error: "Server error" });
   }
 });
 
-// -----------------------------
-// ADMIN: status
+// =====================================================
+// ADMIN API (Angi-style dashboard data)
+// =====================================================
+
 // GET /admin/status
-// -----------------------------
 app.get("/admin/status", requireAdmin, async (req, res) => {
   try {
-    const leadsCount = await pool.query(`SELECT COUNT(*)::int AS count FROM leads`);
-    const providersCount = await pool.query(`SELECT COUNT(*)::int AS count FROM providers`);
-    res.json({
-      ok: true,
-      server: "online",
-      leads: leadsCount.rows[0].count,
-      providers: providersCount.rows[0].count,
-    });
+    const counts = await pool.query(`
+      SELECT
+        COUNT(*)::int AS total,
+        SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END)::int AS pending,
+        SUM(CASE WHEN status='assigned' THEN 1 ELSE 0 END)::int AS assigned,
+        SUM(CASE WHEN status='cancelled' THEN 1 ELSE 0 END)::int AS cancelled
+      FROM leads;
+    `);
+
+    res.json({ ok: true, ...counts.rows[0] });
   } catch (err) {
-    res.status(500).json({ ok: false, error: String(err?.message || err) });
+    console.error("❌ /admin/status error:", err);
+    res.status(500).json({ ok: false, error: "Server error" });
   }
 });
 
-// -----------------------------
-// ADMIN: list leads (THIS IS THE ONE YOU ASKED FOR)
-// GET /admin/leads?limit=50
-// -----------------------------
+// ✅ IMPORTANT: this is what your dashboard.html fetches
+// GET /admin/leads
 app.get("/admin/leads", requireAdmin, async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit || "50", 10), 200);
-    const rows = await pool.query(
-      `SELECT id, created_at, name, phone, service, zip, notes, status, assigned_provider_id
-       FROM leads
-       ORDER BY created_at DESC
-       LIMIT $1`,
-      [limit]
-    );
-    res.json({ ok: true, leads: rows.rows });
+    const { status, limit = 200 } = req.query;
+
+    let q = `SELECT * FROM leads`;
+    const vals = [];
+
+    if (status) {
+      vals.push(status);
+      q += ` WHERE status = $${vals.length}`;
+    }
+
+    vals.push(Math.min(parseInt(limit, 10) || 200, 1000));
+    q += ` ORDER BY id DESC LIMIT $${vals.length}`;
+
+    const out = await pool.query(q, vals);
+    res.json(out.rows);
   } catch (err) {
     console.error("❌ /admin/leads error:", err);
-    res.status(500).json({ ok: false, error: String(err?.message || err) });
+    res.status(500).json({ ok: false, error: "Server error" });
   }
 });
 
-// -----------------------------
-// ADMIN: create provider
-// POST /admin/providers
-// Body: { name, phone, service, zip, active }
-// -----------------------------
-app.post("/admin/providers", requireAdmin, async (req, res) => {
-  try {
-    const { name, phone, service, zip, active } = req.body || {};
-    const result = await pool.query(
-      `INSERT INTO providers (name, phone, service, zip, active)
-       VALUES ($1,$2,$3,$4,$5)
-       RETURNING id, created_at, name, phone, service, zip, active`,
-      [name || null, phone || null, service || null, zip || null, active !== false]
-    );
-    res.json({ ok: true, provider: result.rows[0] });
-  } catch (err) {
-    console.error("❌ /admin/providers POST error:", err);
-    res.status(500).json({ ok: false, error: String(err?.message || err) });
-  }
-});
-
-// -----------------------------
-// ADMIN: list providers
 // GET /admin/providers
-// -----------------------------
 app.get("/admin/providers", requireAdmin, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, created_at, name, phone, service, zip, active
-       FROM providers
-       ORDER BY created_at DESC`
-    );
-    res.json({ ok: true, providers: result.rows });
+    const out = await pool.query(`SELECT * FROM providers ORDER BY id DESC LIMIT 500`);
+    res.json(out.rows);
   } catch (err) {
-    console.error("❌ /admin/providers GET error:", err);
-    res.status(500).json({ ok: false, error: String(err?.message || err) });
+    console.error("❌ /admin/providers error:", err);
+    res.status(500).json({ ok: false, error: "Server error" });
   }
 });
 
-// -----------------------------
-// ADMIN: assign lead to provider
+// POST /admin/providers  (add provider)
+// body: { name, phone, service, zipcode, active, notes }
+app.post("/admin/providers", requireAdmin, async (req, res) => {
+  try {
+    const { name, phone, service = "", zipcode = "", active = true, notes = "" } = req.body || {};
+    if (!name || !phone) return res.status(400).json({ ok: false, error: "name and phone required" });
+
+    const out = await pool.query(
+      `INSERT INTO providers (name, phone, service, zipcode, active, notes)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       RETURNING *`,
+      [name, phone, service, zipcode, !!active, notes]
+    );
+
+    res.json({ ok: true, provider: out.rows[0] });
+  } catch (err) {
+    console.error("❌ /admin/providers POST error:", err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
 // POST /admin/assign
-// Body: { leadId, providerId }
-// -----------------------------
+// body: { lead_id, provider_id }
 app.post("/admin/assign", requireAdmin, async (req, res) => {
   try {
-    const { leadId, providerId } = req.body || {};
-    if (!leadId || !providerId) return res.status(400).json({ ok: false, error: "leadId + providerId required" });
+    const { lead_id, provider_id } = req.body || {};
+    if (!lead_id || !provider_id)
+      return res.status(400).json({ ok: false, error: "lead_id and provider_id required" });
+
+    const leadOut = await pool.query(`SELECT * FROM leads WHERE id=$1`, [lead_id]);
+    const provOut = await pool.query(`SELECT * FROM providers WHERE id=$1`, [provider_id]);
+
+    if (!leadOut.rows[0]) return res.status(404).json({ ok: false, error: "Lead not found" });
+    if (!provOut.rows[0]) return res.status(404).json({ ok: false, error: "Provider not found" });
+
+    const lead = leadOut.rows[0];
+    const provider = provOut.rows[0];
 
     await pool.query(
       `UPDATE leads
-       SET assigned_provider_id = $1, status = 'assigned'
-       WHERE id = $2`,
-      [providerId, leadId]
+       SET status='assigned', assigned_provider_id=$1
+       WHERE id=$2`,
+      [provider_id, lead_id]
     );
 
-    const lead = await pool.query(`SELECT * FROM leads WHERE id = $1`, [leadId]);
-    const provider = await pool.query(`SELECT * FROM providers WHERE id = $1`, [providerId]);
+    // notify provider by SMS (optional)
+    if (smsClient && TWILIO_NUMBER && provider.phone) {
+      const msg =
+        `✅ New Lead Assigned\n` +
+        `Lead ID: ${lead.id}\n` +
+        `Name: ${lead.name || "-"}\n` +
+        `Phone: ${lead.phone}\n` +
+        `Service: ${lead.service || "-"}\n` +
+        `Zip: ${lead.zipcode || "-"}\n`;
 
-    // Optional: text provider
-    if (provider.rows[0]?.phone && twilioClient) {
-      const msg = `📲 New Lead Assigned\nLead #${leadId}\nPhone: ${lead.rows[0]?.phone || "N/A"}\nService: ${lead.rows[0]?.service || "N/A"}\nZip: ${lead.rows[0]?.zip || "N/A"}`;
-      await sendSms(provider.rows[0].phone, msg);
+      await smsClient.messages.create({
+        from: TWILIO_NUMBER,
+        to: provider.phone,
+        body: msg,
+      });
     }
 
     res.json({ ok: true });
   } catch (err) {
     console.error("❌ /admin/assign error:", err);
-    res.status(500).json({ ok: false, error: String(err?.message || err) });
+    res.status(500).json({ ok: false, error: "Server error" });
   }
 });
 
-// -----------------------------
-// ADMIN: send SMS (manual)
 // POST /admin/sms
-// Body: { to, body }
-// -----------------------------
+// body: { to, body }
 app.post("/admin/sms", requireAdmin, async (req, res) => {
   try {
     const { to, body } = req.body || {};
-    if (!to || !body) return res.status(400).json({ ok: false, error: "to + body required" });
-    const sent = await sendSms(to, body);
-    res.json({ ok: true, sid: sent.sid });
+    if (!to || !body) return res.status(400).json({ ok: false, error: "to and body required" });
+    if (!smsClient) return res.status(500).json({ ok: false, error: "Twilio not configured" });
+
+    const msg = await smsClient.messages.create({
+      from: TWILIO_NUMBER,
+      to,
+      body,
+    });
+
+    res.json({ ok: true, sid: msg.sid });
   } catch (err) {
     console.error("❌ /admin/sms error:", err);
-    res.status(500).json({ ok: false, error: String(err?.message || err) });
+    res.status(500).json({ ok: false, error: "Server error" });
   }
 });
 
-// -----------------------------
-// Start server
-// -----------------------------
+// =====================================================
+// Twilio Webhook (optional inbound SMS)
+// =====================================================
+app.post("/twilio/sms", async (req, res) => {
+  // You can expand this later.
+  res.type("text/xml").send(`<Response></Response>`);
+});
+
+// ---------- Start ----------
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
