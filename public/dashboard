@@ -1,1 +1,238 @@
+{<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Nationwide Leads – Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#121a2b;
+      --card:#16213a;
+      --accent:#4f8cff;
+      --text:#e8ecf3;
+      --muted:#9aa4bf;
+      --success:#3ddc97;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    .layout{
+      display:flex;
+      min-height:100vh;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      width:260px;
+      background:linear-gradient(180deg,#0e1730,#0a1022);
+      padding:18px;
+    }
+
+    .brand{
+      font-weight:700;
+      font-size:18px;
+      margin-bottom:20px;
+    }
+
+    .nav button{
+      width:100%;
+      background:transparent;
+      border:0;
+      color:var(--text);
+      padding:12px;
+      text-align:left;
+      border-radius:10px;
+      margin-bottom:8px;
+      cursor:pointer;
+    }
+    .nav button.active,
+    .nav button:hover{
+      background:var(--card);
+    }
+
+    /* Content */
+    .content{
+      flex:1;
+      padding:22px;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:16px;
+    }
+
+    .status{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:var(--card);
+      padding:8px 12px;
+      border-radius:20px;
+      font-size:13px;
+    }
+
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      background:#888;
+    }
+    .dot.online{ background:var(--success); }
+
+    /* Cards */
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:14px;
+      margin-bottom:18px;
+    }
+
+    .card{
+      background:var(--card);
+      padding:16px;
+      border-radius:14px;
+    }
+    .card h3{
+      margin:0;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .card .num{
+      font-size:28px;
+      font-weight:700;
+      margin-top:6px;
+    }
+
+    /* Table */
+    .tableWrap{
+      background:var(--panel);
+      border-radius:14px;
+      overflow:auto;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:720px;
+    }
+
+    th,td{
+      padding:14px;
+      border-bottom:1px solid #1f2a44;
+      text-align:left;
+      font-size:14px;
+    }
+
+    th{
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .assign{
+      background:var(--accent);
+      color:white;
+      border:0;
+      padding:6px 10px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+
+    /* Mobile */
+    @media (max-width: 700px){
+      .layout{ flex-direction:column; }
+      .sidebar{ width:100%; }
+      .cards{ grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">Nationwide Leads</div>
+    <div class="nav">
+      <button class="active">🏠 Dashboard</button>
+      <button>👷 Providers</button>
+      <button>💬 SMS Center</button>
+      <button>⚙️ Settings</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <h2>Admin Dashboard</h2>
+      <div class="status">
+        <span class="dot" id="dot"></span>
+        <span id="connText">Not connected</span>
+      </div>
+    </div>
+
+    <section class="cards">
+      <div class="card"><h3>Total Leads</h3><div class="num" id="total">—</div></div>
+      <div class="card"><h3>Pending</h3><div class="num" id="pending">—</div></div>
+      <div class="card"><h3>Assigned</h3><div class="num" id="assigned">—</div></div>
+      <div class="card"><h3>Providers</h3><div class="num">—</div></div>
+    </section>
+
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Phone</th>
+            <th>Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script>
+const API = location.origin;
+
+async function loadLeads(){
+  try{
+    const r = await fetch(API + "/admin/leads");
+    const data = await r.json();
+
+    document.getElementById("dot").classList.add("online");
+    document.getElementById("connText").innerText = "Connected";
+
+    document.getElementById("total").innerText = data.length;
+    document.getElementById("pending").innerText = data.length;
+    document.getElementById("assigned").innerText = 0;
+
+    const tbody = document.getElementById("rows");
+    tbody.innerHTML = "";
+
+    data.forEach(l=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${l.id}</td>
+        <td>${l.phone || "—"}</td>
+        <td>${new Date(l.created_at).toLocaleString()}</td>
+        <td><button class="assign">Assign</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }catch(e){
+    console.error(e);
+  }
+}
+
+loadLeads();
+</script>
+
+</body>
+</html>
