@@ -2,119 +2,108 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Nationwide Leads – Admin Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nationwide Leads — Admin</title>
 
 <style>
 :root{
-  --bg:#0b1220;
-  --panel:#121a2f;
-  --card:#18224a;
-  --accent:#4f8cff;
-  --text:#e9ecff;
-  --muted:#9aa3c7;
-  --green:#27c281;
-  --yellow:#f5b942;
-  --red:#ff5d5d;
-  --radius:14px;
+--bg:#0b1220;
+--panel:#121a2f;
+--card:#18224a;
+--accent:#4f8cff;
+--text:#e9efff;
+--muted:#9aa3c7;
+--green:#2ecc71;
+--red:#ff5c5c;
+--radius:14px;
 }
 
 *{box-sizing:border-box}
 body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial;
-  background:linear-gradient(180deg,#0b1220,#060a14);
-  color:var(--text);
+margin:0;
+font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial;
+background:linear-gradient(180deg,#0b1220,#0f1630);
+color:var(--text);
 }
 
 .app{
-  max-width:1200px;
-  margin:auto;
-  padding:16px;
+max-width:420px;
+margin:auto;
+padding:16px;
 }
 
-/* HEADER */
+/* Header */
 .header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:16px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:16px;
 }
 .header h1{
-  font-size:20px;
-  margin:0;
+font-size:18px;
+margin:0;
 }
 .status{
-  font-size:13px;
-  color:var(--green);
+font-size:12px;
+color:var(--green);
 }
 
-/* STATS */
+/* Stats */
 .stats{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:12px;
-  margin-bottom:16px;
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:12px;
+margin-bottom:16px;
 }
-.stat{
-  background:var(--card);
-  padding:14px;
-  border-radius:var(--radius);
+.card{
+background:var(--card);
+border-radius:var(--radius);
+padding:14px;
 }
-.stat h3{
-  margin:0;
-  font-size:22px;
+.card h2{
+margin:0;
+font-size:22px;
 }
-.stat p{
-  margin:4px 0 0;
-  font-size:12px;
-  color:var(--muted);
-}
-
-/* TABLE */
-.panel{
-  background:var(--panel);
-  border-radius:var(--radius);
-  padding:14px;
-}
-.panel h2{
-  margin:0 0 12px;
-  font-size:16px;
+.card p{
+margin:4px 0 0;
+font-size:12px;
+color:var(--muted);
 }
 
-.table-wrap{
-  overflow-x:auto;
+/* Section */
+.section{
+background:var(--panel);
+border-radius:var(--radius);
+padding:14px;
 }
-table{
-  width:100%;
-  border-collapse:collapse;
-  min-width:700px;
+.section h3{
+margin:0 0 10px;
+font-size:15px;
 }
-th,td{
-  padding:10px;
-  text-align:left;
-  font-size:13px;
-}
-th{
-  color:var(--muted);
-  font-weight:600;
-}
-tr{
-  border-bottom:1px solid rgba(255,255,255,0.06);
-}
-.badge{
-  padding:4px 8px;
-  border-radius:8px;
-  font-size:11px;
-}
-.pending{background:rgba(245,185,66,.15);color:var(--yellow)}
-.assigned{background:rgba(39,194,129,.15);color:var(--green)}
-.new{background:rgba(79,140,255,.15);color:var(--accent)}
 
-/* MOBILE */
-@media(max-width:720px){
-  .stats{grid-template-columns:1fr 1fr}
-  .header h1{font-size:18px}
+/* Table */
+.table{
+width:100%;
+border-collapse:collapse;
+}
+.table th,
+.table td{
+text-align:left;
+font-size:13px;
+padding:8px 0;
+}
+.table th{
+color:var(--muted);
+border-bottom:1px solid rgba(255,255,255,.08);
+}
+.table td{
+border-bottom:1px solid rgba(255,255,255,.05);
+}
+.footer{
+text-align:center;
+margin-top:14px;
+font-size:11px;
+color:var(--muted);
 }
 </style>
 </head>
@@ -122,999 +111,84 @@ tr{
 <body>
 <div class="app">
 
-  <div class="header">
-    <h1>Nationwide Leads — Admin</h1>
-    <div class="status">● Live</div>
-  </div>
+<!-- HEADER -->
+<div class="header">
+<h1>Nationwide Leads — Admin</h1>
+<div class="status">● Live</div>
+</div>
 
-  <div class="stats">
-    <div class="stat"><h3>168</h3><p>Requests Processed</p></div>
-    <div class="stat"><h3>121</h3><p>Pending</p></div>
-    <div class="stat"><h3>35</h3><p>Cancelled</p></div>
-    <div class="stat"><h3>40</h3><p>Active Providers</p></div>
-  </div>
+<!-- STATS -->
+<div class="stats">
+<div class="card">
+<h2 id="processed">0</h2>
+<p>Requests Processed</p>
+</div>
+<div class="card">
+<h2 id="pending">0</h2>
+<p>Pending</p>
+</div>
+<div class="card">
+<h2 id="cancelled">0</h2>
+<p>Cancelled</p>
+</div>
+<div class="card">
+<h2 id="providers">0</h2>
+<p>Active Providers</p>
+</div>
+</div>
 
-  <div class="panel">
-    <h2>Live Service Requests</h2>
+<!-- LIVE REQUESTS -->
+<div class="section">
+<h3>Live Service Requests</h3>
+<table class="table">
+<thead>
+<tr>
+<th>Customer</th>
+<th>Service</th>
+</tr>
+</thead>
+<tbody id="requests">
+<tr><td>Loading…</td><td></td></tr>
+</tbody>
+</table>
+</div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Customer</th>
-            <th>Service</th>
-            <th>City</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>John D.</td>
-            <td>Lockout</td>
-            <td>Baltimore</td>
-            <td><span class="badge new">New</span></td>
-          </tr>
-          <tr>
-            <td>Maria S.</td>
-            <td>Rekey</td>
-            <td>Towson</td>
-            <td><span class="badge pending">Pending</span></td>
-          </tr>
-          <tr>
-            <td>Kevin R.</td>
-            <td>Car Key</td>
-            <td>Edgewood</td>
-            <td><span class="badge assigned">Assigned</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+<div class="footer">
+Citywide Leads is a lead-generation platform. Services performed by independent providers.
+</div>
 
 </div>
-</body>
-</html>
-    }
-    .brand{
-      line-height:1.15;
-    }
-    .brand b{ display:block; font-size: 14px; letter-spacing:.2px; }
-    .brand small{ color: var(--muted); font-size: 12px; }
 
-    .sbNav{ padding: 10px; display:flex; flex-direction:column; gap:6px; }
-    .navBtn{
-      width:100%;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--muted);
-      padding: 11px 12px;
-      border-radius: 12px;
-      text-align:left;
-      display:flex;
-      gap: 10px;
-      align-items:center;
-      cursor:pointer;
-      transition: .18s ease;
-      user-select:none;
-    }
-    .navBtn:hover{
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      border-color: rgba(255,255,255,.08);
-    }
-    .navBtn.active{
-      background: rgba(59,130,246,.14);
-      border-color: rgba(59,130,246,.30);
-      color: var(--text);
-    }
-    .navIcon{ width:22px; text-align:center; opacity:.95; }
-    .sbFoot{
-      padding: 12px 14px 14px;
-      border-top: 1px solid var(--stroke);
-      color: var(--muted2);
-      font-size: 12px;
-      line-height:1.35;
-    }
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
-    }
-    .dot{
-      width:10px; height:10px; border-radius:999px; background: var(--red);
-      box-shadow: 0 0 0 3px rgba(239,68,68,.18);
-    }
-    .dot.ok{ background: var(--green); box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
-
-    /* --- Main --- */
-    .main{
-      border-radius: var(--radius);
-      border: 1px solid var(--stroke);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .topbar{
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--stroke);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-    }
-    .topbar h1{
-      margin:0;
-      font-size: 15px;
-      letter-spacing:.2px;
-    }
-    .topbar .right{
-      display:flex;
-      gap: 10px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-
-    .field{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      padding: 10px 10px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.16);
-      border-radius: 14px;
-    }
-    .field label{
-      font-size: 12px;
-      color: var(--muted);
-      white-space:nowrap;
-    }
-    .field input{
-      width: 240px;
-      max-width: 52vw;
-      background: transparent;
-      border: none;
-      outline:none;
-      color: var(--text);
-      font-size: 12.5px;
-    }
-
-    .btn{
-      border:none;
-      outline:none;
-      cursor:pointer;
-      border-radius: 14px;
-      padding: 10px 12px;
-      font-size: 12.5px;
-      color: white;
-      background: linear-gradient(135deg, var(--blue), #1d4ed8);
-      box-shadow: 0 12px 26px rgba(59,130,246,.22);
-      transition: transform .15s ease, opacity .15s ease;
-      white-space:nowrap;
-    }
-    .btn:hover{ transform: translateY(-1px); }
-    .btn:active{ transform: translateY(0px); opacity:.92; }
-    .btn.gray{
-      background: rgba(255,255,255,.10);
-      box-shadow:none;
-      border: 1px solid rgba(255,255,255,.14);
-      color: var(--text);
-    }
-    .btn.red{
-      background: linear-gradient(135deg, var(--red), #b91c1c);
-      box-shadow: 0 12px 26px rgba(239,68,68,.18);
-    }
-
-    .section{
-      padding: 16px;
-    }
-
-    /* --- Stats cards --- */
-    .cardsGrid{
-      display:grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-    .card{
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-      border-radius: var(--radius2);
-      padding: 14px 14px;
-      position:relative;
-      overflow:hidden;
-      min-height: 86px;
-    }
-    .card:before{
-      content:"";
-      position:absolute;
-      inset:-60px -40px auto auto;
-      width: 160px;
-      height: 160px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 62%);
-      transform: rotate(18deg);
-      pointer-events:none;
-    }
-    .kpi{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .kpi b{ font-size: 24px; letter-spacing:.2px; }
-    .kpi small{ color: var(--muted); display:block; margin-top:4px; font-size: 12px; }
-    .tag{
-      font-size: 11px;
-      padding: 6px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.20);
-      color: var(--muted);
-    }
-    .tag.green{ border-color: rgba(34,197,94,.35); color: rgba(187,247,208,.92); }
-    .tag.amber{ border-color: rgba(245,158,11,.35); color: rgba(253,230,138,.92); }
-    .tag.blue{ border-color: rgba(59,130,246,.35); color: rgba(191,219,254,.92); }
-    .tag.red{ border-color: rgba(239,68,68,.35); color: rgba(254,202,202,.92); }
-
-    /* --- Content grid: table + right panel --- */
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 320px;
-      gap: 12px;
-      align-items:start;
-    }
-
-    .panel{
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-      border-radius: var(--radius2);
-      overflow:hidden;
-    }
-    .panelHd{
-      padding: 12px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .panelHd b{ font-size: 13px; }
-    .panelHd small{ color: var(--muted); font-size: 12px; }
-
-    /* Table */
-    .tableWrap{
-      overflow-x:auto;
-    }
-    table{
-      width:100%;
-      border-collapse:collapse;
-      min-width: 760px;
-    }
-    th, td{
-      padding: 10px 10px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      font-size: 12.5px;
-      vertical-align:top;
-    }
-    th{
-      color: var(--muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 11px;
-      letter-spacing:.7px;
-      background: rgba(0,0,0,.15);
-      position: sticky;
-      top:0;
-      z-index:2;
-    }
-    tr:hover td{ background: rgba(255,255,255,.03); }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
-
-    .status{
-      display:inline-flex;
-      align-items:center;
-      gap: 8px;
-      padding: 6px 9px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.16);
-      font-size: 12px;
-      color: var(--muted);
-      white-space:nowrap;
-    }
-    .sDot{ width:8px; height:8px; border-radius:999px; background: var(--amber); }
-    .status.pending .sDot{ background: var(--amber); }
-    .status.assigned .sDot{ background: var(--green); }
-    .status.cancelled .sDot{ background: var(--red); }
-
-    .rowBtns{
-      display:flex;
-      gap: 8px;
-      flex-wrap:wrap;
-    }
-    .miniBtn{
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      padding: 7px 9px;
-      border-radius: 12px;
-      cursor:pointer;
-      font-size: 12px;
-      white-space:nowrap;
-    }
-    .miniBtn:hover{ background: rgba(255,255,255,.10); }
-
-    /* Right panel controls */
-    .stack{ padding: 12px; display:flex; flex-direction:column; gap: 10px; }
-    .select, .input, textarea{
-      width:100%;
-      border-radius: 12px;
-      padding: 10px 10px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.16);
-      color: var(--text);
-      outline:none;
-      font-size: 12.5px;
-    }
-    textarea{ min-height: 84px; resize: vertical; }
-    .hint{ color: var(--muted2); font-size: 12px; line-height:1.35; }
-    .line{ height:1px; background: rgba(255,255,255,.08); margin: 2px 0; }
-
-    /* Small helper row */
-    .subbar{
-      margin-top: 10px;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
-    }
-    .subbarLeft{
-      display:flex;
-      gap: 8px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.14);
-      color: var(--muted);
-      font-size: 12px;
-      white-space:nowrap;
-    }
-
-    /* --- Mobile --- */
-    @media (max-width: 980px){
-      .layout{ grid-template-columns: 1fr; }
-      .sidebar{ position:relative; top:0; }
-      .grid2{ grid-template-columns: 1fr; }
-    }
-    @media (max-width: 520px){
-      .appShell{ padding: 12px; }
-      .topbar{ padding: 12px; }
-      .section{ padding: 12px; }
-      .cardsGrid{ grid-template-columns: 1fr 1fr; }
-      .field input{ width: 180px; }
-      table{ min-width: 820px; } /* swipe table */
-    }
-  </style>
-</head>
-
-<body>
-  <div class="appShell">
-    <div class="layout">
-
-      <!-- SIDEBAR -->
-      <aside class="sidebar">
-        <div class="sbTop">
-          <div class="logoDot"></div>
-          <div class="brand">
-            <b>Nationwide Leads</b>
-            <small>Admin • Routing Dashboard</small>
-          </div>
-        </div>
-
-        <div class="sbNav">
-          <button class="navBtn active" data-tab="dashboard"><span class="navIcon">🏠</span> Dashboard</button>
-          <button class="navBtn" data-tab="providers"><span class="navIcon">🧰</span> Providers</button>
-          <button class="navBtn" data-tab="sms"><span class="navIcon">💬</span> SMS Center</button>
-          <button class="navBtn" data-tab="settings"><span class="navIcon">⚙️</span> Settings</button>
-        </div>
-
-        <div class="sbFoot">
-          <div class="pill" id="connPill">
-            <span class="dot" id="connDot"></span>
-            <span id="connText">Not connected</span>
-          </div>
-          <div style="height:10px"></div>
-          Tip: keep your <b>ADMIN_TOKEN</b> private.<br/>
-          (Saved locally in your browser only.)
-        </div>
-      </aside>
-
-      <!-- MAIN -->
-      <main class="main">
-
-        <div class="topbar">
-          <h1>Operations Dashboard</h1>
-          <div class="right">
-            <div class="field">
-              <label>Server</label>
-              <input id="serverUrl" placeholder="https://your-app.onrender.com" />
-            </div>
-            <div class="field">
-              <label>Token</label>
-              <input id="adminToken" placeholder="ADMIN_TOKEN" />
-            </div>
-            <button class="btn" id="btnConnect">Connect</button>
-            <button class="btn gray" id="btnRefresh">Refresh</button>
-          </div>
-        </div>
-
-        <!-- DASHBOARD TAB -->
-        <section class="section" id="tab-dashboard">
-
-          <div class="cardsGrid">
-            <div class="card">
-              <div class="kpi">
-                <div>
-                  <b id="kpiTotal">—</b>
-                  <small>Total leads</small>
-                </div>
-                <span class="tag blue">All</span>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="kpi">
-                <div>
-                  <b id="kpiPending">—</b>
-                  <small>Pending</small>
-                </div>
-                <span class="tag amber">Needs action</span>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="kpi">
-                <div>
-                  <b id="kpiAssigned">—</b>
-                  <small>Assigned</small>
-                </div>
-                <span class="tag green">Dispatched</span>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="kpi">
-                <div>
-                  <b id="kpiCancelled">—</b>
-                  <small>Cancelled</small>
-                </div>
-                <span class="tag red">Dropped</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="subbar">
-            <div class="subbarLeft">
-              <span class="chip">View:</span>
-              <select class="select" id="filterStatus" style="max-width:200px">
-                <option value="">All</option>
-                <option value="pending">Pending</option>
-                <option value="assigned">Assigned</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-              <span class="chip" id="lastUpdated">Last updated: —</span>
-            </div>
-            <div class="subbarLeft">
-              <button class="btn gray" id="btnAuto" title="Auto-refresh every 10s">Auto: OFF</button>
-            </div>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <div class="grid2">
-
-            <!-- Leads Table -->
-            <div class="panel">
-              <div class="panelHd">
-                <b>Service Requests</b>
-                <small id="tblCount">—</small>
-              </div>
-              <div class="tableWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Created</th>
-                      <th>Customer</th>
-                      <th>Phone</th>
-                      <th>Service</th>
-                      <th>Zip</th>
-                      <th>Status</th>
-                      <th>Assign</th>
-                    </tr>
-                  </thead>
-                  <tbody id="leadsBody"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Right Panel -->
-            <div class="panel">
-              <div class="panelHd">
-                <b>Quick Actions</b>
-                <small>Assign + SMS</small>
-              </div>
-
-              <div class="stack">
-                <div class="hint">
-                  Click a lead’s <b>Assign</b> button to load it here, then pick a provider and dispatch.
-                </div>
-
-                <div class="line"></div>
-
-                <div>
-                  <div class="hint">Selected Lead</div>
-                  <input class="input" id="selectedLead" placeholder="Lead ID (click Assign on a row)" />
-                </div>
-
-                <div>
-                  <div class="hint">Provider</div>
-                  <select class="select" id="providerSelect">
-                    <option value="">Loading providers…</option>
-                  </select>
-                </div>
-
-                <button class="btn" id="btnAssignLead">Assign Provider</button>
-
-                <div class="line"></div>
-
-                <div>
-                  <div class="hint">Send manual SMS</div>
-                  <input class="input" id="smsTo" placeholder="+1xxxxxxxxxx" />
-                  <textarea id="smsBody" placeholder="Type message…"></textarea>
-                  <button class="btn gray" id="btnSendSms">Send SMS</button>
-                </div>
-
-                <div class="hint" id="actionMsg"></div>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-        <!-- PROVIDERS TAB -->
-        <section class="section" id="tab-providers" style="display:none">
-          <div class="panel">
-            <div class="panelHd">
-              <b>Providers</b>
-              <small id="provCount">—</small>
-            </div>
-            <div class="tableWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Created</th>
-                    <th>Name</th>
-                    <th>Phone</th>
-                    <th>Service</th>
-                    <th>Zip</th>
-                    <th>Active</th>
-                  </tr>
-                </thead>
-                <tbody id="provBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <div class="panel">
-            <div class="panelHd">
-              <b>Add Provider</b>
-              <small>Admin only</small>
-            </div>
-            <div class="stack" style="max-width:520px">
-              <input class="input" id="pName" placeholder="Provider name" />
-              <input class="input" id="pPhone" placeholder="Provider phone (E.164) e.g. +1410..." />
-              <input class="input" id="pService" placeholder="Service (optional) e.g. locksmith" />
-              <input class="input" id="pZip" placeholder="Zip (optional)" />
-              <textarea id="pNotes" placeholder="Notes (optional)"></textarea>
-              <button class="btn" id="btnAddProvider">Add Provider</button>
-              <div class="hint" id="provMsg"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- SMS TAB -->
-        <section class="section" id="tab-sms" style="display:none">
-          <div class="panel">
-            <div class="panelHd">
-              <b>SMS Center</b>
-              <small>Send broadcast/manual messages</small>
-            </div>
-            <div class="stack" style="max-width:620px">
-              <input class="input" id="smsTo2" placeholder="To: +1xxxxxxxxxx" />
-              <textarea id="smsBody2" placeholder="Message"></textarea>
-              <button class="btn" id="btnSendSms2">Send SMS</button>
-              <div class="hint" id="smsMsg2"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- SETTINGS TAB -->
-        <section class="section" id="tab-settings" style="display:none">
-          <div class="panel">
-            <div class="panelHd">
-              <b>Settings</b>
-              <small>Local browser only</small>
-            </div>
-            <div class="stack" style="max-width:640px">
-              <div class="hint">
-                This page calls your Render server directly. Wix embeds show it inside an iframe.
-                For best results, open the dashboard from Render:
-                <div style="margin-top:8px">
-                  <span class="chip mono" id="dashLinkChip">https://YOUR-APP.onrender.com/dashboard</span>
-                </div>
-              </div>
-
-              <div class="line"></div>
-
-              <button class="btn red" id="btnClear">Clear saved Server + Token</button>
-              <div class="hint" id="setMsg"></div>
-            </div>
-          </div>
-        </section>
-
-      </main>
-    </div>
-  </div>
-
-  <script>
-    // -----------------------------
-    // Helpers
-    // -----------------------------
-    const $ = (id) => document.getElementById(id);
-
-    function saveLocal(key, val){ localStorage.setItem(key, val || ""); }
-    function loadLocal(key){ return localStorage.getItem(key) || ""; }
-
-    function fmtDate(ts){
-      try{
-        const d = new Date(ts);
-        return d.toLocaleString();
-      }catch{ return ""; }
-    }
-
-    function setConn(ok){
-      const dot = $("connDot");
-      const txt = $("connText");
-      dot.classList.toggle("ok", !!ok);
-      txt.textContent = ok ? "Connected" : "Not connected";
-    }
-
-    function setMsg(el, msg){
-      el.textContent = msg || "";
-    }
-
-    function baseUrl(){
-      let u = $("serverUrl").value.trim();
-      u = u.replace(/\/+$/,""); // no trailing slash
-      return u;
-    }
-
-    function token(){
-      return $("adminToken").value.trim();
-    }
-
-    async function api(path, options={}){
-      const url = baseUrl() + path;
-      const headers = options.headers || {};
-      headers["x-admin-token"] = token();
-      options.headers = headers;
-      const res = await fetch(url, options);
-      if(!res.ok){
-        const t = await res.text().catch(()=> "");
-        throw new Error(res.status + " " + res.statusText + (t ? (" — " + t) : ""));
-      }
-      // some endpoints return array; some return object
-      const text = await res.text();
-      try{ return JSON.parse(text); } catch { return text; }
-    }
-
-    // -----------------------------
-    // Tabs
-    // -----------------------------
-    const tabMap = {
-      dashboard: "tab-dashboard",
-      providers: "tab-providers",
-      sms: "tab-sms",
-      settings: "tab-settings"
-    };
-
-    function showTab(name){
-      document.querySelectorAll(".navBtn").forEach(b => b.classList.remove("active"));
-      document.querySelector(`.navBtn[data-tab="${name}"]`)?.classList.add("active");
-
-      Object.values(tabMap).forEach(id => $(id).style.display="none");
-      $(tabMap[name]).style.display="block";
-    }
-
-    document.querySelectorAll(".navBtn").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        showTab(btn.dataset.tab);
-      });
-    });
-
-    // -----------------------------
-    // Data loading
-    // -----------------------------
-    let autoTimer = null;
-    let autoOn = false;
-
-    async function loadStatus(){
-      const data = await api("/admin/status");
-      $("kpiTotal").textContent = data.total ?? "0";
-      $("kpiPending").textContent = data.pending ?? "0";
-      $("kpiAssigned").textContent = data.assigned ?? "0";
-      $("kpiCancelled").textContent = data.cancelled ?? "0";
-    }
-
-    function renderLeads(rows){
-      const tbody = $("leadsBody");
-      tbody.innerHTML = "";
-      $("tblCount").textContent = `${rows.length} shown`;
-
-      for(const r of rows){
-        const tr = document.createElement("tr");
-
-        const status = (r.status || "pending").toLowerCase();
-        const statusHtml = `
-          <span class="status ${status}">
-            <span class="sDot"></span>
-            <span>${status}</span>
-          </span>
-        `;
-
-        tr.innerHTML = `
-          <td class="mono">${r.id}</td>
-          <td>${fmtDate(r.created_at)}</td>
-          <td>${escapeHtml(r.name || "-")}</td>
-          <td class="mono">${escapeHtml(r.phone || "-")}</td>
-          <td>${escapeHtml(r.service || "-")}</td>
-          <td>${escapeHtml(r.zipcode || "-")}</td>
-          <td>${statusHtml}</td>
-          <td>
-            <div class="rowBtns">
-              <button class="miniBtn" data-assign="${r.id}">Assign</button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      }
-
-      // bind assign buttons
-      tbody.querySelectorAll("button[data-assign]").forEach(b=>{
-        b.addEventListener("click", ()=>{
-          $("selectedLead").value = b.dataset.assign;
-          setMsg($("actionMsg"), `Selected lead #${b.dataset.assign}. Choose provider then click Assign Provider.`);
-        });
-      });
-    }
-
-    async function loadLeads(){
-      const st = $("filterStatus").value;
-      const q = st ? `?status=${encodeURIComponent(st)}&limit=200` : `?limit=200`;
-      const rows = await api("/admin/leads" + q);
-      renderLeads(Array.isArray(rows) ? rows : []);
-    }
-
-    function renderProviders(rows){
-      // right panel dropdown
-      const sel = $("providerSelect");
-      sel.innerHTML = `<option value="">Select provider…</option>`;
-      for(const p of rows){
-        const opt = document.createElement("option");
-        opt.value = p.id;
-        const label = `${p.name} (${p.phone})${p.active ? "" : " [inactive]"}`;
-        opt.textContent = label;
-        sel.appendChild(opt);
-      }
-
-      // providers tab table
-      const tbody = $("provBody");
-      tbody.innerHTML = "";
-      $("provCount").textContent = `${rows.length} providers`;
-
-      for(const p of rows){
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="mono">${p.id}</td>
-          <td>${fmtDate(p.created_at)}</td>
-          <td>${escapeHtml(p.name || "-")}</td>
-          <td class="mono">${escapeHtml(p.phone || "-")}</td>
-          <td>${escapeHtml(p.service || "-")}</td>
-          <td>${escapeHtml(p.zipcode || "-")}</td>
-          <td>${p.active ? "✅" : "—"}</td>
-        `;
-        tbody.appendChild(tr);
-      }
-    }
-
-    async function loadProviders(){
-      const rows = await api("/admin/providers");
-      renderProviders(Array.isArray(rows) ? rows : []);
-    }
-
-    async function refreshAll(){
-      try{
-        setConn(false);
-        setMsg($("actionMsg"), "Loading…");
-        await loadStatus();
-        await loadProviders();
-        await loadLeads();
-
-        $("lastUpdated").textContent = "Last updated: " + new Date().toLocaleTimeString();
-        $("dashLinkChip").textContent = (baseUrl() || "https://YOUR-APP.onrender.com") + "/dashboard";
-
-        setConn(true);
-        setMsg($("actionMsg"), "✅ Loaded. Click Assign on a lead to dispatch.");
-      }catch(err){
-        console.error(err);
-        setConn(false);
-        setMsg($("actionMsg"), "❌ " + err.message);
-      }
-    }
-
-    // -----------------------------
-    // Actions
-    // -----------------------------
-    $("btnConnect").addEventListener("click", async ()=>{
-      saveLocal("nl_server", baseUrl());
-      saveLocal("nl_token", token());
-      await refreshAll();
-    });
-
-    $("btnRefresh").addEventListener("click", refreshAll);
-
-    $("filterStatus").addEventListener("change", loadLeads);
-
-    $("btnAuto").addEventListener("click", ()=>{
-      autoOn = !autoOn;
-      $("btnAuto").textContent = autoOn ? "Auto: ON" : "Auto: OFF";
-      if(autoOn){
-        autoTimer = setInterval(refreshAll, 10000);
-      }else{
-        clearInterval(autoTimer);
-        autoTimer = null;
-      }
-    });
-
-    $("btnAssignLead").addEventListener("click", async ()=>{
-      const leadId = $("selectedLead").value.trim();
-      const provId = $("providerSelect").value;
-      if(!leadId) return setMsg($("actionMsg"), "Pick a lead first (click Assign on a row).");
-      if(!provId) return setMsg($("actionMsg"), "Pick a provider first.");
-
-      try{
-        setMsg($("actionMsg"), "Assigning…");
-        await api("/admin/assign", {
-          method:"POST",
-          headers: { "Content-Type":"application/json" },
-          body: JSON.stringify({ lead_id: Number(leadId), provider_id: Number(provId) })
-        });
-        setMsg($("actionMsg"), `✅ Lead #${leadId} assigned to provider #${provId}`);
-        await refreshAll();
-      }catch(err){
-        setMsg($("actionMsg"), "❌ " + err.message);
-      }
-    });
-
-    $("btnSendSms").addEventListener("click", async ()=>{
-      const to = $("smsTo").value.trim();
-      const body = $("smsBody").value.trim();
-      if(!to || !body) return setMsg($("actionMsg"), "Enter To + message.");
-      try{
-        setMsg($("actionMsg"), "Sending SMS…");
-        await api("/admin/sms", {
-          method:"POST",
-          headers: { "Content-Type":"application/json" },
-          body: JSON.stringify({ to, body })
-        });
-        setMsg($("actionMsg"), "✅ SMS sent");
-        $("smsBody").value = "";
-      }catch(err){
-        setMsg($("actionMsg"), "❌ " + err.message);
-      }
-    });
-
-    // SMS tab
-    $("btnSendSms2").addEventListener("click", async ()=>{
-      const to = $("smsTo2").value.trim();
-      const body = $("smsBody2").value.trim();
-      if(!to || !body) return setMsg($("smsMsg2"), "Enter To + message.");
-      try{
-        setMsg($("smsMsg2"), "Sending…");
-        await api("/admin/sms", {
-          method:"POST",
-          headers: { "Content-Type":"application/json" },
-          body: JSON.stringify({ to, body })
-        });
-        setMsg($("smsMsg2"), "✅ Sent");
-        $("smsBody2").value = "";
-      }catch(err){
-        setMsg($("smsMsg2"), "❌ " + err.message);
-      }
-    });
-
-    // Add provider
-    $("btnAddProvider").addEventListener("click", async ()=>{
-      const name = $("pName").value.trim();
-      const phone = $("pPhone").value.trim();
-      const service = $("pService").value.trim();
-      const zipcode = $("pZip").value.trim();
-      const notes = $("pNotes").value.trim();
-
-      if(!name || !phone) return setMsg($("provMsg"), "Name + phone required.");
-      try{
-        setMsg($("provMsg"), "Adding…");
-        await api("/admin/providers", {
-          method:"POST",
-          headers: { "Content-Type":"application/json" },
-          body: JSON.stringify({ name, phone, service, zipcode, notes, active:true })
-        });
-        setMsg($("provMsg"), "✅ Provider added");
-        $("pName").value=""; $("pPhone").value=""; $("pService").value=""; $("pZip").value=""; $("pNotes").value="";
-        await loadProviders();
-      }catch(err){
-        setMsg($("provMsg"), "❌ " + err.message);
-      }
-    });
-
-    // Clear saved
-    $("btnClear").addEventListener("click", ()=>{
-      localStorage.removeItem("nl_server");
-      localStorage.removeItem("nl_token");
-      $("serverUrl").value = "";
-      $("adminToken").value = "";
-      setMsg($("setMsg"), "✅ Cleared locally saved values.");
-      setConn(false);
-    });
-
-    function escapeHtml(str){
-      return String(str).replace(/[&<>"']/g, s => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[s]));
-    }
-
-    // -----------------------------
-    // Boot
-    // -----------------------------
-    (function boot(){
-      $("serverUrl").value = loadLocal("nl_server");
-      $("adminToken").value = loadLocal("nl_token");
-      showTab("dashboard");
-
-      // If already saved, try auto-load
-      if(baseUrl() && token()){
-        refreshAll();
-      }else{
-        setConn(false);
-        setMsg($("actionMsg"), "Enter Server + ADMIN_TOKEN then click Connect.");
-      }
-    })();
-  </script>
+<script>
+async function loadDashboard(){
+try{
+const res = await fetch("/admin/summary", { credentials:"include" });
+if(!res.ok) throw new Error("Unauthorized");
+const data = await res.json();
+
+document.getElementById("processed").textContent = data.processed || 0;
+document.getElementById("pending").textContent = data.pending || 0;
+document.getElementById("cancelled").textContent = data.cancelled || 0;
+document.getElementById("providers").textContent = data.providers || 0;
+
+const tbody = document.getElementById("requests");
+tbody.innerHTML = "";
+(data.requests || []).forEach(r=>{
+const tr = document.createElement("tr");
+tr.innerHTML = `<td>${r.customer}</td><td>${r.service}</td>`;
+tbody.appendChild(tr);
+});
+
+if(!data.requests || !data.requests.length){
+tbody.innerHTML = "<tr><td>No live requests</td><td></td></tr>";
+}
+}catch(e){
+document.body.innerHTML = "<div style='padding:20px;color:#ff5c5c'>Unauthorized</div>";
+}
+}
+
+loadDashboard();
+setInterval(loadDashboard, 5000);
+</script>
 </body>
 </html>
