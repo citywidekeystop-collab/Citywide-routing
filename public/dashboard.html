@@ -1,87 +1,47 @@
-**
-* server.js — Render-friendly Express server
-* Fixes "Unauthorized" by making "/" and "/health" PUBLIC
-* Protects your API routes with an API key (optional)
-*
-* ENV vars to set on Render:
-* PORT=10000 (Render sets automatically, but ok)
-* API_KEY=some-long-random-string (optional but recommended)
-*/
-
-const express = require("express");
-const cors = require("cors");
-
-const app = express();
-
-/* -------------------- Basics -------------------- */
-app.use(cors());
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
-
-/* -------------------- PUBLIC ROUTES (NO AUTH) -------------------- */
-// Root page: opening your Render link in Safari should show this (NOT Unauthorized)
-app.get("/", (req, res) => {
-res.status(200).send("✅ e-routing server is running (public) — OK");
-});
-
-// Health check route
-app.get("/health", (req, res) => {
-res.status(200).json({
-ok: true,
-service: "e-routing",
-time: new Date().toISOString(),
-});
-});
-
-/* -------------------- API KEY AUTH (FOR PRIVATE ROUTES) -------------------- */
-/**
-* If you set API_KEY on Render, then /api/* routes require:
-* - header: x-api-key: <your key>
-*
-* If you do NOT set API_KEY, the server will allow requests (open mode).
-*/
-function requireApiKey(req, res, next) {
-const expected = process.env.API_KEY;
-if (!expected) return next(); // Open mode if no API_KEY set
-
-const got = req.headers["x-api-key"];
-if (!got || got !== expected) {
-return res.status(401).json({
-ok: false,
-error: "Unauthorized",
-hint: "Send header: x-api-key",
-});
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Nationwide Leads Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+body {
+margin: 0;
+font-family: Arial, Helvetica, sans-serif;
+background: linear-gradient(180deg, #0b1220, #0e1a30);
+color: #fff;
 }
-next();
+.container {
+padding: 24px;
 }
+h1 {
+margin-bottom: 16px;
+}
+.card {
+background: #111c33;
+border-radius: 12px;
+padding: 20px;
+margin-bottom: 16px;
+box-shadow: 0 10px 25px rgba(0,0,0,.35);
+}
+.ok {
+color: #00ff9c;
+font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Nationwide Leads — Admin</h1>
 
-/* -------------------- PRIVATE ROUTES (PROTECTED) -------------------- */
-app.get("/api/ping", requireApiKey, (req, res) => {
-res.json({ ok: true, message: "pong ✅ (authorized)" });
-});
+<div class="card">
+<p>Status: <span class="ok">Dashboard Loaded Successfully ✅</span></p>
+<p>If you see this, your Render + Wix embed is FIXED.</p>
+</div>
 
-// Example lead intake endpoint (Wix / form can post here)
-app.post("/api/lead/new", requireApiKey, (req, res) => {
-const lead = req.body || {};
-// TODO: save to Google Sheet / DB / email / sms
-res.json({
-ok: true,
-received: lead,
-message: "Lead received ✅",
-});
-});
-
-/* -------------------- 404 -------------------- */
-app.use((req, res) => {
-res.status(404).json({
-ok: false,
-error: "Not Found",
-path: req.path,
-});
-});
-
-/* -------------------- Start -------------------- */
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-console.log(`✅ Server running on port ${PORT}`);
-});
+<div class="card">
+<p>Next step: wire live data, providers, and lead routing.</p>
+</div>
+</div>
+</body>
+</html>
