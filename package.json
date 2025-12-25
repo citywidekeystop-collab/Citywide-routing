@@ -1,16 +1,13 @@
+
 {
-  "name": "citywide-routing",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "pg": "^8.11.3",
-    "twilio": "^4.19.0"
-  }
+"name": "e-routing",
+"version": "1.0.0",
+"main": "server.js",
+"scripts": {
+"start": "node server.js"
+},
+"dependencies": {
+"express": "^4.19.2",
+"cors": "^2.8.5"
+}
 }
