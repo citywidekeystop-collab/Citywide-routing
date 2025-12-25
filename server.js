@@ -1,283 +1,218 @@
-
-// server.js — Nationwide Leads / Citywide Routing
-// Render-friendly Express server + Angi-style Admin API + Twilio SMS
-//
-// REQUIRED ENV VARS (Render -> Environment):
-// ADMIN_TOKEN = (your secret token, e.g. belpre334)
-// OPTIONAL (for Twilio SMS):
-// TWILIO_ACCOUNT_SID
-// TWILIO_AUTH_TOKEN
-// TWILIO_NUMBER (your Twilio phone, e.g. +1410xxxxxxx)
-//
-// Runs on Render PORT automatically.
+// server.js — Nationwide Leads / Citywide Routing (Render + Wix)
+// Works with Wix Automations "Send HTTP request" -> POST /lead/new
+// Requires header: x-admin-token: YOUR_ADMIN_TOKEN
+// Env vars: ADMIN_TOKEN, OWNER_NUMBER, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_NUMBER
 
 import express from "express";
 import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
 
-// -------------------- __dirname fix (ESM) --------------------
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// -------------------- App --------------------
 const app = express();
-app.set("trust proxy", true);
-app.use(cors());
+app.use(cors({ origin: true }));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve /public
-app.use(express.static(path.join(__dirname, "public")));
+const PORT = process.env.PORT || 10000;
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
+const OWNER_NUMBER = process.env.OWNER_NUMBER || ""; // your phone to receive notifications
 
-// -------------------- In-memory data (works now) --------------------
-const nowLabel = () => {
-const d = new Date();
-const hh = d.getHours();
-const mm = String(d.getMinutes()).padStart(2, "0");
-const ampm = hh >= 12 ? "p" : "a";
-const hr12 = ((hh + 11) % 12) + 1;
-return `Today ${hr12}:${mm}${ampm}`;
-};
+// Twilio (optional)
+let twilioClient = null;
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
+const TWILIO_NUMBER = process.env.TWILIO_NUMBER || "";
 
-const makeId = (prefix) => `${prefix}${Math.floor(Math.random() * 9000 + 1000)}`;
-
-let leads = [
-{
-id: "L1001",
-created: nowLabel(),
-name: "John D.",
-phone: "+1410***6818",
-service: "Lockout",
-zip: "21040",
-assigned: "—",
-status: "pending",
-},
-{
-id: "L1002",
-created: nowLabel(),
-name: "Maria S.",
-phone: "+1443***1686",
-service: "Rekey",
-zip: "21224",
-assigned: "—",
-status: "pending",
-},
-{
-id: "L1003",
-created: nowLabel(),
-name: "Kevin R.",
-phone: "+1301***1230",
-service: "Car Key",
-zip: "21162",
-assigned: "John Provider",
-status: "active",
-},
-];
-
-let providers = [
-{ id: "P1", name: "John Provider", phone: "+14102278467", service: "Lockout", zip: "21040", active: true, notes: "" },
-{ id: "P2", name: "Towson Tech", phone: "+14435781686", service: "Rekey", zip: "21204", active: true, notes: "" },
-{ id: "P3", name: "Keys Mobile", phone: "+13017201230", service: "Car Key", zip: "21162", active: false, notes: "" },
-];
-
-// -------------------- Auth middleware --------------------
-function requireAdmin(req, res, next) {
-const expected = (process.env.ADMIN_TOKEN || "").trim();
-
-// If ADMIN_TOKEN is not set, allow (OPEN) but warn in logs
-if (!expected) {
-console.warn("⚠️ ADMIN_TOKEN not set — admin routes are OPEN.");
-return next();
+async function getTwilio() {
+if (twilioClient) return twilioClient;
+if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) return null;
+const mod = await import("twilio");
+twilioClient = mod.default(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+return twilioClient;
 }
 
-const got = (req.headers["x-admin-token"] || "").toString().trim();
-if (!got || got !== expected) {
-return res.status(401).json({
+function requireAdmin(req, res, next) {
+const token = req.headers["x-admin-token"];
+if (!ADMIN_TOKEN) {
+return res.status(500).json({
 ok: false,
-error: "Unauthorized",
-hint: "Send header x-admin-token matching ADMIN_TOKEN",
+error: "ADMIN_TOKEN is not set on the server (Render env var missing).",
 });
+}
+if (!token || token !== ADMIN_TOKEN) {
+return res.status(401).json({ ok: false, error: "Unauthorized (bad x-admin-token)" });
 }
 next();
 }
 
-// -------------------- Public routes --------------------
-// Root -> dashboard (so opening render URL shows dashboard, not Unauthorized)
-app.get("/", (req, res) => {
-res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-});
+// ---------- In-memory store (fast MVP) ----------
+const db = {
+leads: [], // { id, createdAt, firstName,lastName,email,phone,service,details,source, raw }
+providers: [], // { id, name, phone, services:[], active:true }
+};
 
+function id(prefix = "id") {
+return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizeLead(payload) {
+// Supports Wix "Entire payload" and also your custom JSON keys
+const p = payload || {};
+
+// Wix sometimes nests fields differently; this keeps it forgiving
+const firstName =
+p.firstName || p["First name"] || p.firstname || p.contact?.firstName || "";
+const lastName =
+p.lastName || p["Last name"] || p.lastname || p.contact?.lastName || "";
+const email =
+p.email || p.Email || p.contact?.email || p.contact?.emailAddress || "";
+const phone =
+p.phone || p.Phone || p.contact?.phone || p.contact?.phoneNumber || "";
+const service =
+p.service || p["Select a Service"] || p["Select a service"] || p.category || "";
+const details =
+p.details || p["Give us more details"] || p.message || p.notes || "";
+
+return {
+id: id("lead"),
+createdAt: new Date().toISOString(),
+firstName: String(firstName || "").trim(),
+lastName: String(lastName || "").trim(),
+email: String(email || "").trim(),
+phone: String(phone || "").trim(),
+service: String(service || "").trim(),
+details: String(details || "").trim(),
+source: String(p.source || "wix").trim(),
+raw: p,
+};
+}
+
+function matchProvider(lead) {
+const svc = (lead.service || "").toLowerCase();
+const active = db.providers.filter((x) => x.active !== false);
+
+// If no service selected, just return first active provider
+if (!svc) return active[0] || null;
+
+// Try match by service keyword
+const match = active.find((p) =>
+(p.services || []).some((s) => String(s).toLowerCase().includes(svc) || svc.includes(String(s).toLowerCase()))
+);
+
+return match || active[0] || null;
+}
+
+async function sendSMS(to, body) {
+if (!to) return { ok: false, skipped: true, reason: "No to number" };
+const client = await getTwilio();
+if (!client || !TWILIO_NUMBER) {
+return { ok: false, skipped: true, reason: "Twilio not configured" };
+}
+const msg = await client.messages.create({
+from: TWILIO_NUMBER,
+to,
+body,
+});
+return { ok: true, sid: msg.sid };
+}
+
+// ---------- Routes ----------
 app.get("/health", (req, res) => {
 res.json({
 ok: true,
 service: "citywide-routing",
 time: new Date().toISOString(),
-ip: req.ip,
 });
 });
 
-// -------------------- Admin API --------------------
-app.get("/api/admin/stats", requireAdmin, (req, res) => {
-const pending = leads.filter((l) => l.status === "pending").length;
-const active = leads.filter((l) => l.status === "active").length;
-const cancelled = leads.filter((l) => l.status === "cancelled").length;
-const processed = leads.length - pending; // simple metric
-const activeProviders = providers.filter((p) => p.active).length;
+// MAIN: Wix hits this
+app.post("/lead/new", async (req, res) => {
+// 🔥 This is what you look for in Render Logs
+console.log("🔥 LEAD HIT /lead/new");
+console.log("Headers:", req.headers);
+console.log("Body:", JSON.stringify(req.body));
 
-res.json({
-processed,
-pending,
-cancelled,
-active,
-providers: activeProviders,
-totalLeads: leads.length,
+// Security: require token
+const token = req.headers["x-admin-token"];
+if (!ADMIN_TOKEN) {
+return res.status(500).json({ ok: false, error: "Missing ADMIN_TOKEN on server" });
+}
+if (!token || token !== ADMIN_TOKEN) {
+console.log("❌ Unauthorized: bad/missing x-admin-token");
+return res.status(401).json({ ok: false, error: "Unauthorized" });
+}
+
+try {
+const lead = normalizeLead(req.body);
+db.leads.unshift(lead);
+
+const provider = matchProvider(lead);
+
+// SMS messages (optional)
+const ownerText =
+`✅ New Lead (${lead.service || "No service"})\n` +
+`Name: ${lead.firstName} ${lead.lastName}\n` +
+`Phone: ${lead.phone || "n/a"}\n` +
+`Email: ${lead.email || "n/a"}\n` +
+`Details: ${lead.details || "n/a"}\n` +
+`ID: ${lead.id}`;
+
+const providerText =
+`📩 New Lead Assigned\n` +
+`Service: ${lead.service || "n/a"}\n` +
+`Customer: ${lead.firstName} ${lead.lastName}\n` +
+`Phone: ${lead.phone || "n/a"}\n` +
+`Details: ${lead.details || "n/a"}\n` +
+`Reply YES to accept. (MVP)`; // we can wire replies next
+
+const smsOwner = OWNER_NUMBER ? await sendSMS(OWNER_NUMBER, ownerText) : { ok: false, skipped: true };
+const smsProvider =
+provider?.phone ? await sendSMS(provider.phone, providerText) : { ok: false, skipped: true };
+
+return res.json({
+ok: true,
+success: true,
+leadId: lead.id,
+matchedProvider: provider ? { id: provider.id, name: provider.name, phone: provider.phone } : null,
+sms: { owner: smsOwner, provider: smsProvider },
 });
-});
-
-app.get("/api/admin/leads", requireAdmin, (req, res) => {
-// newest first
-res.json([...leads].reverse());
-});
-
-app.post("/api/admin/lead/new", requireAdmin, (req, res) => {
-const { name, phone, service, zip } = req.body || {};
-if (!name) return res.status(400).json({ ok: false, error: "name required" });
-
-const lead = {
-id: makeId("L"),
-created: nowLabel(),
-name: String(name),
-phone: phone ? String(phone) : "",
-service: service ? String(service) : "Lockout",
-zip: zip ? String(zip) : "",
-assigned: "—",
-status: "pending",
-};
-leads.push(lead);
-res.json({ ok: true, lead });
-});
-
-app.post("/api/admin/lead/status", requireAdmin, (req, res) => {
-const { id, status } = req.body || {};
-if (!id || !status) return res.status(400).json({ ok: false, error: "id + status required" });
-
-const lead = leads.find((l) => l.id === id);
-if (!lead) return res.status(404).json({ ok: false, error: "lead not found" });
-
-lead.status = String(status);
-res.json({ ok: true, lead });
-});
-
-app.post("/api/admin/lead/assign", requireAdmin, (req, res) => {
-const { id, assigned } = req.body || {};
-if (!id || !assigned) return res.status(400).json({ ok: false, error: "id + assigned required" });
-
-const lead = leads.find((l) => l.id === id);
-if (!lead) return res.status(404).json({ ok: false, error: "lead not found" });
-
-lead.assigned = String(assigned);
-lead.status = "active";
-res.json({ ok: true, lead });
+} catch (e) {
+console.log("❌ Error saving lead:", e);
+return res.status(500).json({ ok: false, error: "Server error", details: String(e?.message || e) });
+}
 });
 
-// Providers
-app.get("/api/admin/providers", requireAdmin, (req, res) => {
-res.json([...providers]);
+// Admin: view leads
+app.get("/admin/leads", requireAdmin, (req, res) => {
+res.json({ ok: true, count: db.leads.length, leads: db.leads });
 });
 
-app.post("/api/admin/provider/new", requireAdmin, (req, res) => {
-const { name, phone, service, zip, notes, active } = req.body || {};
+// Admin: add provider
+app.post("/admin/providers", requireAdmin, (req, res) => {
+const { name, phone, services, active } = req.body || {};
 if (!name || !phone) return res.status(400).json({ ok: false, error: "name + phone required" });
 
-const p = {
-id: makeId("P"),
-name: String(name),
-phone: String(phone),
-service: service ? String(service) : "",
-zip: zip ? String(zip) : "",
-notes: notes ? String(notes) : "",
-active: active === false ? false : true,
+const provider = {
+id: id("prov"),
+name: String(name).trim(),
+phone: String(phone).trim(),
+services: Array.isArray(services) ? services : (services ? String(services).split(",").map(s => s.trim()) : []),
+active: active !== false,
+createdAt: new Date().toISOString(),
 };
-providers.push(p);
-res.json({ ok: true, provider: p });
+
+db.providers.unshift(provider);
+res.json({ ok: true, provider });
 });
 
-app.post("/api/admin/provider/toggle", requireAdmin, (req, res) => {
-const { id } = req.body || {};
-if (!id) return res.status(400).json({ ok: false, error: "id required" });
-
-const p = providers.find((x) => x.id === id);
-if (!p) return res.status(404).json({ ok: false, error: "provider not found" });
-
-p.active = !p.active;
-res.json({ ok: true, provider: p });
+// Admin: list providers
+app.get("/admin/providers", requireAdmin, (req, res) => {
+res.json({ ok: true, count: db.providers.length, providers: db.providers });
 });
 
-// -------------------- Twilio SMS --------------------
-async function sendTwilioSMS(to, body) {
-const sid = (process.env.TWILIO_ACCOUNT_SID || "").trim();
-const token = (process.env.TWILIO_AUTH_TOKEN || "").trim();
-const from = (process.env.TWILIO_NUMBER || "").trim();
-
-if (!sid || !token || !from) {
-const missing = [
-!sid ? "TWILIO_ACCOUNT_SID" : null,
-!token ? "TWILIO_AUTH_TOKEN" : null,
-!from ? "TWILIO_NUMBER" : null,
-].filter(Boolean);
-throw new Error("Twilio not configured. Missing: " + missing.join(", "));
-}
-
-// Dynamic import so server still runs even if twilio package isn't installed (but SMS won't work)
-let twilio;
-try {
-twilio = (await import("twilio")).default;
-} catch (e) {
-throw new Error('Twilio package not installed. Add "twilio" to package.json dependencies.');
-}
-
-const client = twilio(sid, token);
-const msg = await client.messages.create({ from, to, body });
-return msg.sid;
-}
-
-app.post("/api/admin/sms", requireAdmin, async (req, res) => {
-const { to, body } = req.body || {};
-if (!to || !body) return res.status(400).json({ ok: false, error: "to + body required" });
-
-try {
-const sid = await sendTwilioSMS(String(to), String(body));
-res.json({ ok: true, sid });
-} catch (e) {
-res.status(400).json({ ok: false, error: e.message || "SMS failed" });
-}
+// Root
+app.get("/", (req, res) => {
+res.type("text").send("✅ Routing server is running. Try /health");
 });
 
-// OPTIONAL: public lead intake (if you want Wix forms to post leads without admin token)
-app.post("/lead/new", (req, res) => {
-const { name, phone, service, zip } = req.body || {};
-if (!name) return res.status(400).json({ ok: false, error: "name required" });
-
-const lead = {
-id: makeId("L"),
-created: nowLabel(),
-name: String(name),
-phone: phone ? String(phone) : "",
-service: service ? String(service) : "Lockout",
-zip: zip ? String(zip) : "",
-assigned: "—",
-status: "pending",
-};
-leads.push(lead);
-res.json({ ok: true, lead });
+app.listen(PORT, () => {
+console.log(`✅ Server running on port ${PORT}`);
 });
-
-// -------------------- 404 --------------------
-app.use((req, res) => {
-res.status(404).json({ ok: false, error: "Not Found", path: req.path });
-});
-
-// -------------------- Start --------------------
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
