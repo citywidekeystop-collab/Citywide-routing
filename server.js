@@ -5,29 +5,28 @@ import { fileURLToPath } from "url";
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// __dirname fix for ES modules
+// Fix __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve static files
+// ✅ SERVE PUBLIC FOLDER
 app.use(express.static(path.join(__dirname, "public")));
 
-// Root = dashboard
+// ✅ ROOT → dashboard.html
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// Health check
+// Health check (Render)
 app.get("/health", (req, res) => {
-  res.json({ ok: true, service: "citywide-routing" });
+res.json({ ok: true, service: "citywide-routing" });
 });
 
-// Catch-all
+// Catch-all (prevents showing code text)
 app.use((req, res) => {
-  res.status(404).send("Not Found");
+res.status(404).send("Not Found");
 });
 
-// Start server
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+console.log(`✅ Server running on port ${PORT}`);
 });
