@@ -1,7 +1,7 @@
 {
   "name": "citywide-routing",
   "version": "1.0.0",
-  "description": "Citywide Leads routing & admin dashboard server",
+  "description": "Citywide Leads routing + admin dashboard",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -11,8 +11,9 @@
     "node": ">=18"
   },
   "dependencies": {
-    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "pg": "^8.11.5",
+    "twilio": "^4.21.0"
   }
 }
