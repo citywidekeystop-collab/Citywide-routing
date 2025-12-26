@@ -3,18 +3,14 @@ import express from "express";
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ===== CONFIG =====
 const ADMIN_TOKEN = "belpre334";
 
-// ===== MIDDLEWARE =====
 app.use(express.json());
 
-// ===== HEALTH CHECK =====
 app.get("/", (req, res) => {
 res.send("Citywide Routing Server is running ✅");
 });
 
-// ===== LEAD ENDPOINT =====
 app.post("/lead/new", (req, res) => {
 const token =
 req.query.token ||
@@ -30,17 +26,9 @@ return res.status(401).json({ error: "Unauthorized" });
 }
 
 console.log("✅ AUTHORIZED LEAD RECEIVED");
-console.log("📨 FULL PAYLOAD:", JSON.stringify(req.body, null, 2));
-
-// TODO: route lead, store, notify, etc.
-
-res.json({
-success: true,
-message: "Lead received successfully",
-});
+res.json({ success: true });
 });
 
-// ===== START SERVER =====
 app.listen(PORT, () => {
 console.log(`🚀 Server running on port ${PORT}`);
 });
