@@ -1,187 +1,243 @@
-// server.js (CommonJS)
-// If your project has "type":"module" in package.json, REMOVE it or rename this file to server.cjs
+// server.js — Citywide Routing (Updated)
+// Node 18+
+// ENV:
+// ADMIN_TOKEN
+// ADMIN_PHONE (E.164 +1...)
+// DATABASE_URL
+// TWILIO_ACCOUNT_SID
+// TWILIO_AUTH_TOKEN
+// TWILIO_FROM (E.164 +1...)
+// (Also supports legacy names: OWNER_NUMBER, TWILIO_NUMBER, etc.)
 
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 
-// --- Optional services (only used if env vars exist)
-let twilio = null;
-try { twilio = require("twilio"); } catch(e) {}
-let sgMail = null;
-try { sgMail = require("@sendgrid/mail"); } catch(e) {}
+// optional DB (Postgres) — if DATABASE_URL is set
+const { Pool } = require("pg");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: "1mb" }));
-app.use(bodyParser.urlencoded({ extended: true }));
 
-// ====== CONFIG ======
-const PORT = process.env.PORT || 10000;
+// ---------- ENV (accept old + new names) ----------
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.ADMIN_KEY || "";
 
-// Token required by /lead/new?token=...
-const INTAKE_TOKEN = process.env.INTAKE_TOKEN || "belpre334";
+const ADMIN_PHONE =
+process.env.ADMIN_PHONE ||
+process.env.OWNER_NUMBER ||
+process.env.OWNER_PHONE ||
+process.env.OWNER_NUMBER_E164 ||
+"";
 
-// Admin token used by dashboard API calls
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "belpre334";
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 
-// ---- TWILIO (SMS)
-const TWILIO_SID = process.env.TWILIO_SID || "";
-const TWILIO_AUTH = process.env.TWILIO_AUTH || "";
-const TWILIO_FROM = process.env.TWILIO_FROM || ""; // Twilio phone number
-const ALERT_TO = process.env.ALERT_TO || ""; // YOUR phone number for alerts
+const TWILIO_ACCOUNT_SID =
+process.env.TWILIO_ACCOUNT_SID ||
+process.env.TWILIO_SID ||
+"";
 
-// ---- SENDGRID (EMAIL)
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
-const EMAIL_FROM = process.env.EMAIL_FROM || ""; // verified sender
-const EMAIL_TO = process.env.EMAIL_TO || ""; // your inbox
+const TWILIO_AUTH_TOKEN =
+process.env.TWILIO_AUTH_TOKEN ||
+process.env.TWILIO_TOKEN ||
+"";
 
-if (sgMail && SENDGRID_API_KEY) sgMail.setApiKey(SENDGRID_API_KEY);
+const TWILIO_FROM =
+process.env.TWILIO_FROM ||
+process.env.TWILIO_NUMBER ||
+process.env.TWILIO_PHONE ||
+"";
 
-// ====== SIMPLE STORAGE (in-memory) ======
-// NOTE: free Render instances restart = memory resets.
-// Later we can save to Google Sheets, Airtable, or DB.
-const leads = [];
-let leadId = 1;
-
-// ====== HELPERS ======
-function maskPhone(p) {
-if (!p) return "";
-const s = String(p).replace(/\D/g, "");
-if (s.length < 4) return s;
-return `${"*".repeat(Math.max(0, s.length - 4))}${s.slice(-4)}`;
-}
-
-function buildLeadMessage(lead) {
-return [
-`🔥 NEW PRICE REQUEST`,
-`Name: ${lead.name || "-"}`,
-`Phone: ${lead.phone || "-"}`,
-`ZIP: ${lead.zip || "-"}`,
-`Service: ${lead.service || "-"}`,
-`Details: ${lead.details || "-"}`,
-`ID: ${lead.id}`,
-`Time: ${lead.createdAt}`,
-].join("\n");
-}
-
-async function sendSmsAlert(text) {
-if (!twilio || !TWILIO_SID || !TWILIO_AUTH || !TWILIO_FROM || !ALERT_TO) return;
-const client = twilio(TWILIO_SID, TWILIO_AUTH);
-await client.messages.create({
-from: TWILIO_FROM,
-to: ALERT_TO,
-body: text.length > 1500 ? text.slice(0, 1500) : text,
-});
-}
-
-async function sendEmailAlert(subject, text) {
-if (!sgMail || !SENDGRID_API_KEY || !EMAIL_FROM || !EMAIL_TO) return;
-await sgMail.send({
-to: EMAIL_TO,
-from: EMAIL_FROM,
-subject,
-text,
-});
-}
-
-async function notifyLead(lead) {
-const msg = buildLeadMessage(lead);
-
-// Send both (best effort; one can fail without blocking the lead)
-const results = { sms: "skipped", email: "skipped" };
-
-try {
-await sendSmsAlert(msg);
-results.sms = (TWILIO_SID && TWILIO_AUTH && TWILIO_FROM && ALERT_TO) ? "sent" : "skipped";
-} catch (e) {
-results.sms = `failed: ${e.message}`;
-}
-
-try {
-await sendEmailAlert(`New Price Request (#${lead.id})`, msg);
-results.email = (SENDGRID_API_KEY && EMAIL_FROM && EMAIL_TO) ? "sent" : "skipped";
-} catch (e) {
-results.email = `failed: ${e.message}`;
-}
-
-return results;
+// ---------- helpers ----------
+function isE164(phone) {
+return typeof phone === "string" && /^\+\d{10,15}$/.test(phone.trim());
 }
 
 function requireAdmin(req, res, next) {
-const token = String(req.headers["x-admin-token"] || req.query.token || "");
-if (token !== ADMIN_TOKEN) return res.status(401).json({ ok: false, error: "Unauthorized" });
+const token =
+(req.headers.authorization || "").replace("Bearer ", "").trim() ||
+(req.query.token || "").trim();
+
+if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) {
+return res.status(401).json({ ok: false, error: "Unauthorized" });
+}
 next();
 }
 
-// ====== ROUTES ======
-app.get("/health", (req, res) => {
-res.json({ ok: true, service: "citywide-routing", time: new Date().toISOString() });
+// ---------- DB setup (optional but recommended) ----------
+let pool = null;
+if (DATABASE_URL) {
+pool = new Pool({
+connectionString: DATABASE_URL,
+ssl: { rejectUnauthorized: false }, // Render Postgres needs this
 });
-
-// Wix embed form posts here:
-// POST https://citywide-routing.onrender.com/lead/new?token=belpre334
-app.post("/lead/new", async (req, res) => {
-const token = String(req.query.token || "");
-if (token !== INTAKE_TOKEN) {
-return res.status(403).json({ ok: false, error: "Bad token" });
 }
 
-// Accept a few possible field names (to avoid Wix naming issues)
-const name = (req.body.name || req.body.fullName || req.body.full_name || "").toString().trim();
-const phone = (req.body.phone || req.body.phoneNumber || req.body.phone_number || "").toString().trim();
-const zip = (req.body.zip || req.body.zipCode || req.body.zip_code || "").toString().trim();
-const service = (req.body.service || req.body.serviceType || req.body.service_type || "").toString().trim();
-const details = (req.body.details || req.body.description || req.body.message || "").toString().trim();
+async function ensureTables() {
+if (!pool) return;
+await pool.query(`
+CREATE TABLE IF NOT EXISTS leads (
+id SERIAL PRIMARY KEY,
+name TEXT,
+phone TEXT,
+zip TEXT,
+service TEXT,
+details TEXT,
+status TEXT DEFAULT 'needs_assignment',
+created_at TIMESTAMPTZ DEFAULT NOW()
+);
+`);
+}
+
+async function insertLead(lead) {
+if (!pool) return { id: null };
+const q = `
+INSERT INTO leads (name, phone, zip, service, details, status)
+VALUES ($1,$2,$3,$4,$5,$6)
+RETURNING id, created_at
+`;
+const vals = [
+lead.name || "",
+lead.phone || "",
+lead.zip || "",
+lead.service || "",
+lead.details || "",
+lead.status || "needs_assignment",
+];
+const r = await pool.query(q, vals);
+return { id: r.rows[0].id, createdAt: r.rows[0].created_at };
+}
+
+async function listLeads(limit = 50) {
+if (!pool) return [];
+const r = await pool.query(
+`SELECT id, name, phone, zip, service, details, status, created_at
+FROM leads
+ORDER BY id DESC
+LIMIT $1`,
+[limit]
+);
+return r.rows;
+}
+
+// ---------- Twilio SMS ----------
+async function sendAdminSms(message) {
+const missing = [];
+if (!TWILIO_ACCOUNT_SID) missing.push("TWILIO_ACCOUNT_SID");
+if (!TWILIO_AUTH_TOKEN) missing.push("TWILIO_AUTH_TOKEN");
+if (!TWILIO_FROM || !isE164(TWILIO_FROM)) missing.push("TWILIO_FROM (E164 +1...)");
+if (!ADMIN_PHONE || !isE164(ADMIN_PHONE)) missing.push("ADMIN_PHONE (E164 +1...)");
+
+if (missing.length) {
+console.log("SMS SKIPPED — missing/invalid:", missing);
+return { ok: false, skipped: true, missing };
+}
+
+const twilio = require("twilio")(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
+try {
+const res = await twilio.messages.create({
+from: TWILIO_FROM.trim(),
+to: ADMIN_PHONE.trim(),
+body: message,
+});
+console.log("SMS SENT:", res.sid);
+return { ok: true, sid: res.sid };
+} catch (err) {
+console.log("SMS FAILED:", err?.message || err);
+return { ok: false, skipped: false, error: err?.message || String(err) };
+}
+}
+
+// ---------- routes ----------
+app.get("/", (req, res) => res.send("Citywide Routing API is running."));
+app.get("/health", (req, res) =>
+res.json({ ok: true, service: "citywide-routing", time: new Date().toISOString() })
+);
+
+// Safe debug (no secrets)
+app.get("/debug/env", (req, res) => {
+res.json({
+adminTokenPresent: !!ADMIN_TOKEN,
+adminPhonePresent: !!ADMIN_PHONE,
+adminPhoneValidE164: isE164(ADMIN_PHONE),
+databaseUrlPresent: !!DATABASE_URL,
+twilioSidPresent: !!TWILIO_ACCOUNT_SID,
+twilioTokenPresent: !!TWILIO_AUTH_TOKEN,
+twilioFromPresent: !!TWILIO_FROM,
+twilioFromValidE164: isE164(TWILIO_FROM),
+});
+});
+
+// Lead intake (from your Wix embed)
+app.post("/lead/new", async (req, res) => {
+const token = (req.query.token || "").trim();
+
+// optional token check (recommended)
+if (ADMIN_TOKEN && token !== ADMIN_TOKEN) {
+return res.status(401).json({ ok: false, error: "Bad token" });
+}
 
 const lead = {
-id: leadId++,
-name,
-phone,
-zip,
-service,
-details,
+name: (req.body?.name || "").trim(),
+phone: (req.body?.phone || "").trim(),
+zip: (req.body?.zip || "").trim(),
+service: (req.body?.service || "").trim(),
+details: (req.body?.details || "").trim(),
 status: "needs_assignment",
-createdAt: new Date().toISOString(),
 };
 
-leads.unshift(lead);
-console.log("✅ LEAD RECEIVED:", { ...lead, phone: maskPhone(lead.phone) });
+console.log("LEAD RECEIVED:", lead);
 
-// Notifications
-const notifyResults = await notifyLead(lead);
-console.log("📣 NOTIFY RESULTS:", notifyResults);
+try {
+// save
+const saved = await insertLead(lead);
 
-// Respond to Wix
+// notify
+const msg =
+`🔥 New Lead Received\n` +
+`Service: ${lead.service || "-"}\n` +
+`Name: ${lead.name || "-"}\n` +
+`Phone: ${lead.phone || "-"}\n` +
+`ZIP: ${lead.zip || "-"}\n` +
+`Details: ${lead.details || "-"}\n` +
+`ID: ${saved.id ?? "-"}`;
+
+const smsResult = await sendAdminSms(msg);
+
+console.log("NOTIFY RESULTS:", {
+sms: smsResult.ok ? "sent" : smsResult.skipped ? "skipped" : "failed",
+...(smsResult.missing ? { missing: smsResult.missing } : {}),
+...(smsResult.error ? { error: smsResult.error } : {}),
+});
+
 res.json({
 ok: true,
-id: lead.id,
-message: "Request received. A provider will contact you soon.",
-notify: notifyResults,
+id: saved.id,
+createdAt: saved.createdAt,
+notify: { sms: smsResult.ok ? "sent" : smsResult.skipped ? "skipped" : "failed" },
 });
-});
-
-// Dashboard endpoints
-app.get("/admin/stats", requireAdmin, (req, res) => {
-const total = leads.length;
-const pending = leads.filter(l => l.status === "needs_assignment").length;
-const sent = leads.filter(l => l.status === "sent").length;
-res.json({
-ok: true,
-stats: {
-totalLeadsReceived: total,
-needsAssignment: pending,
-sentToProviders: sent,
-activeProviders: 0,
+} catch (e) {
+console.log("ERROR /lead/new:", e?.message || e);
+res.status(500).json({ ok: false, error: e?.message || "Server error" });
 }
 });
+
+// Admin: list leads
+app.get("/admin/leads", requireAdmin, async (req, res) => {
+const limit = Math.min(parseInt(req.query.limit || "50", 10), 200);
+const rows = await listLeads(limit);
+res.json({ ok: true, leads: rows });
 });
 
-app.get("/admin/leads", requireAdmin, (req, res) => {
-res.json({ ok: true, leads });
-});
+// ---------- boot ----------
+(async () => {
+try {
+await ensureTables();
+} catch (e) {
+console.log("DB init skipped/failed:", e?.message || e);
+}
 
-// ====== START ======
-app.listen(PORT, () => {
-console.log(`✅ Server running on port ${PORT}`);
-});
+const port = process.env.PORT || 10000;
+app.listen(port, () => console.log(`✅ Server running on port ${port}`));
+})();
