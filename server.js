@@ -1,159 +1,187 @@
-// server.js (ESM) — Citywide / Nationwide Routing API for Wix + Render
-// ✅ Fixes: "require is not defined" by using import (ES Modules)
-// ✅ Fixes: Wix embed "Sending request..." forever by handling CORS + OPTIONS
-// ✅ Accepts JSON + x-www-form-urlencoded
+// server.js (CommonJS)
+// If your project has "type":"module" in package.json, REMOVE it or rename this file to server.cjs
 
-import express from "express";
-import cors from "cors";
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+
+// --- Optional services (only used if env vars exist)
+let twilio = null;
+try { twilio = require("twilio"); } catch(e) {}
+let sgMail = null;
+try { sgMail = require("@sendgrid/mail"); } catch(e) {}
 
 const app = express();
+app.use(cors());
+app.use(bodyParser.json({ limit: "1mb" }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
-/** =========================
-* CONFIG
-* ========================= */
-const PORT = process.env.PORT || 3000;
+// ====== CONFIG ======
+const PORT = process.env.PORT || 10000;
 
-// Your token (you can also move this into ENV later)
-const LEAD_TOKEN = process.env.LEAD_TOKEN || "belpre334";
+// Token required by /lead/new?token=...
+const INTAKE_TOKEN = process.env.INTAKE_TOKEN || "belpre334";
 
-// Optional admin token for /admin endpoints
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || LEAD_TOKEN;
+// Admin token used by dashboard API calls
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "belpre334";
 
-/** =========================
-* MIDDLEWARE
-* ========================= */
+// ---- TWILIO (SMS)
+const TWILIO_SID = process.env.TWILIO_SID || "";
+const TWILIO_AUTH = process.env.TWILIO_AUTH || "";
+const TWILIO_FROM = process.env.TWILIO_FROM || ""; // Twilio phone number
+const ALERT_TO = process.env.ALERT_TO || ""; // YOUR phone number for alerts
 
-// CORS: allow Wix iframe + browsers
-app.use(
-cors({
-origin: "*",
-methods: ["GET", "POST", "OPTIONS"],
-allowedHeaders: ["Content-Type", "Authorization"],
-})
-);
+// ---- SENDGRID (EMAIL)
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
+const EMAIL_FROM = process.env.EMAIL_FROM || ""; // verified sender
+const EMAIL_TO = process.env.EMAIL_TO || ""; // your inbox
 
-// Preflight (IMPORTANT for Wix embeds)
-app.options("*", (req, res) => res.sendStatus(204));
+if (sgMail && SENDGRID_API_KEY) sgMail.setApiKey(SENDGRID_API_KEY);
 
-// Body parsing (JSON + urlencoded)
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true }));
+// ====== SIMPLE STORAGE (in-memory) ======
+// NOTE: free Render instances restart = memory resets.
+// Later we can save to Google Sheets, Airtable, or DB.
+const leads = [];
+let leadId = 1;
 
-/** =========================
-* IN-MEMORY STORAGE (MVP)
-* Later you can swap to DB/Sheets
-* ========================= */
-const store = {
-leads: [], // { id, createdAt, name, phone, zip, service, details, source, page }
+// ====== HELPERS ======
+function maskPhone(p) {
+if (!p) return "";
+const s = String(p).replace(/\D/g, "");
+if (s.length < 4) return s;
+return `${"*".repeat(Math.max(0, s.length - 4))}${s.slice(-4)}`;
+}
+
+function buildLeadMessage(lead) {
+return [
+`🔥 NEW PRICE REQUEST`,
+`Name: ${lead.name || "-"}`,
+`Phone: ${lead.phone || "-"}`,
+`ZIP: ${lead.zip || "-"}`,
+`Service: ${lead.service || "-"}`,
+`Details: ${lead.details || "-"}`,
+`ID: ${lead.id}`,
+`Time: ${lead.createdAt}`,
+].join("\n");
+}
+
+async function sendSmsAlert(text) {
+if (!twilio || !TWILIO_SID || !TWILIO_AUTH || !TWILIO_FROM || !ALERT_TO) return;
+const client = twilio(TWILIO_SID, TWILIO_AUTH);
+await client.messages.create({
+from: TWILIO_FROM,
+to: ALERT_TO,
+body: text.length > 1500 ? text.slice(0, 1500) : text,
+});
+}
+
+async function sendEmailAlert(subject, text) {
+if (!sgMail || !SENDGRID_API_KEY || !EMAIL_FROM || !EMAIL_TO) return;
+await sgMail.send({
+to: EMAIL_TO,
+from: EMAIL_FROM,
+subject,
+text,
+});
+}
+
+async function notifyLead(lead) {
+const msg = buildLeadMessage(lead);
+
+// Send both (best effort; one can fail without blocking the lead)
+const results = { sms: "skipped", email: "skipped" };
+
+try {
+await sendSmsAlert(msg);
+results.sms = (TWILIO_SID && TWILIO_AUTH && TWILIO_FROM && ALERT_TO) ? "sent" : "skipped";
+} catch (e) {
+results.sms = `failed: ${e.message}`;
+}
+
+try {
+await sendEmailAlert(`New Price Request (#${lead.id})`, msg);
+results.email = (SENDGRID_API_KEY && EMAIL_FROM && EMAIL_TO) ? "sent" : "skipped";
+} catch (e) {
+results.email = `failed: ${e.message}`;
+}
+
+return results;
+}
+
+function requireAdmin(req, res, next) {
+const token = String(req.headers["x-admin-token"] || req.query.token || "");
+if (token !== ADMIN_TOKEN) return res.status(401).json({ ok: false, error: "Unauthorized" });
+next();
+}
+
+// ====== ROUTES ======
+app.get("/health", (req, res) => {
+res.json({ ok: true, service: "citywide-routing", time: new Date().toISOString() });
+});
+
+// Wix embed form posts here:
+// POST https://citywide-routing.onrender.com/lead/new?token=belpre334
+app.post("/lead/new", async (req, res) => {
+const token = String(req.query.token || "");
+if (token !== INTAKE_TOKEN) {
+return res.status(403).json({ ok: false, error: "Bad token" });
+}
+
+// Accept a few possible field names (to avoid Wix naming issues)
+const name = (req.body.name || req.body.fullName || req.body.full_name || "").toString().trim();
+const phone = (req.body.phone || req.body.phoneNumber || req.body.phone_number || "").toString().trim();
+const zip = (req.body.zip || req.body.zipCode || req.body.zip_code || "").toString().trim();
+const service = (req.body.service || req.body.serviceType || req.body.service_type || "").toString().trim();
+const details = (req.body.details || req.body.description || req.body.message || "").toString().trim();
+
+const lead = {
+id: leadId++,
+name,
+phone,
+zip,
+service,
+details,
+status: "needs_assignment",
+createdAt: new Date().toISOString(),
 };
 
-/** =========================
-* HELPERS
-* ========================= */
-function newId() {
-return (
-"L" +
-Math.random().toString(16).slice(2) +
-"-" +
-Date.now().toString(16)
-);
-}
+leads.unshift(lead);
+console.log("✅ LEAD RECEIVED:", { ...lead, phone: maskPhone(lead.phone) });
 
-function normalizeLead(body = {}) {
-const name = (body.name || body.fullName || "").toString().trim();
-const phone = (body.phone || body.phoneNumber || "").toString().trim();
-const zip = (body.zip || body.zipcode || body.postal || "").toString().trim();
-const service = (body.service || body.jobType || "").toString().trim();
-const details = (body.details || body.description || body.notes || "")
-.toString()
-.trim();
+// Notifications
+const notifyResults = await notifyLead(lead);
+console.log("📣 NOTIFY RESULTS:", notifyResults);
 
-const source = (body.source || "unknown").toString().trim();
-const page = (body.page || "").toString().trim();
-
-return { name, phone, zip, service, details, source, page };
-}
-
-/** =========================
-* ROUTES
-* ========================= */
-
-// Health check
-app.get("/", (req, res) => {
-res.status(200).send("OK - Citywide/Nationwide routing API is running");
-});
-
-app.get("/health", (req, res) => {
-res.json({ ok: true, service: "citywide-routing", ts: Date.now() });
-});
-
-// TEST endpoint for your Wix dashboard "connect"
-app.get("/admin/ping", (req, res) => {
-const token = (req.query.token || "").toString().trim();
-if (token !== ADMIN_TOKEN) return res.status(401).json({ ok: false, error: "Unauthorized" });
-
+// Respond to Wix
 res.json({
 ok: true,
-message: "Connected",
-counts: {
-totalLeads: store.leads.length,
-needsAssignment: store.leads.filter((l) => !l.assigned).length,
-},
+id: lead.id,
+message: "Request received. A provider will contact you soon.",
+notify: notifyResults,
 });
 });
 
-// Admin read leads (for dashboard)
-app.get("/admin/leads", (req, res) => {
-const token = (req.query.token || "").toString().trim();
-if (token !== ADMIN_TOKEN) return res.status(401).json({ ok: false, error: "Unauthorized" });
+// Dashboard endpoints
+app.get("/admin/stats", requireAdmin, (req, res) => {
+const total = leads.length;
+const pending = leads.filter(l => l.status === "needs_assignment").length;
+const sent = leads.filter(l => l.status === "sent").length;
+res.json({
+ok: true,
+stats: {
+totalLeadsReceived: total,
+needsAssignment: pending,
+sentToProviders: sent,
+activeProviders: 0,
+}
+});
+});
 
-// newest first
-const leads = [...store.leads].sort((a, b) => b.createdAt - a.createdAt);
-
+app.get("/admin/leads", requireAdmin, (req, res) => {
 res.json({ ok: true, leads });
 });
 
-// Main lead intake endpoint (Wix automation + embed form)
-app.post("/lead/new", (req, res) => {
-const token = (req.query.token || "").toString().trim();
-if (token !== LEAD_TOKEN) {
-return res.status(401).json({ ok: false, error: "Bad token" });
-}
-
-const lead = normalizeLead(req.body);
-
-// Basic validation
-if (!lead.name || !lead.phone || !lead.zip || !lead.service) {
-return res.status(400).json({
-ok: false,
-error: "Missing required fields",
-required: ["name", "phone", "zip", "service"],
-received: lead,
-});
-}
-
-const entry = {
-id: newId(),
-createdAt: Date.now(),
-...lead,
-assigned: false,
-status: "new",
-};
-
-store.leads.push(entry);
-
-console.log("✅ AUTHORIZED LEAD RECEIVED:", entry);
-
-return res.status(200).json({
-ok: true,
-message: "Lead received",
-leadId: entry.id,
-});
-});
-
-/** =========================
-* START
-* ========================= */
+// ====== START ======
 app.listen(PORT, () => {
 console.log(`✅ Server running on port ${PORT}`);
 });
