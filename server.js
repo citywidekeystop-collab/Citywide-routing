@@ -1,80 +1,46 @@
-// server.js — Citywide Routing (Updated)
-// Node 18+
-// ENV:
-// ADMIN_TOKEN
-// ADMIN_PHONE (E.164 +1...)
-// DATABASE_URL
-// TWILIO_ACCOUNT_SID
-// TWILIO_AUTH_TOKEN
-// TWILIO_FROM (E.164 +1...)
-// (Also supports legacy names: OWNER_NUMBER, TWILIO_NUMBER, etc.)
+import express from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import pkg from "pg";
+import twilio from "twilio";
 
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-
-// optional DB (Postgres) — if DATABASE_URL is set
-const { Pool } = require("pg");
+const { Pool } = pkg;
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json({ limit: "1mb" }));
+app.use(bodyParser.json());
 
-// ---------- ENV (accept old + new names) ----------
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || process.env.ADMIN_KEY || "";
+const PORT = process.env.PORT || 10000;
 
-const ADMIN_PHONE =
-process.env.ADMIN_PHONE ||
-process.env.OWNER_NUMBER ||
-process.env.OWNER_PHONE ||
-process.env.OWNER_NUMBER_E164 ||
-"";
+// ENV
+const DATABASE_URL = process.env.DATABASE_URL;
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN; // ex: belpre334
+const ADMIN_PHONE = process.env.ADMIN_PHONE; // ex: +14435781686
 
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TWILIO_FROM = process.env.TWILIO_FROM || process.env.TWILIO_NUMBER; // ex: +18444595551
 
-const TWILIO_ACCOUNT_SID =
-process.env.TWILIO_ACCOUNT_SID ||
-process.env.TWILIO_SID ||
-"";
-
-const TWILIO_AUTH_TOKEN =
-process.env.TWILIO_AUTH_TOKEN ||
-process.env.TWILIO_TOKEN ||
-"";
-
-const TWILIO_FROM =
-process.env.TWILIO_FROM ||
-process.env.TWILIO_NUMBER ||
-process.env.TWILIO_PHONE ||
-"";
-
-// ---------- helpers ----------
-function isE164(phone) {
-return typeof phone === "string" && /^\+\d{10,15}$/.test(phone.trim());
-}
-
-function requireAdmin(req, res, next) {
-const token =
-(req.headers.authorization || "").replace("Bearer ", "").trim() ||
-(req.query.token || "").trim();
-
-if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) {
-return res.status(401).json({ ok: false, error: "Unauthorized" });
-}
-next();
-}
-
-// ---------- DB setup (optional but recommended) ----------
-let pool = null;
-if (DATABASE_URL) {
-pool = new Pool({
+const pool = new Pool({
 connectionString: DATABASE_URL,
-ssl: { rejectUnauthorized: false }, // Render Postgres needs this
+ssl: DATABASE_URL?.includes("render.com") ? { rejectUnauthorized: false } : undefined,
 });
+
+const tw = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN)
+? twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+: null;
+
+function mustStartWithPlus(phone) {
+if (!phone) return "";
+const digits = String(phone).replace(/\D/g, "");
+if (String(phone).trim().startsWith("+")) return "+" + digits;
+if (digits.length === 10) return "+1" + digits;
+if (digits.length === 11 && digits.startsWith("1")) return "+" + digits;
+return "+" + digits;
 }
 
-async function ensureTables() {
-if (!pool) return;
+async function initDb() {
+// Create table if missing
 await pool.query(`
 CREATE TABLE IF NOT EXISTS leads (
 id SERIAL PRIMARY KEY,
@@ -87,157 +53,84 @@ status TEXT DEFAULT 'needs_assignment',
 created_at TIMESTAMPTZ DEFAULT NOW()
 );
 `);
+
+// Add missing columns if the table exists but is old
+await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS name TEXT;`);
+await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS phone TEXT;`);
+await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS zip TEXT;`);
+await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS service TEXT;`);
+await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS details TEXT;`);
+await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'needs_assignment';`);
+await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();`);
+
+console.log("✅ DB ready (leads table checked/updated)");
 }
 
-async function insertLead(lead) {
-if (!pool) return { id: null };
-const q = `
-INSERT INTO leads (name, phone, zip, service, details, status)
-VALUES ($1,$2,$3,$4,$5,$6)
-RETURNING id, created_at
-`;
-const vals = [
-lead.name || "",
-lead.phone || "",
-lead.zip || "",
-lead.service || "",
-lead.details || "",
-lead.status || "needs_assignment",
-];
-const r = await pool.query(q, vals);
-return { id: r.rows[0].id, createdAt: r.rows[0].created_at };
-}
-
-async function listLeads(limit = 50) {
-if (!pool) return [];
-const r = await pool.query(
-`SELECT id, name, phone, zip, service, details, status, created_at
-FROM leads
-ORDER BY id DESC
-LIMIT $1`,
-[limit]
-);
-return r.rows;
-}
-
-// ---------- Twilio SMS ----------
-async function sendAdminSms(message) {
-const missing = [];
-if (!TWILIO_ACCOUNT_SID) missing.push("TWILIO_ACCOUNT_SID");
-if (!TWILIO_AUTH_TOKEN) missing.push("TWILIO_AUTH_TOKEN");
-if (!TWILIO_FROM || !isE164(TWILIO_FROM)) missing.push("TWILIO_FROM (E164 +1...)");
-if (!ADMIN_PHONE || !isE164(ADMIN_PHONE)) missing.push("ADMIN_PHONE (E164 +1...)");
-
-if (missing.length) {
-console.log("SMS SKIPPED — missing/invalid:", missing);
-return { ok: false, skipped: true, missing };
-}
-
-const twilio = require("twilio")(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-
-try {
-const res = await twilio.messages.create({
-from: TWILIO_FROM.trim(),
-to: ADMIN_PHONE.trim(),
-body: message,
-});
-console.log("SMS SENT:", res.sid);
-return { ok: true, sid: res.sid };
-} catch (err) {
-console.log("SMS FAILED:", err?.message || err);
-return { ok: false, skipped: false, error: err?.message || String(err) };
-}
-}
-
-// ---------- routes ----------
-app.get("/", (req, res) => res.send("Citywide Routing API is running."));
-app.get("/health", (req, res) =>
-res.json({ ok: true, service: "citywide-routing", time: new Date().toISOString() })
-);
-
-// Safe debug (no secrets)
-app.get("/debug/env", (req, res) => {
-res.json({
-adminTokenPresent: !!ADMIN_TOKEN,
-adminPhonePresent: !!ADMIN_PHONE,
-adminPhoneValidE164: isE164(ADMIN_PHONE),
-databaseUrlPresent: !!DATABASE_URL,
-twilioSidPresent: !!TWILIO_ACCOUNT_SID,
-twilioTokenPresent: !!TWILIO_AUTH_TOKEN,
-twilioFromPresent: !!TWILIO_FROM,
-twilioFromValidE164: isE164(TWILIO_FROM),
-});
+app.get("/health", (req, res) => {
+res.json({ ok: true, service: "citywide-routing", time: new Date().toISOString() });
 });
 
-// Lead intake (from your Wix embed)
 app.post("/lead/new", async (req, res) => {
-const token = (req.query.token || "").trim();
-
-// optional token check (recommended)
-if (ADMIN_TOKEN && token !== ADMIN_TOKEN) {
-return res.status(401).json({ ok: false, error: "Bad token" });
+try {
+const token = req.query.token || req.headers["x-admin-token"];
+if (!token || token !== ADMIN_TOKEN) {
+return res.status(401).json({ ok: false, error: "Unauthorized (bad token)" });
 }
 
-const lead = {
-name: (req.body?.name || "").trim(),
-phone: (req.body?.phone || "").trim(),
-zip: (req.body?.zip || "").trim(),
-service: (req.body?.service || "").trim(),
-details: (req.body?.details || "").trim(),
-status: "needs_assignment",
-};
+const name = (req.body.name || "").trim();
+const phone = mustStartWithPlus(req.body.phone || "");
+const zip = (req.body.zip || "").trim();
+const service = (req.body.service || "").trim();
+const details = (req.body.details || "").trim();
+const status = "needs_assignment";
 
-console.log("LEAD RECEIVED:", lead);
+console.log("✅ LEAD RECEIVED:", { name, phone, zip, service, details, status });
 
-try {
-// save
-const saved = await insertLead(lead);
+const insert = await pool.query(
+`INSERT INTO leads (name, phone, zip, service, details, status)
+VALUES ($1,$2,$3,$4,$5,$6)
+RETURNING id, created_at`,
+[name, phone, zip, service, details, status]
+);
 
-// notify
+// Notify via SMS (optional)
+let smsResult = "skipped";
+if (tw && ADMIN_PHONE && TWILIO_FROM) {
 const msg =
-`🔥 New Lead Received\n` +
-`Service: ${lead.service || "-"}\n` +
-`Name: ${lead.name || "-"}\n` +
-`Phone: ${lead.phone || "-"}\n` +
-`ZIP: ${lead.zip || "-"}\n` +
-`Details: ${lead.details || "-"}\n` +
-`ID: ${saved.id ?? "-"}`;
+`NEW LEAD #${insert.rows[0].id}\n` +
+`Name: ${name || "-"}\n` +
+`Phone: ${phone || "-"}\n` +
+`Zip: ${zip || "-"}\n` +
+`Service: ${service || "-"}\n` +
+`Details: ${details || "-"}`;
 
-const smsResult = await sendAdminSms(msg);
-
-console.log("NOTIFY RESULTS:", {
-sms: smsResult.ok ? "sent" : smsResult.skipped ? "skipped" : "failed",
-...(smsResult.missing ? { missing: smsResult.missing } : {}),
-...(smsResult.error ? { error: smsResult.error } : {}),
+await tw.messages.create({
+from: TWILIO_FROM,
+to: mustStartWithPlus(ADMIN_PHONE),
+body: msg,
 });
+smsResult = "sent";
+}
 
-res.json({
+console.log("🔔 NOTIFY:", { sms: smsResult });
+
+return res.json({
 ok: true,
-id: saved.id,
-createdAt: saved.createdAt,
-notify: { sms: smsResult.ok ? "sent" : smsResult.skipped ? "skipped" : "failed" },
+id: insert.rows[0].id,
+createdAt: insert.rows[0].created_at,
+notify: { sms: smsResult }
 });
-} catch (e) {
-console.log("ERROR /lead/new:", e?.message || e);
-res.status(500).json({ ok: false, error: e?.message || "Server error" });
+} catch (err) {
+console.error("❌ ERROR /lead/new:", err.message);
+return res.status(500).json({ ok: false, error: err.message });
 }
 });
 
-// Admin: list leads
-app.get("/admin/leads", requireAdmin, async (req, res) => {
-const limit = Math.min(parseInt(req.query.limit || "50", 10), 200);
-const rows = await listLeads(limit);
-res.json({ ok: true, leads: rows });
+initDb()
+.then(() => {
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+})
+.catch((e) => {
+console.error("❌ DB init failed:", e.message);
+process.exit(1);
 });
-
-// ---------- boot ----------
-(async () => {
-try {
-await ensureTables();
-} catch (e) {
-console.log("DB init skipped/failed:", e?.message || e);
-}
-
-const port = process.env.PORT || 10000;
-app.listen(port, () => console.log(`✅ Server running on port ${port}`));
-})();
