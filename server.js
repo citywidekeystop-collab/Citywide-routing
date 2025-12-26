@@ -1,84 +1,96 @@
+// server.js (ESM-safe)
+// If your package.json has "type": "module", this will work.
+
 import express from "express";
 import cors from "cors";
 
 const app = express();
+app.use(express.json({ limit: "2mb" }));
 
 // ====== CONFIG ======
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "belpre334"; // set on Render for security
-const PORT = process.env.PORT || 10000;
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "belpre334";
 
-// ====== MIDDLEWARE ======
-app.use(cors());
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
+// ====== CORS (Wix-safe) ======
+// Wix can send preflight OPTIONS requests. This must succeed.
+app.use(
+cors({
+origin: "*", // simplest: allow from anywhere (Wix, Preview, custom domains)
+methods: ["GET", "POST", "OPTIONS"],
+allowedHeaders: ["Content-Type", "x-admin-token", "Authorization"],
+})
+);
 
-// ====== SIMPLE IN-MEMORY STORAGE (fast MVP) ======
-const LEADS = []; // newest first
+// Extra safety for preflight
+app.options("*", (req, res) => {
+res.setHeader("Access-Control-Allow-Origin", "*");
+res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-token, Authorization");
+return res.sendStatus(204);
+});
 
-function getToken(req) {
-// Accept token from:
-// 1) Query: ?token=xxxx
-// 2) Header: x-admin-token: xxxx
-// 3) Header: Authorization: xxxx (or "Bearer xxxx")
-const q = req.query?.token;
-const h1 = req.headers["x-admin-token"];
-const auth = req.headers["authorization"];
+// ====== IN-MEMORY STORE (simple MVP) ======
+const LEADS = []; // each item: { id, createdAt, data }
 
-const authToken =
-typeof auth === "string"
-? auth.startsWith("Bearer ")
-? auth.slice(7)
-: auth
+// ====== AUTH HELPER ======
+function readToken(req) {
+// Accept token in multiple places (makes Wix easiest)
+const headerToken = req.headers["x-admin-token"];
+const queryToken = req.query.token;
+const bearer = (req.headers.authorization || "").startsWith("Bearer ")
+? req.headers.authorization.replace("Bearer ", "").trim()
 : null;
 
-return q || h1 || authToken || null;
+return (headerToken || queryToken || bearer || "").toString().trim();
 }
 
 function requireAdmin(req, res, next) {
-const token = getToken(req);
-if (!token || token !== ADMIN_TOKEN) {
-console.log("❌ Unauthorized: bad/missing token", {
-tokenPresent: !!token,
-got: token,
+const t = readToken(req);
+if (!t || t !== ADMIN_TOKEN) {
+return res.status(401).json({
+ok: false,
+error: "Unauthorized: bad/missing token",
+hint: "Send ?token=YOUR_TOKEN or header x-admin-token: YOUR_TOKEN",
 });
-return res.status(401).json({ error: "Unauthorized" });
 }
 next();
 }
 
-// ====== HEALTH CHECK (DASHBOARD CONNECT NEEDS THIS) ======
-app.get("/", (req, res) => {
-res.json({
-ok: true,
-service: "citywide-routing",
-status: "online",
-time: new Date().toISOString(),
-});
+// ====== ROUTES ======
+
+// health
+app.get("/", (req, res) => res.send("OK"));
+
+// lead intake (from Wix automation)
+app.post("/lead/new", (req, res) => {
+const id = "L" + Math.random().toString(16).slice(2);
+const createdAt = new Date().toISOString();
+LEADS.unshift({ id, createdAt, data: req.body });
+
+console.log("✅ LEAD RECEIVED", { id, createdAt });
+return res.json({ ok: true, id, createdAt });
 });
 
-// ====== ADMIN STATUS (USE THIS FOR DASHBOARD CONNECT) ======
+// admin status (dashboard connect check)
 app.get("/admin/status", requireAdmin, (req, res) => {
-res.json({
+return res.json({
 ok: true,
 status: "connected",
 leadsStored: LEADS.length,
-time: new Date().toISOString(),
+serverTime: new Date().toISOString(),
 });
 });
 
-// ====== WEBHOOK: LEAD INTAKE (WIX AUTOMATION POSTS HERE) ======
-app.post("/lead/new", (req, res) => {
-const token = getToken(req);
+// admin leads list
+app.get("/admin/leads", requireAdmin, (req, res) => {
+return res.json({
+ok: true,
+leads: LEADS.slice(0, 50),
+});
+});
 
-// If token is required, enforce it here:
-if (!token || token !== ADMIN_TOKEN) {
-console.log("❌ Unauthorized lead POST: bad/missing token");
-return res.status(401).json({ error: "Unauthorized: bad/missing token" });
-}
-
-// Wix "Send HTTP request" often wraps payload; accept either
-const body = req.body || {};
-const data = body.data || body; // handle {data:{...}} and raw object
+// ====== START ======
+const port = process.env.PORT || 10000;
+app.listen(port, () => console.log("✅ Server running on", port));
 
 const lead = {
 id: `L${Date.now()}`,
