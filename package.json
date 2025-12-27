@@ -1,20 +1,20 @@
 {
 "name": "citywide-routing",
-"version": "1.1.0",
-"description": "Citywide Leads routing + notifications (SMS)",
+"version": "1.0.0",
+"description": "Citywide lead routing server",
 "main": "server.js",
+"type": "commonjs",
 "scripts": {
 "start": "node server.js"
 },
 "engines": {
-"node": ">=18.0.0"
+"node": "18.x"
 },
 "dependencies": {
 "express": "^4.19.2",
 "cors": "^2.8.5",
 "body-parser": "^1.20.2",
-"twilio": "^4.23.0",
-"@sendgrid/mail": "^8.1.3",
-"pg": "^8.11.5"
+"sqlite3": "^5.1.7",
+"twilio": "^4.20.0"
 }
 }
