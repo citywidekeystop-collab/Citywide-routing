@@ -1,166 +1,133 @@
-// =======================
-// Citywide Routing Server
-// =======================
+// ============================
+// CITYWIDE ROUTING - SERVER.JS
+// ============================
 
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const sqlite3 = require("sqlite3").verbose();
-const twilio = require("twilio");
+// ---------- Imports ----------
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+const bodyParser = require('body-parser');
+const path = require('path');
 
+// ---------- App Setup ----------
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
-// -----------------------
-// Middleware
-// -----------------------
-app.use(cors());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// -----------------------
-// Home Route (FIXES Cannot GET /)
-// -----------------------
-app.get("/", (req, res) => {
-res.send("Citywide Routing API is LIVE 🚀");
+// ---------- Database ----------
+const db = new sqlite3.Database('./database.db', (err) => {
+if (err) {
+console.error('DB connection error:', err);
+} else {
+console.log('DB ready');
+}
 });
 
-// -----------------------
-// Health Check
-// -----------------------
-app.get("/health", (req, res) => {
-res.json({ status: "ok" });
-});
-
-// -----------------------
-// Database
-// -----------------------
-const db = new sqlite3.Database("./leads.db");
-
+// ---------- Create Tables ----------
 db.serialize(() => {
 db.run(`
 CREATE TABLE IF NOT EXISTS leads (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 name TEXT,
 phone TEXT,
-zip TEXT,
 service TEXT,
-details TEXT,
-status TEXT DEFAULT 'needs_assignment',
+city TEXT,
 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )
 `);
 });
 
-console.log("✅ DB ready (leads table checked/updated)");
+// ---------- Health Check ----------
+app.get('/', (req, res) => {
+res.send('Citywide Routing Server Running');
+});
 
-// -----------------------
-// Twilio Setup
-// -----------------------
-let twilioClient = null;
-
-if (
-process.env.TWILIO_ACCOUNT_SID &&
-process.env.TWILIO_AUTH_TOKEN
-) {
-twilioClient = twilio(
-process.env.TWILIO_ACCOUNT_SID,
-process.env.TWILIO_AUTH_TOKEN
-);
-console.log("✅ Twilio configured: YES");
-} else {
-console.log("❌ Twilio configured: NO");
-}
-
-// -----------------------
-// Create Lead (FROM WIX)
-// -----------------------
-app.post("/lead", (req, res) => {
-const { name, phone, zip, service, details } = req.body;
+// ---------- Lead Intake ----------
+app.post('/api/lead', (req, res) => {
+const { name, phone, service, city } = req.body;
 
 if (!phone || !service) {
-return res.status(400).json({ error: "Missing fields" });
+return res.status(400).json({ error: 'Missing required fields' });
 }
 
 db.run(
-`
-INSERT INTO leads (name, phone, zip, service, details)
-VALUES (?, ?, ?, ?, ?)
-`,
-[name, phone, zip, service, details],
+`INSERT INTO leads (name, phone, service, city)
+VALUES (?, ?, ?, ?)`,
+[name || '', phone, service, city || ''],
 function (err) {
 if (err) {
 console.error(err);
-return res.status(500).json({ error: "DB error" });
+return res.status(500).json({ error: 'DB insert failed' });
 }
-
-notifyAdmin(name, phone, service);
-
-res.json({
-success: true,
-lead_id: this.lastID,
-});
+res.json({ success: true, lead_id: this.lastID });
 }
 );
 });
 
-// -----------------------
-// Dashboard: Get All Leads
-// -----------------------
-app.get("/dashboard/leads", (req, res) => {
+// ---------- Dashboard API ----------
+app.get('/api/leads', (req, res) => {
 db.all(
-"SELECT * FROM leads ORDER BY created_at DESC",
+`SELECT * FROM leads ORDER BY created_at DESC`,
 [],
 (err, rows) => {
 if (err) {
-return res.status(500).json({ error: "DB error" });
+console.error(err);
+return res.status(500).json({ error: 'DB error' });
 }
 res.json(rows);
 }
 );
 });
 
-// -----------------------
-// Update Lead Status
-// -----------------------
-app.post("/dashboard/update-status", (req, res) => {
-const { id, status } = req.body;
+// ---------- Dashboard Page ----------
+app.get('/dashboard', (req, res) => {
+res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+<title>Citywide Dashboard</title>
+<style>
+body { font-family: Arial; background:#0f172a; color:white; padding:20px }
+table { width:100%; border-collapse: collapse }
+th, td { padding:10px; border-bottom:1px solid #334155 }
+th { background:#1e293b }
+</style>
+</head>
+<body>
+<h2>📊 Citywide Leads</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th><th>Phone</th><th>Service</th><th>City</th><th>Time</th>
+</tr>
+</thead>
+<tbody id="rows"></tbody>
+</table>
 
-db.run(
-"UPDATE leads SET status = ? WHERE id = ?",
-[status, id],
-function (err) {
-if (err) {
-return res.status(500).json({ error: "Update failed" });
-}
-res.json({ success: true });
-}
-);
+<script>
+fetch('/api/leads')
+.then(r => r.json())
+.then(data => {
+const rows = document.getElementById('rows');
+data.forEach(l => {
+rows.innerHTML += \`
+<tr>
+<td>\${l.name}</td>
+<td>\${l.phone}</td>
+<td>\${l.service}</td>
+<td>\${l.city}</td>
+<td>\${l.created_at}</td>
+</tr>\`;
+});
+});
+</script>
+</body>
+</html>
+`);
 });
 
-// -----------------------
-// Notify Admin via SMS
-// -----------------------
-function notifyAdmin(name, phone, service) {
-if (!twilioClient) return;
-
-twilioClient.messages
-.create({
-from: process.env.TWILIO_FROM,
-to: process.env.ADMIN_PHONE,
-body: `🚨 New Lead\n${service}\n${name || "Unknown"}\n${phone}`,
-})
-.then(() => {
-console.log("📩 SMS sent");
-})
-.catch((err) => {
-console.error("❌ SMS failed", err.message);
-});
-}
-
-// -----------------------
-// Start Server
-// -----------------------
+// ---------- Start Server ----------
 app.listen(PORT, () => {
-console.log(`✅ Server running on port ${PORT}`);
-console.log("🚀 Your service is live");
+console.log('Server running on port', PORT);
 });
