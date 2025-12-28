@@ -1,580 +1,115 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Citywide Leads Admin</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Citywide Dashboard</title>
 <style>
-:root{--bg:#0b1220;--card:#101a33;--line:#223055;--muted:#b8c2e0;}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#fff;}
-.wrap{max-width:1150px;margin:0 auto;padding:16px;}
-.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
-.brand{display:flex;align-items:center;gap:10px}
-.pill{background:#223055;border:1px solid #2e3e6a;padding:6px 10px;border-radius:999px;font-size:12px;color:var(--muted);}
-.grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px;}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-input,select,button{border-radius:10px;border:1px solid #2e3e6a;background:#0f1730;color:#fff;padding:10px;font-size:14px;}
-input::placeholder{color:#6f7aa5;}
-button{cursor:pointer}
-button.primary{background:#1e2a55;border-color:#3a4c86;}
-table{width:100%;border-collapse:collapse;margin-top:10px;overflow:hidden}
-th,td{padding:10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
-th{background:#0f1730;text-align:left;color:var(--muted)}
-.tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#223055;border:1px solid #2e3e6a;font-size:12px;color:var(--muted)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media (max-width: 900px){ .two{grid-template-columns:1fr} }
-@media (max-width: 520px){
-.wrap{padding:10px}
-table{display:block;overflow-x:auto}
-th,td{white-space:nowrap}
+body { font-family: Arial, sans-serif; background:#0f172a; color:#fff; margin:0; padding:18px; }
+h1 { margin:0 0 14px; font-size:20px; }
+.bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+input, select, button {
+padding:10px; border-radius:10px; border:1px solid #334155; background:#111827; color:#fff;
 }
+button { cursor:pointer; border:none; background:#2563eb; }
+button:hover { opacity:.9; }
+.card { background:#111827; border:1px solid #334155; border-radius:14px; padding:12px; }
+table { width:100%; border-collapse:collapse; margin-top:12px; }
+th, td { text-align:left; padding:10px; border-bottom:1px solid #334155; font-size:13px; }
+th { background:#0b1220; position:sticky; top:0; }
+.pill { padding:4px 8px; border-radius:999px; font-size:12px; display:inline-block; border:1px solid #334155; }
+.t1 { background:#052e16; }
+.t2 { background:#3b0764; }
+.muted { color:#94a3b8; font-size:12px; }
 </style>
 </head>
 <body>
-<div class="wrap">
-<div class="top">
-<div class="brand">
-<div style="font-weight:800;font-size:18px">Citywide Leads</div>
-<div class="pill">Admin Dashboard</div>
-</div>
-<div class="row">
-<input id="baseUrl" placeholder="Base URL (optional)" style="min-width:260px" />
-<input id="token" placeholder="Admin token" style="min-width:260px" />
-<button class="primary" id="saveBtn">Save</button>
-<button id="refreshBtn">Refresh</button>
-</div>
-</div>
+<h1>📊 Citywide Leads Dashboard</h1>
+<div class="muted" id="status">Loading...</div>
 
-<div class="grid">
-<div class="two">
-<div class="card">
-<div style="font-weight:700">Add Provider</div>
-<div class="row" style="margin-top:10px">
-<input id="pBiz" placeholder="Business name" style="flex:1" />
-<input id="pPhone" placeholder="Phone +1..." style="min-width:210px" />
-<select id="pTier">
-<option value="starter">starter (Tier 1)</option>
-<option value="pro">pro (Tier 2)</option>
-<option value="exclusive">exclusive (Tier 3)</option>
+<div class="bar">
+<button onclick="loadLeads()">Refresh</button>
+<select id="tierFilter" onchange="render()">
+<option value="">All tiers</option>
+<option value="tier1">Tier 1</option>
+<option value="tier2">Tier 2</option>
 </select>
-<button class="primary" id="addProviderBtn">Add</button>
-</div>
-<div class="row" style="margin-top:10px">
-<input id="pServices" placeholder="Services (comma) e.g. locksmith_auto,hvac" style="flex:1" />
-<input id="pZips" placeholder="Zips (comma) e.g. 21224,21222 or *" style="flex:1" />
-</div>
-<div style="margin-top:8px;color:var(--muted);font-size:12px">
-Tip: use <span class="tag">*</span> for “all zips”.
-</div>
+<input id="search" placeholder="Search name / phone / service / zip" oninput="render()" />
 </div>
 
 <div class="card">
-<div style="font-weight:700">Quick Links</div>
-<div style="margin-top:10px;color:var(--muted);font-size:13px;line-height:1.5">
-Health: <span class="tag" id="healthTag">unknown</span><br/>
-Leads endpoint: <span class="tag">/admin/leads</span><br/>
-Providers endpoint: <span class="tag">/admin/providers</span><br/>
-Calls endpoint: <span class="tag">/admin/calls</span>
-</div>
-</div>
-</div>
-
-<div class="card">
-<div style="font-weight:700">Providers</div>
 <table>
 <thead>
 <tr>
-<th>ID</th><th>Business</th><th>Phone</th><th>Tier</th><th>Status</th><th>Services</th><th>Zips</th><th>Actions</th>
+<th>ID</th>
+<th>Tier</th>
+<th>Name</th>
+<th>Phone</th>
+<th>ZIP</th>
+<th>Service</th>
+<th>Status</th>
+<th>Created</th>
 </tr>
 </thead>
-<tbody id="providersBody"></tbody>
+<tbody id="rows"></tbody>
 </table>
-</div>
-
-<div class="card">
-<div style="font-weight:700">Leads</div>
-<table>
-<thead>
-<tr>
-<th>ID</th><th>Time</th><th>Service</th><th>ZIP</th><th>Customer</th><th>Status</th><th>Assigned</th><th>Assign</th>
-</tr>
-</thead>
-<tbody id="leadsBody"></tbody>
-</table>
-</div>
-
-<div class="card">
-<div style="font-weight:700">Calls</div>
-<table>
-<thead>
-<tr>
-<th>Time</th><th>Service</th><th>Digits</th><th>Routed Provider</th><th>Routed To</th>
-</tr>
-</thead>
-<tbody id="callsBody"></tbody>
-</table>
-</div>
-</div>
 </div>
 
 <script>
-const $ = (id) => document.getElementById(id);
+const API = location.origin; // works on Render automatically
+let ALL = [];
 
-const savedBase = localStorage.getItem("cw_base") || "";
-const savedToken = localStorage.getItem("cw_token") || "";
-
-$("baseUrl").value = savedBase;
-$("token").value = savedToken;
-
-function base(){
-const b = ($("baseUrl").value || "").trim();
-return b ? b.replace(/\/+$/,'') : ""; // allow same-origin if blank
+async function loadLeads() {
+document.getElementById("status").textContent = "Loading leads...";
+try {
+const res = await fetch(API + "/api/leads");
+ALL = await res.json();
+document.getElementById("status").textContent =
+"Loaded " + ALL.length + " leads • " + new Date().toLocaleString();
+render();
+} catch (e) {
+document.getElementById("status").textContent = "Error loading leads: " + e;
+}
 }
 
-async function api(path, opts={}){
-const url = base() ? base() + path : path;
-const headers = opts.headers || {};
-headers["x-admin-token"] = ($("token").value || "").trim();
-headers["Content-Type"] = "application/json";
-const res = await fetch(url, { ...opts, headers });
-const data = await res.json().catch(()=> ({}));
-if(!res.ok) throw new Error(data.error || ("HTTP " + res.status));
-return data;
-}
+function render() {
+const tier = document.getElementById("tierFilter").value;
+const q = (document.getElementById("search").value || "").toLowerCase();
+const rows = document.getElementById("rows");
+rows.innerHTML = "";
 
-$("saveBtn").onclick = () => {
-localStorage.setItem("cw_base", $("baseUrl").value.trim());
-localStorage.setItem("cw_token", $("token").value.trim());
-alert("Saved");
-};
-
-$("refreshBtn").onclick = () => loadAll();
-
-$("addProviderBtn").onclick = async () => {
-const biz = $("pBiz").value.trim();
-const phone = $("pPhone").value.trim();
-const tier = $("pTier").value;
-const services = $("pServices").value.split(",").map(x=>x.trim()).filter(Boolean);
-const zips = $("pZips").value.split(",").map(x=>x.trim()).filter(Boolean);
-
-if(!biz || !phone) return alert("Business name + phone required");
-
-const p = await api("/admin/providers", {
-method:"POST",
-body: JSON.stringify({ business_name: biz, phone, tier })
+const filtered = ALL.filter(l => {
+if (tier && String(l.tier) !== tier) return false;
+const blob = `${l.id} ${l.name||""} ${l.phone||""} ${l.zip||""} ${l.service||""} ${l.status||""}`.toLowerCase();
+if (q && !blob.includes(q)) return false;
+return true;
 });
 
-if(services.length){
-await api(`/admin/providers/${p.provider_id}/services`, { method:"POST", body: JSON.stringify({ services })});
-}
-if(zips.length){
-await api(`/admin/providers/${p.provider_id}/zips`, { method:"POST", body: JSON.stringify({ zips })});
-}
-
-$("pBiz").value=""; $("pPhone").value=""; $("pServices").value=""; $("pZips").value="";
-await loadAll();
-};
-
-function td(x){ return `<td>${x ?? ""}</td>`; }
-
-async function loadHealth(){
-try{
-const url = base() ? base()+"/health" : "/health";
-const r = await fetch(url);
-const j = await r.json();
-$("healthTag").textContent = j.ok ? "ok" : "bad";
-}catch{
-$("healthTag").textContent = "error";
-}
-}
-
-async function loadProviders(){
-const data = await api("/admin/providers");
-const body = $("providersBody");
-body.innerHTML = "";
-
-data.providers.forEach(p=>{
-const services = (p.services||[]).join(", ");
-const zips = (p.zips||[]).join(", ");
-
-body.innerHTML += `
-<tr>
-${td(p.id)}
-${td(p.business_name)}
-${td(p.phone)}
-${td(`<span class="tag">${p.tier}</span>`)}
-${td(`<span class="tag">${p.status}</span>`)}
-${td(services)}
-${td(zips)}
-<td>
-<button onclick="toggleProvider(${p.id}, '${p.status}')">Toggle</button>
-<button onclick="setTier(${p.id})">Set Tier</button>
-</td>
-</tr>
+filtered.forEach(l => {
+const tr = document.createElement("tr");
+const tierClass = (l.tier === "tier2") ? "t2" : "t1";
+tr.innerHTML = `
+<td>${l.id}</td>
+<td><span class="pill ${tierClass}">${l.tier || "tier1"}</span></td>
+<td>${escapeHtml(l.name || "")}</td>
+<td>${escapeHtml(l.phone || "")}</td>
+<td>${escapeHtml(l.zip || "")}</td>
+<td>${escapeHtml(l.service || "")}</td>
+<td>${escapeHtml(l.status || "")}</td>
+<td>${escapeHtml(l.created_at || "")}</td>
 `;
+rows.appendChild(tr);
 });
 }
 
-window.toggleProvider = async (id, status) => {
-const next = status === "active" ? "paused" : "active";
-await api(`/admin/providers/${id}`, { method:"PATCH", body: JSON.stringify({ status: next })});
-await loadProviders();
-};
-
-window.setTier = async (id) => {
-const tier = prompt("Enter tier: starter / pro / exclusive");
-if(!tier) return;
-await api(`/admin/providers/${id}`, { method:"PATCH", body: JSON.stringify({ tier: tier.trim() })});
-await loadProviders();
-};
-
-async function loadLeads(){
-const data = await api("/admin/leads");
-const body = $("leadsBody");
-body.innerHTML = "";
-
-const providers = await api("/admin/providers");
-
-data.leads.forEach(l=>{
-const assigned = l.assigned_provider_name || "";
-const customer = `${l.name || ""} <span class="tag">${l.phone || ""}</span>`;
-
-const options = providers.providers
-.map(p => `<option value="${p.id}">${p.id} - ${p.business_name} (${p.tier})</option>`)
-.join("");
-
-body.innerHTML += `
-<tr>
-${td(l.id)}
-${td(l.created_at)}
-${td(l.service)}
-${td(l.zip)}
-${td(customer)}
-${td(`<span class="tag">${l.status}</span>`)}
-${td(assigned)}
-<td>
-<select id="assign_${l.id}">${options}</select>
-<button onclick="assignLead(${l.id})" class="primary">Assign</button>
-</td>
-</tr>
-`;
-});
+function escapeHtml(s){
+return String(s).replace(/[&<>"']/g, m => ({
+"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+})[m]);
 }
 
-window.assignLead = async (leadId) => {
-const sel = document.getElementById(`assign_${leadId}`);
-const provider_id = parseInt(sel.value, 10);
-await api(`/admin/leads/${leadId}/assign`, { method:"POST", body: JSON.stringify({ provider_id })});
-await loadLeads();
-};
-
-async function loadCalls(){
-const data = await api("/admin/calls");
-const body = $("callsBody");
-body.innerHTML = "";
-
-data.calls.forEach(c=>{
-body.innerHTML += `
-<tr>
-${td(c.created_at)}
-${td(c.service)}
-${td(c.digits)}
-${td(c.routed_provider_id || "")}
-${td(c.routed_to_phone || "")}
-</tr>
-`;
-});
-}
-
-async function loadAll(){
-await loadHealth();
-await loadProviders();
-await loadLeads();
-await loadCalls();
-}
-
-loadAll();
-</script>
-</body>
-</html>button>
-<button class="mini" onclick="copy('${esc(p.phone||"")}')">Copy #</button>
-</div>
-</td>
-</tr>
-`).join("") || `<tr><td colspan="6" class="muted" style="padding:16px;">No providers found.</td></tr>`;
-}
-
-function esc(s){ return String(s??"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-// ----------------------------
-// Actions (live when API exists)
-// ----------------------------
-let cacheLeads = [];
-let cacheProviders = [];
-
-async function loadAll(){
-hideBanner();
-
-// If no token saved and not demo mode, we still show UI but warn.
-if(!adminToken() && !demoMode){
-showBanner("warn", `No <b>Admin Token</b> set. Go to <b>Settings</b> to add it, or click <b>Demo Mode</b>.`, true);
-}
-
-try{
-if(demoMode){
-renderStats(DEMO.stats);
-cacheLeads = structuredClone(DEMO.leads);
-cacheProviders = structuredClone(DEMO.providers);
-renderLive(cacheLeads);
-renderRequests(cacheLeads);
-renderProviders(cacheProviders);
-$("envTxt").textContent = "Demo";
-return;
-}
-
-$("envTxt").textContent = "Render";
-// Try live API first
-// If your server doesn't have these routes yet, it will fall back to demo mode.
-const st = await api("/api/admin/stats");
-const leads = await api("/api/admin/leads");
-const prov = await api("/api/admin/providers");
-
-renderStats(st);
-cacheLeads = leads || [];
-cacheProviders = prov || [];
-renderLive(cacheLeads);
-renderRequests(cacheLeads);
-renderProviders(cacheProviders);
-
-showBanner("good", `<b>Live Mode:</b> Connected to API ✅`);
-}catch(e){
-console.log(e);
-demoMode = true;
-showBanner("warn", `<b>API not ready</b> (or unauthorized). Showing <b>Demo Mode</b> data. Open <b>Settings</b> to set token/server.`, true);
-renderStats(DEMO.stats);
-cacheLeads = structuredClone(DEMO.leads);
-cacheProviders = structuredClone(DEMO.providers);
-renderLive(cacheLeads);
-renderRequests(cacheLeads);
-renderProviders(cacheProviders);
-$("envTxt").textContent = "Demo";
-}
-}
-
-async function markStatus(id, status){
-if(demoMode){
-const l = cacheLeads.find(x=>x.id===id);
-if(l) l.status = status;
-renderLive(cacheLeads); renderRequests(cacheLeads);
-return;
-}
-try{
-await api("/api/admin/lead/status", { method:"POST", body: JSON.stringify({ id, status }) });
-await loadAll();
-}catch(e){
-showBanner("bad", `<b>Update failed:</b> ${esc(e.message||"")}`, true);
-}
-}
-
-async function promptAssign(id){
-const who = prompt("Assign to provider name (exact):");
-if(!who) return;
-if(demoMode){
-const l = cacheLeads.find(x=>x.id===id);
-if(l) { l.assigned = who; l.status = "active"; }
-renderLive(cacheLeads); renderRequests(cacheLeads);
-return;
-}
-try{
-await api("/api/admin/lead/assign", { method:"POST", body: JSON.stringify({ id, assigned: who }) });
-await loadAll();
-}catch(e){
-showBanner("bad", `<b>Assign failed:</b> ${esc(e.message||"")}`, true);
-}
-}
-
-async function toggleProvider(id){
-if(demoMode){
-const p = cacheProviders.find(x=>x.id===id);
-if(p) p.active = !p.active;
-renderProviders(cacheProviders);
-return;
-}
-try{
-await api("/api/admin/provider/toggle", { method:"POST", body: JSON.stringify({ id }) });
-await loadAll();
-}catch(e){
-showBanner("bad", `<b>Provider update failed:</b> ${esc(e.message||"")}`, true);
-}
-}
-
-function copy(txt){
-navigator.clipboard?.writeText(txt||"");
-showBanner("good", `<b>Copied</b> ✅`);
-setTimeout(hideBanner, 1200);
-}
-
-// Manual lead (demo + API)
-$("btnNewLead").addEventListener("click", async ()=>{
-const name = prompt("Customer name?");
-if(!name) return;
-const phone = prompt("Customer phone?");
-const service = prompt("Service (Lockout/Rekey/Car Key)?") || "Lockout";
-const zip = prompt("Zip?") || "";
-const lead = {
-id: "L" + Math.floor(Math.random()*9000+1000),
-created: "Now",
-name, phone, service, zip,
-assigned:"—",
-status:"pending"
-};
-
-if(demoMode){
-cacheLeads.unshift(lead);
-renderLive(cacheLeads); renderRequests(cacheLeads);
-return;
-}
-try{
-await api("/api/admin/lead/new", { method:"POST", body: JSON.stringify(lead) });
-await loadAll();
-}catch(e){
-showBanner("bad", `<b>Create lead failed:</b> ${esc(e.message||"")}`, true);
-}
-});
-
-// Requests filter buttons
-document.querySelectorAll("#view-requests .mini[data-filter]").forEach(b=>{
-b.addEventListener("click", ()=>{
-filterStatus = b.dataset.filter;
-renderRequests(cacheLeads);
-});
-});
-
-// Export CSV
-$("btnExport").addEventListener("click", ()=>{
-const rows = (cacheLeads||[]).map(l => ({
-id:l.id, created:l.created, name:l.name, phone:l.phone, service:l.service, zip:l.zip, assigned:l.assigned, status:l.status
-}));
-const header = Object.keys(rows[0]||{});
-const csv = [header.join(",")].concat(rows.map(r => header.map(k => `"${String(r[k]??"").replaceAll('"','""')}"`).join(","))).join("\n");
-const blob = new Blob([csv], {type:"text/csv"});
-const a = document.createElement("a");
-a.href = URL.createObjectURL(blob);
-a.download = "requests.csv";
-a.click();
-URL.revokeObjectURL(a.href);
-});
-
-// Providers actions
-$("btnReloadProviders").addEventListener("click", loadAll);
-
-$("btnAddProvider").addEventListener("click", async ()=>{
-const payload = {
-name: $("pName").value.trim(),
-phone: $("pPhone").value.trim(),
-service: $("pService").value.trim(),
-zip: $("pZip").value.trim(),
-notes: $("pNotes").value.trim(),
-active: true
-};
-if(!payload.name || !payload.phone){
-$("provMsg").textContent = "Name + phone required.";
-return;
-}
-$("provMsg").textContent = "Saving...";
-if(demoMode){
-payload.id = "P" + Math.floor(Math.random()*9000+1000);
-cacheProviders.unshift(payload);
-renderProviders(cacheProviders);
-$("provMsg").textContent = "Saved (demo).";
-return;
-}
-try{
-await api("/api/admin/provider/new", { method:"POST", body: JSON.stringify(payload) });
-$("provMsg").textContent = "Saved ✅";
-$("pName").value=""; $("pPhone").value=""; $("pService").value=""; $("pZip").value=""; $("pNotes").value="";
-await loadAll();
-}catch(e){
-$("provMsg").textContent = "Save failed: " + (e.message||"");
-}
-});
-
-// SMS
-window.tpl = (t)=>{ $("smsBody").value = t; setView("sms"); };
-
-$("btnSendSms").addEventListener("click", async ()=>{
-const to = $("smsTo").value.trim();
-const body = $("smsBody").value.trim();
-if(!to || !body){ $("smsMsg").textContent = "To + message required."; return; }
-$("smsMsg").textContent = "Sending...";
-if(demoMode){
-$("smsMsg").textContent = "Sent ✅ (demo)";
-return;
-}
-try{
-await api("/api/admin/sms", { method:"POST", body: JSON.stringify({ to, body }) });
-$("smsMsg").textContent = "Sent ✅";
-}catch(e){
-$("smsMsg").textContent = "Send failed: " + (e.message||"");
-}
-});
-
-// Settings
-function fillSettingsUI(){
-$("setServer").value = localStorage.getItem(LS_SERVER) || "";
-$("setToken").value = localStorage.getItem(LS_TOKEN) || "";
-}
-$("btnSaveSettings").addEventListener("click", ()=>{
-localStorage.setItem(LS_SERVER, $("setServer").value.trim());
-localStorage.setItem(LS_TOKEN, $("setToken").value.trim());
-$("setMsg").textContent = "Saved ✅ Refreshing...";
-demoMode = false;
-loadAll();
-setTimeout(()=> $("setMsg").textContent="", 1800);
-});
-$("btnClearSettings").addEventListener("click", ()=>{
-localStorage.removeItem(LS_SERVER);
-localStorage.removeItem(LS_TOKEN);
-fillSettingsUI();
-$("setMsg").textContent = "Cleared ✅";
-demoMode = true;
-loadAll();
-});
-$("btnTestHealth").addEventListener("click", async ()=>{
-$("setMsg").textContent = "Testing /health...";
-try{
-const b = baseUrl();
-const url = (b ? b : "") + "/health";
-const res = await fetch(url);
-const txt = await res.text();
-$("setMsg").textContent = "OK ✅ " + (txt.slice(0,120) || "");
-}catch(e){
-$("setMsg").textContent = "Health test failed: " + (e.message||"");
-}
-});
-
-// Top buttons
-$("btnRefresh").addEventListener("click", loadAll);
-$("btnDemo").addEventListener("click", ()=>{
-demoMode = true;
-loadAll();
-showBanner("good", `<b>Demo Mode</b> enabled ✅`);
-setTimeout(hideBanner, 1400);
-});
-
-// Search refresh
-$("q").addEventListener("input", ()=>{
-renderLive(cacheLeads);
-renderRequests(cacheLeads);
-renderProviders(cacheProviders);
-});
-
-// Boot
-fillSettingsUI();
-// Start on overview
-setView("overview");
-loadAll();
+loadLeads();
 </script>
 </body>
 </html>
+
