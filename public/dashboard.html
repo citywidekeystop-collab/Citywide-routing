@@ -1,776 +1,303 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="UTF-8" />
-<title>Nationwide Leads — Admin</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Citywide Leads Admin</title>
 <style>
-:root{
---bg:#070b14;
---panel:#0d1426;
---panel2:#101b34;
---card:#0f1a33;
---stroke:rgba(255,255,255,.08);
---text:rgba(255,255,255,.92);
---muted:rgba(255,255,255,.62);
---muted2:rgba(255,255,255,.40);
---accent:#4f8cff;
---accent2:#35d1ff;
---good:#2be38b;
---warn:#ffcc66;
---bad:#ff5d6c;
---shadow: 0 14px 40px rgba(0,0,0,.55);
---radius:14px;
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-margin:0;
-font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-background:
-radial-gradient(1200px 600px at 20% -10%, rgba(79,140,255,.18), transparent 60%),
-radial-gradient(900px 500px at 90% 10%, rgba(53,209,255,.16), transparent 55%),
-linear-gradient(180deg, #050812 0%, #070b14 35%, #050812 100%);
-color:var(--text);
-}
-a{color:inherit}
-.wrap{min-height:100%; display:flex}
-/* Sidebar */
-.side{
-width:280px;
-padding:18px 16px;
-background: linear-gradient(180deg, rgba(13,20,38,.92), rgba(8,12,24,.82));
-border-right:1px solid var(--stroke);
-position:sticky; top:0; height:100vh;
-overflow:auto;
-}
-.brand{
-display:flex; align-items:center; gap:10px;
-padding:10px 10px 14px;
-border-bottom:1px solid var(--stroke);
-margin-bottom:14px;
-}
-.logoDot{
-width:36px;height:36px;border-radius:12px;
-background: radial-gradient(circle at 30% 30%, rgba(79,140,255,.95), rgba(53,209,255,.65));
-box-shadow: 0 10px 26px rgba(79,140,255,.18);
-border:1px solid rgba(255,255,255,.10);
-}
-.brand h1{font-size:15px; margin:0; line-height:1.2}
-.brand small{display:block; color:var(--muted); font-size:12px; margin-top:2px}
-.pill{
-display:inline-flex; align-items:center; gap:8px;
-padding:8px 10px;
-border:1px solid var(--stroke);
-background: rgba(255,255,255,.03);
-border-radius: 999px;
-font-size:12px;
-color:var(--muted);
-margin:10px 10px 14px;
-}
-.dot{
-width:8px;height:8px;border-radius:99px;background:var(--good);
-box-shadow:0 0 0 4px rgba(43,227,139,.10);
-}
-.nav{
-display:flex; flex-direction:column; gap:8px;
-padding: 0 6px;
-}
-.nav button{
-width:100%;
-border:1px solid transparent;
-background: transparent;
-color:var(--muted);
-padding:11px 12px;
-border-radius:12px;
-text-align:left;
-cursor:pointer;
-display:flex; align-items:center; justify-content:space-between;
-transition:.15s ease;
-}
-.nav button:hover{background:rgba(255,255,255,.04); color:var(--text)}
-.nav button.active{
-background: linear-gradient(90deg, rgba(79,140,255,.18), rgba(53,209,255,.10));
-border-color: rgba(79,140,255,.30);
-color: var(--text);
-}
-.badge{
-font-size:11px;
-padding:3px 8px;
-border-radius:999px;
-border:1px solid var(--stroke);
-color:var(--muted);
-background: rgba(255,255,255,.03);
-}
-.sideFooter{
-margin-top:14px;
-padding:12px 10px;
-border-top:1px solid var(--stroke);
-color:var(--muted2);
-font-size:12px;
-line-height:1.35;
-}
-
-/* Main */
-.main{flex:1; padding:20px; min-width:0}
-.top{
-display:flex; gap:12px; align-items:center; justify-content:space-between;
-margin-bottom:14px;
-}
-.title h2{margin:0; font-size:20px}
-.title p{margin:6px 0 0; color:var(--muted); font-size:13px}
-.topRight{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-.btn{
-border:1px solid var(--stroke);
-background: rgba(255,255,255,.03);
-color:var(--text);
-border-radius:12px;
-padding:10px 12px;
-cursor:pointer;
-transition:.15s ease;
-font-weight:600;
-font-size:13px;
-}
-.btn:hover{background:rgba(255,255,255,.06)}
-.btn.primary{
-border-color: rgba(79,140,255,.35);
-background: rgba(79,140,255,.12);
-}
-.btn.danger{
-border-color: rgba(255,93,108,.35);
-background: rgba(255,93,108,.10);
-}
-.input{
-border:1px solid var(--stroke);
-background: rgba(255,255,255,.03);
-color:var(--text);
-border-radius:12px;
-padding:10px 12px;
-font-size:13px;
-outline:none;
-min-width:240px;
-}
-
-.grid{
-display:grid;
-grid-template-columns: repeat(12, 1fr);
-gap:12px;
-}
-.card{
-background: linear-gradient(180deg, rgba(15,26,51,.92), rgba(12,20,40,.88));
-border:1px solid var(--stroke);
-border-radius: var(--radius);
-box-shadow: var(--shadow);
-overflow:hidden;
-}
-.cardHd{
-padding:14px 16px;
-border-bottom:1px solid var(--stroke);
-display:flex; align-items:center; justify-content:space-between; gap:10px;
-}
-.cardHd b{font-size:14px}
-.cardHd small{color:var(--muted); font-size:12px}
-.cardBd{padding:14px 16px}
-.stat{
-padding:16px;
-display:flex; gap:12px; align-items:center; justify-content:space-between;
-}
-.stat .k{color:var(--muted); font-size:12px}
-.stat .v{font-size:26px; font-weight:800; letter-spacing:.2px}
-.spark{
-width:64px; height:34px; border-radius:12px;
-border:1px solid var(--stroke);
-background:
-linear-gradient(180deg, rgba(79,140,255,.18), rgba(53,209,255,.04));
-}
-
-/* Table */
-table{width:100%; border-collapse:collapse}
-th,td{padding:12px 10px; border-bottom:1px solid rgba(255,255,255,.06); font-size:13px}
-th{color:var(--muted); font-weight:700; text-align:left}
-td{color:rgba(255,255,255,.88)}
-.rowActions{display:flex; gap:8px; flex-wrap:wrap}
-.mini{
-border:1px solid var(--stroke);
-background: rgba(255,255,255,.03);
-color:var(--text);
-border-radius:10px;
-padding:7px 10px;
-cursor:pointer;
-font-weight:700;
-font-size:12px;
-}
-.mini:hover{background:rgba(255,255,255,.06)}
-.status{
-display:inline-flex; align-items:center; gap:6px;
-padding:5px 10px;
-border-radius:999px;
-border:1px solid var(--stroke);
-font-size:12px;
-color:var(--muted);
-background: rgba(255,255,255,.03);
-}
-.status .sDot{width:8px;height:8px;border-radius:99px;background:var(--muted2)}
-.status.pending{border-color:rgba(255,204,102,.25); background:rgba(255,204,102,.07); color:#ffd58b}
-.status.pending .sDot{background:var(--warn)}
-.status.active{border-color:rgba(43,227,139,.25); background:rgba(43,227,139,.07); color:#95ffd0}
-.status.active .sDot{background:var(--good)}
-.status.cancel{border-color:rgba(255,93,108,.25); background:rgba(255,93,108,.08); color:#ff9aa3}
-.status.cancel .sDot{background:var(--bad)}
-.muted{color:var(--muted)}
-.two{
-display:grid; grid-template-columns: 1fr 1fr; gap:12px;
-}
-.field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
-.field label{font-size:12px; color:var(--muted)}
-.textarea{min-height:110px; resize:vertical}
-
-.banner{
-margin-bottom:12px;
-padding:12px 14px;
-border-radius: 14px;
-border:1px solid rgba(255,255,255,.10);
-background: rgba(255,255,255,.03);
-display:flex; align-items:center; justify-content:space-between; gap:10px;
-}
-.banner.warn{border-color:rgba(255,204,102,.30); background:rgba(255,204,102,.08)}
-.banner.bad{border-color:rgba(255,93,108,.30); background:rgba(255,93,108,.08)}
-.banner.good{border-color:rgba(43,227,139,.25); background:rgba(43,227,139,.06)}
-.banner .msg{font-size:13px; color:var(--muted)}
-.banner .msg b{color:var(--text)}
-
-/* Responsive */
-@media (max-width: 980px){
-.side{display:none}
-.main{padding:14px}
-.grid{grid-template-columns: repeat(6, 1fr)}
-.input{min-width: 200px}
-}
-@media (max-width: 560px){
-.grid{grid-template-columns: repeat(2, 1fr)}
-.top{flex-direction:column; align-items:flex-start}
-.topRight{width:100%}
-.input{width:100%}
-.two{grid-template-columns: 1fr}
+:root{--bg:#0b1220;--card:#101a33;--line:#223055;--muted:#b8c2e0;}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#fff;}
+.wrap{max-width:1150px;margin:0 auto;padding:16px;}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:10px}
+.pill{background:#223055;border:1px solid #2e3e6a;padding:6px 10px;border-radius:999px;font-size:12px;color:var(--muted);}
+.grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,button{border-radius:10px;border:1px solid #2e3e6a;background:#0f1730;color:#fff;padding:10px;font-size:14px;}
+input::placeholder{color:#6f7aa5;}
+button{cursor:pointer}
+button.primary{background:#1e2a55;border-color:#3a4c86;}
+table{width:100%;border-collapse:collapse;margin-top:10px;overflow:hidden}
+th,td{padding:10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+th{background:#0f1730;text-align:left;color:var(--muted)}
+.tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#223055;border:1px solid #2e3e6a;font-size:12px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width: 900px){ .two{grid-template-columns:1fr} }
+@media (max-width: 520px){
+.wrap{padding:10px}
+table{display:block;overflow-x:auto}
+th,td{white-space:nowrap}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
-<aside class="side">
-<div class="brand">
-<div class="logoDot"></div>
-<div>
-<h1>Nationwide Leads</h1>
-<small>Admin Dashboard</small>
-</div>
-</div>
-<div class="pill"><span class="dot"></span><span id="liveTxt">Live</span><span class="muted">•</span><span id="envTxt">Render</span></div>
-
-<nav class="nav">
-<button class="active" data-view="overview">
-Overview <span class="badge" id="bTotal">—</span>
-</button>
-<button data-view="requests">
-Service Requests <span class="badge" id="bPending">—</span>
-</button>
-<button data-view="providers">
-Providers <span class="badge" id="bProviders">—</span>
-</button>
-<button data-view="sms">
-SMS <span class="badge">Send</span>
-</button>
-<button data-view="settings">
-Settings <span class="badge">Auth</span>
-</button>
-</nav>
-
-<div class="sideFooter">
-Citywide Leads is a lead-generation platform. Services are performed by independent providers.
-</div>
-</aside>
-
-<main class="main">
 <div class="top">
-<div class="title">
-<h2>Nationwide Leads — Admin</h2>
-<p id="subTxt">Angi-style overview of leads, providers, and routing.</p>
+<div class="brand">
+<div style="font-weight:800;font-size:18px">Citywide Leads</div>
+<div class="pill">Admin Dashboard</div>
 </div>
-<div class="topRight">
-<input class="input" id="q" placeholder="Search: name, phone, zipcode, service..." />
-<button class="btn" id="btnRefresh">Refresh</button>
-<button class="btn primary" id="btnDemo">Demo Mode</button>
+<div class="row">
+<input id="baseUrl" placeholder="Base URL (optional)" style="min-width:260px" />
+<input id="token" placeholder="Admin token" style="min-width:260px" />
+<button class="primary" id="saveBtn">Save</button>
+<button id="refreshBtn">Refresh</button>
 </div>
-</div>
-
-<div id="banner" class="banner warn" style="display:none;">
-<div class="msg" id="bannerMsg"></div>
-<button class="btn" id="bannerBtn" style="display:none;">Open Settings</button>
 </div>
 
-<!-- OVERVIEW -->
-<section id="view-overview" class="view">
 <div class="grid">
-<div class="card" style="grid-column: span 3;">
-<div class="stat">
-<div>
-<div class="k">Requests Processed</div>
-<div class="v" id="sProcessed">—</div>
-</div>
-<div class="spark"></div>
-</div>
-</div>
-
-<div class="card" style="grid-column: span 3;">
-<div class="stat">
-<div>
-<div class="k">Pending</div>
-<div class="v" id="sPending">—</div>
-</div>
-<div class="spark"></div>
-</div>
-</div>
-
-<div class="card" style="grid-column: span 3;">
-<div class="stat">
-<div>
-<div class="k">Cancelled</div>
-<div class="v" id="sCancelled">—</div>
-</div>
-<div class="spark"></div>
-</div>
-</div>
-
-<div class="card" style="grid-column: span 3;">
-<div class="stat">
-<div>
-<div class="k">Active Providers</div>
-<div class="v" id="sProviders">—</div>
-</div>
-<div class="spark"></div>
-</div>
-</div>
-
-<div class="card" style="grid-column: span 12;">
-<div class="cardHd">
-<div>
-<b>Live Service Requests</b><br/>
-<small class="muted">Newest first • Quick actions</small>
-</div>
-<div class="rowActions">
-<button class="mini" onclick="setView('requests')">View All</button>
-<button class="mini" id="btnNewLead">+ New Lead (manual)</button>
-</div>
-</div>
-<div class="cardBd" style="padding:0;">
-<table>
-<thead>
-<tr>
-<th>Customer</th>
-<th>Phone</th>
-<th>Service</th>
-<th>Zip</th>
-<th>Status</th>
-<th style="width:240px;">Actions</th>
-</tr>
-</thead>
-<tbody id="liveRows"></tbody>
-</table>
-</div>
-</div>
-</div>
-</section>
-
-<!-- REQUESTS -->
-<section id="view-requests" class="view" style="display:none;">
-<div class="grid">
-<div class="card" style="grid-column: span 12;">
-<div class="cardHd">
-<div>
-<b>Service Requests</b><br/>
-<small class="muted">Filter, assign, mark complete, cancel</small>
-</div>
-<div class="rowActions">
-<button class="mini" data-filter="all">All</button>
-<button class="mini" data-filter="pending">Pending</button>
-<button class="mini" data-filter="active">Active</button>
-<button class="mini" data-filter="cancelled">Cancelled</button>
-<button class="mini" id="btnExport">Export CSV</button>
-</div>
-</div>
-<div class="cardBd" style="padding:0;">
-<table>
-<thead>
-<tr>
-<th>Created</th>
-<th>Customer</th>
-<th>Service</th>
-<th>Zip</th>
-<th>Assigned To</th>
-<th>Status</th>
-<th style="width:260px;">Actions</th>
-</tr>
-</thead>
-<tbody id="reqRows"></tbody>
-</table>
-</div>
-</div>
-</div>
-</section>
-
-<!-- PROVIDERS -->
-<section id="view-providers" class="view" style="display:none;">
-<div class="grid">
-<div class="card" style="grid-column: span 7;">
-<div class="cardHd">
-<div>
-<b>Providers</b><br/>
-<small class="muted">Activate/deactivate, service & zip coverage</small>
-</div>
-<div class="rowActions">
-<button class="mini" id="btnReloadProviders">Refresh</button>
-</div>
-</div>
-<div class="cardBd" style="padding:0;">
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Phone</th>
-<th>Service</th>
-<th>Zip</th>
-<th>Status</th>
-<th style="width:160px;">Actions</th>
-</tr>
-</thead>
-<tbody id="provRows"></tbody>
-</table>
-</div>
-</div>
-
-<div class="card" style="grid-column: span 5;">
-<div class="cardHd">
-<div>
-<b>Add Provider</b><br/>
-<small class="muted">Saves to your database/API when connected</small>
-</div>
-</div>
-<div class="cardBd">
-<div class="field">
-<label>Name</label>
-<input class="input" id="pName" placeholder="e.g. John Provider" />
-</div>
-<div class="field">
-<label>Phone (E.164)</label>
-<input class="input" id="pPhone" placeholder="+1410..." />
-</div>
 <div class="two">
-<div class="field">
-<label>Service</label>
-<input class="input" id="pService" placeholder="Lockout / Rekey / Car Key" />
+<div class="card">
+<div style="font-weight:700">Add Provider</div>
+<div class="row" style="margin-top:10px">
+<input id="pBiz" placeholder="Business name" style="flex:1" />
+<input id="pPhone" placeholder="Phone +1..." style="min-width:210px" />
+<select id="pTier">
+<option value="starter">starter (Tier 1)</option>
+<option value="pro">pro (Tier 2)</option>
+<option value="exclusive">exclusive (Tier 3)</option>
+</select>
+<button class="primary" id="addProviderBtn">Add</button>
 </div>
-<div class="field">
-<label>Zip</label>
-<input class="input" id="pZip" placeholder="21040" />
+<div class="row" style="margin-top:10px">
+<input id="pServices" placeholder="Services (comma) e.g. locksmith_auto,hvac" style="flex:1" />
+<input id="pZips" placeholder="Zips (comma) e.g. 21224,21222 or *" style="flex:1" />
 </div>
-</div>
-<div class="field">
-<label>Notes</label>
-<textarea class="input textarea" id="pNotes" placeholder="Coverage, hours, pricing notes..."></textarea>
-</div>
-<button class="btn primary" id="btnAddProvider">Add Provider</button>
-<div class="muted" style="margin-top:10px; font-size:12px" id="provMsg"></div>
-</div>
-</div>
-</div>
-</section>
-
-<!-- SMS -->
-<section id="view-sms" class="view" style="display:none;">
-<div class="grid">
-<div class="card" style="grid-column: span 7;">
-<div class="cardHd">
-<div>
-<b>Send SMS</b><br/>
-<small class="muted">Uses your server endpoint (Twilio) when connected</small>
-</div>
-</div>
-<div class="cardBd">
-<div class="field">
-<label>To (E.164)</label>
-<input class="input" id="smsTo" placeholder="+1410..." />
-</div>
-<div class="field">
-<label>Message</label>
-<textarea class="input textarea" id="smsBody" placeholder="New lead available in 21040. Reply YES to accept."></textarea>
-</div>
-<button class="btn primary" id="btnSendSms">Send</button>
-<div class="muted" style="margin-top:10px; font-size:12px" id="smsMsg"></div>
+<div style="margin-top:8px;color:var(--muted);font-size:12px">
+Tip: use <span class="tag">*</span> for “all zips”.
 </div>
 </div>
 
-<div class="card" style="grid-column: span 5;">
-<div class="cardHd">
-<div>
-<b>Quick Templates</b><br/>
-<small class="muted">Tap to fill message</small>
+<div class="card">
+<div style="font-weight:700">Quick Links</div>
+<div style="margin-top:10px;color:var(--muted);font-size:13px;line-height:1.5">
+Health: <span class="tag" id="healthTag">unknown</span><br/>
+Leads endpoint: <span class="tag">/admin/leads</span><br/>
+Providers endpoint: <span class="tag">/admin/providers</span><br/>
+Calls endpoint: <span class="tag">/admin/calls</span>
 </div>
-</div>
-<div class="cardBd">
-<button class="btn" style="width:100%; margin-bottom:10px" onclick="tpl('New lead: {service} in {zip}. Reply YES to accept.')">New Lead (YES)</button>
-<button class="btn" style="width:100%; margin-bottom:10px" onclick="tpl('Customer assigned. Call them now: {phone}. Address: {addr}.')">Assigned</button>
-<button class="btn" style="width:100%" onclick="tpl('Job cancelled. Stand by for the next request.')">Cancelled</button>
-<div class="muted" style="margin-top:10px; font-size:12px">
-Replace placeholders before sending.
-</div>
-</div>
-</div>
-</div>
-</section>
-
-<!-- SETTINGS -->
-<section id="view-settings" class="view" style="display:none;">
-<div class="grid">
-<div class="card" style="grid-column: span 12;">
-<div class="cardHd">
-<div>
-<b>Settings</b><br/>
-<small class="muted">Server URL + Admin Token (kept in your browser)</small>
-</div>
-</div>
-<div class="cardBd">
-<div class="two">
-<div class="field">
-<label>Server Base URL</label>
-<input class="input" id="setServer" placeholder="https://citywide-routing.onrender.com" />
-<small class="muted">Leave blank to use same origin.</small>
-</div>
-<div class="field">
-<label>Admin Token</label>
-<input class="input" id="setToken" placeholder="Your ADMIN_TOKEN value" />
-<small class="muted">We’ll send this as header: <b>x-admin-token</b></small>
-</div>
-</div>
-<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px">
-<button class="btn primary" id="btnSaveSettings">Save</button>
-<button class="btn" id="btnTestHealth">Test /health</button>
-<button class="btn danger" id="btnClearSettings">Clear</button>
-</div>
-
-<div class="banner" style="margin-top:14px;">
-<div class="msg">
-<b>Important:</b> This dashboard UI works instantly.
-To make it “live”, your <code>/api/admin/*</code> routes must exist in <code>server.js</code>.
-If they don’t, you’ll see “Demo Mode” data instead.
 </div>
 </div>
 
-<div class="muted" style="font-size:12px; margin-top:10px" id="setMsg"></div>
+<div class="card">
+<div style="font-weight:700">Providers</div>
+<table>
+<thead>
+<tr>
+<th>ID</th><th>Business</th><th>Phone</th><th>Tier</th><th>Status</th><th>Services</th><th>Zips</th><th>Actions</th>
+</tr>
+</thead>
+<tbody id="providersBody"></tbody>
+</table>
 </div>
-</div>
-</div>
-</section>
 
-</main>
+<div class="card">
+<div style="font-weight:700">Leads</div>
+<table>
+<thead>
+<tr>
+<th>ID</th><th>Time</th><th>Service</th><th>ZIP</th><th>Customer</th><th>Status</th><th>Assigned</th><th>Assign</th>
+</tr>
+</thead>
+<tbody id="leadsBody"></tbody>
+</table>
+</div>
+
+<div class="card">
+<div style="font-weight:700">Calls</div>
+<table>
+<thead>
+<tr>
+<th>Time</th><th>Service</th><th>Digits</th><th>Routed Provider</th><th>Routed To</th>
+</tr>
+</thead>
+<tbody id="callsBody"></tbody>
+</table>
+</div>
+</div>
 </div>
 
 <script>
-// ----------------------------
-// State / Storage
-// ----------------------------
-const LS_SERVER = "nl_server_base";
-const LS_TOKEN = "nl_admin_token";
-let filterStatus = "all";
-let demoMode = false;
+const $ = (id) => document.getElementById(id);
 
-const $ = (id)=>document.getElementById(id);
-const viewIds = ["overview","requests","providers","sms","settings"];
+const savedBase = localStorage.getItem("cw_base") || "";
+const savedToken = localStorage.getItem("cw_token") || "";
 
-function setView(name){
-viewIds.forEach(v=>{
-const el = $("view-"+v);
-if(!el) return;
-el.style.display = (v===name) ? "" : "none";
-});
-document.querySelectorAll(".nav button").forEach(b=>{
-b.classList.toggle("active", b.dataset.view===name);
-});
-$("subTxt").textContent =
-name==="overview" ? "Angi-style overview of leads, providers, and routing." :
-name==="requests" ? "Manage service requests (pending/active/cancelled)." :
-name==="providers" ? "Provider directory + coverage + activation." :
-name==="sms" ? "Send SMS to providers (Twilio via your server)." :
-"Server URL + Admin Token.";
-}
+$("baseUrl").value = savedBase;
+$("token").value = savedToken;
 
-// Allow sidebar buttons
-document.querySelectorAll(".nav button").forEach(btn=>{
-btn.addEventListener("click", ()=> setView(btn.dataset.view));
-});
-
-// Read token from URL (optional): ?token=XXXXX
-function getUrlToken(){
-const u = new URL(location.href);
-return u.searchParams.get("token") || "";
-}
-
-function baseUrl(){
-const saved = localStorage.getItem(LS_SERVER) || "";
-return saved.trim().replace(/\/+$/,"");
-}
-function adminToken(){
-// Prefer saved token; fall back to URL token if provided
-return (localStorage.getItem(LS_TOKEN) || getUrlToken() || "").trim();
+function base(){
+const b = ($("baseUrl").value || "").trim();
+return b ? b.replace(/\/+$/,'') : ""; // allow same-origin if blank
 }
 
 async function api(path, opts={}){
-const b = baseUrl();
-const url = (b ? b : "") + path; // same origin if blank
-const headers = Object.assign(
-{ "Content-Type":"application/json" },
-opts.headers || {}
-);
-const t = adminToken();
-if(t) headers["x-admin-token"] = t;
-
-const res = await fetch(url, Object.assign({}, opts, { headers }));
-let data = null;
-const ct = res.headers.get("content-type") || "";
-if(ct.includes("application/json")){
-data = await res.json().catch(()=>null);
-} else {
-data = await res.text().catch(()=>null);
-}
-if(!res.ok){
-const err = (data && data.error) ? data.error : (typeof data==="string" ? data : "Request failed");
-const e = new Error(err);
-e.status = res.status;
-e.data = data;
-throw e;
-}
+const url = base() ? base() + path : path;
+const headers = opts.headers || {};
+headers["x-admin-token"] = ($("token").value || "").trim();
+headers["Content-Type"] = "application/json";
+const res = await fetch(url, { ...opts, headers });
+const data = await res.json().catch(()=> ({}));
+if(!res.ok) throw new Error(data.error || ("HTTP " + res.status));
 return data;
 }
 
-function showBanner(type, html, button=false){
-const b = $("banner");
-b.className = "banner " + (type || "");
-$("bannerMsg").innerHTML = html;
-b.style.display = "";
-$("bannerBtn").style.display = button ? "" : "none";
-}
-function hideBanner(){ $("banner").style.display="none"; }
-
-$("bannerBtn").addEventListener("click", ()=> setView("settings"));
-
-// ----------------------------
-// Demo data (fallback)
-// ----------------------------
-const DEMO = {
-stats: { processed:168, pending:121, cancelled:35, providers:40 },
-leads: [
-{ id:"L1001", created:"Today 1:22p", name:"John D.", phone:"+1410***6818", service:"Lockout", zip:"21040", assigned:"—", status:"pending" },
-{ id:"L1002", created:"Today 12:55p", name:"Maria S.", phone:"+1443***1686", service:"Rekey", zip:"21224", assigned:"—", status:"pending" },
-{ id:"L1003", created:"Today 11:11a", name:"Kevin R.", phone:"+1301***1230", service:"Car Key", zip:"21162", assigned:"—", status:"active" },
-{ id:"L1004", created:"Yesterday 9:10p", name:"Savannah", phone:"+1850***8828", service:"House Lockout", zip:"21222", assigned:"John Provider", status:"cancelled" },
-],
-providers: [
-{ id:"P1", name:"John Provider", phone:"+14102278467", service:"Lockout", zip:"21040", active:true },
-{ id:"P2", name:"Towson Tech", phone:"+14435781686", service:"Rekey", zip:"21204", active:true },
-{ id:"P3", name:"Keys Mobile", phone:"+13017201230", service:"Car Key", zip:"21162", active:false },
-]
+$("saveBtn").onclick = () => {
+localStorage.setItem("cw_base", $("baseUrl").value.trim());
+localStorage.setItem("cw_token", $("token").value.trim());
+alert("Saved");
 };
 
-// ----------------------------
-// Render helpers
-// ----------------------------
-function statusPill(s){
-if(s==="pending") return `<span class="status pending"><span class="sDot"></span>Pending</span>`;
-if(s==="active") return `<span class="status active"><span class="sDot"></span>Active</span>`;
-if(s==="cancelled") return `<span class="status cancel"><span class="sDot"></span>Cancelled</span>`;
-return `<span class="status"><span class="sDot"></span>${s||"—"}</span>`;
+$("refreshBtn").onclick = () => loadAll();
+
+$("addProviderBtn").onclick = async () => {
+const biz = $("pBiz").value.trim();
+const phone = $("pPhone").value.trim();
+const tier = $("pTier").value;
+const services = $("pServices").value.split(",").map(x=>x.trim()).filter(Boolean);
+const zips = $("pZips").value.split(",").map(x=>x.trim()).filter(Boolean);
+
+if(!biz || !phone) return alert("Business name + phone required");
+
+const p = await api("/admin/providers", {
+method:"POST",
+body: JSON.stringify({ business_name: biz, phone, tier })
+});
+
+if(services.length){
+await api(`/admin/providers/${p.provider_id}/services`, { method:"POST", body: JSON.stringify({ services })});
+}
+if(zips.length){
+await api(`/admin/providers/${p.provider_id}/zips`, { method:"POST", body: JSON.stringify({ zips })});
 }
 
-function matchesQuery(obj, q){
-if(!q) return true;
-const s = (obj.name+" "+obj.phone+" "+obj.zip+" "+obj.service+" "+(obj.assigned||"")).toLowerCase();
-return s.includes(q.toLowerCase());
+$("pBiz").value=""; $("pPhone").value=""; $("pServices").value=""; $("pZips").value="";
+await loadAll();
+};
+
+function td(x){ return `<td>${x ?? ""}</td>`; }
+
+async function loadHealth(){
+try{
+const url = base() ? base()+"/health" : "/health";
+const r = await fetch(url);
+const j = await r.json();
+$("healthTag").textContent = j.ok ? "ok" : "bad";
+}catch{
+$("healthTag").textContent = "error";
+}
 }
 
-function renderStats(st){
-$("sProcessed").textContent = st.processed ?? "—";
-$("sPending").textContent = st.pending ?? "—";
-$("sCancelled").textContent = st.cancelled ?? "—";
-$("sProviders").textContent = st.providers ?? "—";
+async function loadProviders(){
+const data = await api("/admin/providers");
+const body = $("providersBody");
+body.innerHTML = "";
 
-$("bTotal").textContent = (st.processed ?? 0) + (st.pending ?? 0) + (st.cancelled ?? 0);
-$("bPending").textContent = st.pending ?? "—";
-$("bProviders").textContent = st.providers ?? "—";
-}
+data.providers.forEach(p=>{
+const services = (p.services||[]).join(", ");
+const zips = (p.zips||[]).join(", ");
 
-function renderLive(leads){
-const qv = $("q").value.trim();
-const rows = leads
-.slice(0, 8)
-.filter(l=>matchesQuery(l,qv))
-.map(l=>`
+body.innerHTML += `
 <tr>
-<td><b>${esc(l.name)}</b></td>
-<td class="muted">${esc(l.phone||"—")}</td>
-<td>${esc(l.service||"—")}</td>
-<td class="muted">${esc(l.zip||"—")}</td>
-<td>${statusPill(l.status)}</td>
+${td(p.id)}
+${td(p.business_name)}
+${td(p.phone)}
+${td(`<span class="tag">${p.tier}</span>`)}
+${td(`<span class="tag">${p.status}</span>`)}
+${td(services)}
+${td(zips)}
 <td>
-<div class="rowActions">
-<button class="mini" onclick="markStatus('${esc(l.id)}','active')">Activate</button>
-<button class="mini" onclick="markStatus('${esc(l.id)}','cancelled')">Cancel</button>
-<button class="mini" onclick="promptAssign('${esc(l.id)}')">Assign</button>
-</div>
+<button onclick="toggleProvider(${p.id}, '${p.status}')">Toggle</button>
+<button onclick="setTier(${p.id})">Set Tier</button>
 </td>
 </tr>
-`).join("");
-$("liveRows").innerHTML = rows || `<tr><td colspan="6" class="muted" style="padding:16px;">No requests found.</td></tr>`;
+`;
+});
 }
 
-function renderRequests(leads){
-const qv = $("q").value.trim();
-const filtered = leads
-.filter(l => filterStatus==="all" ? true : l.status===filterStatus)
-.filter(l=>matchesQuery(l,qv));
+window.toggleProvider = async (id, status) => {
+const next = status === "active" ? "paused" : "active";
+await api(`/admin/providers/${id}`, { method:"PATCH", body: JSON.stringify({ status: next })});
+await loadProviders();
+};
 
-$("reqRows").innerHTML = filtered.map(l=>`
+window.setTier = async (id) => {
+const tier = prompt("Enter tier: starter / pro / exclusive");
+if(!tier) return;
+await api(`/admin/providers/${id}`, { method:"PATCH", body: JSON.stringify({ tier: tier.trim() })});
+await loadProviders();
+};
+
+async function loadLeads(){
+const data = await api("/admin/leads");
+const body = $("leadsBody");
+body.innerHTML = "";
+
+const providers = await api("/admin/providers");
+
+data.leads.forEach(l=>{
+const assigned = l.assigned_provider_name || "";
+const customer = `${l.name || ""} <span class="tag">${l.phone || ""}</span>`;
+
+const options = providers.providers
+.map(p => `<option value="${p.id}">${p.id} - ${p.business_name} (${p.tier})</option>`)
+.join("");
+
+body.innerHTML += `
 <tr>
-<td class="muted">${esc(l.created||"—")}</td>
-<td><b>${esc(l.name)}</b><div class="muted" style="font-size:12px">${esc(l.phone||"")}</div></td>
-<td>${esc(l.service||"—")}</td>
-<td class="muted">${esc(l.zip||"—")}</td>
-<td class="muted">${esc(l.assigned||"—")}</td>
-<td>${statusPill(l.status)}</td>
+${td(l.id)}
+${td(l.created_at)}
+${td(l.service)}
+${td(l.zip)}
+${td(customer)}
+${td(`<span class="tag">${l.status}</span>`)}
+${td(assigned)}
 <td>
-<div class="rowActions">
-<button class="mini" onclick="markStatus('${esc(l.id)}','pending')">Pending</button>
-<button class="mini" onclick="markStatus('${esc(l.id)}','active')">Active</button>
-<button class="mini" onclick="markStatus('${esc(l.id)}','cancelled')">Cancel</button>
-<button class="mini" onclick="promptAssign('${esc(l.id)}')">Assign</button>
-</div>
+<select id="assign_${l.id}">${options}</select>
+<button onclick="assignLead(${l.id})" class="primary">Assign</button>
 </td>
 </tr>
-`).join("") || `<tr><td colspan="7" class="muted" style="padding:16px;">No requests match this filter.</td></tr>`;
+`;
+});
 }
 
-function renderProviders(providers){
-const qv = $("q").value.trim();
-const filtered = providers.filter(p=>matchesQuery(p,qv));
-$("provRows").innerHTML = filtered.map(p=>`
+window.assignLead = async (leadId) => {
+const sel = document.getElementById(`assign_${leadId}`);
+const provider_id = parseInt(sel.value, 10);
+await api(`/admin/leads/${leadId}/assign`, { method:"POST", body: JSON.stringify({ provider_id })});
+await loadLeads();
+};
+
+async function loadCalls(){
+const data = await api("/admin/calls");
+const body = $("callsBody");
+body.innerHTML = "";
+
+data.calls.forEach(c=>{
+body.innerHTML += `
 <tr>
-<td><b>${esc(p.name)}</b></td>
-<td class="muted">${esc(p.phone||"—")}</td>
-<td>${esc(p.service||"—")}</td>
-<td class="muted">${esc(p.zip||"—")}</td>
-<td>${p.active ? `<span class="status active"><span class="sDot"></span>Active</span>` :
-`<span class="status cancel"><span class="sDot"></span>Inactive</span>`}</td>
-<td>
-<div class="rowActions">
-<button class="mini" onclick="toggleProvider('${esc(p.id)}')">${p.active ? "Deactivate" : "Activate"}</button>
+${td(c.created_at)}
+${td(c.service)}
+${td(c.digits)}
+${td(c.routed_provider_id || "")}
+${td(c.routed_to_phone || "")}
+</tr>
+`;
+});
+}
+
+async function loadAll(){
+await loadHealth();
+await loadProviders();
+await loadLeads();
+await loadCalls();
+}
+
+loadAll();
+</script>
+</body>
+</html>button>
 <button class="mini" onclick="copy('${esc(p.phone||"")}')">Copy #</button>
 </div>
 </td>
