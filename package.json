@@ -1,11 +1,12 @@
 {
 "name": "citywide-routing",
-"version": "1.1.0",
-"description": "Citywide lead routing server with Telnyx notifications",
+"version": "1.2.0",
+"description": "Citywide Leads routing engine with tiered providers, dashboard, Telnyx SMS & call routing",
 "main": "server.js",
 "type": "commonjs",
 "scripts": {
-"start": "node server.js"
+"start": "node server.js",
+"dev": "node server.js"
 },
 "engines": {
 "node": "18.x"
