@@ -99,9 +99,7 @@ return `
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-*{
-box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 body{
 margin:0;
@@ -233,9 +231,7 @@ gap:14px;
 margin-top:20px;
 }
 
-.quick{
-text-align:center;
-}
+.quick{text-align:center}
 
 .icon{
 width:74px;
@@ -315,10 +311,10 @@ color:white;
 background:#2563eb;
 }
 
-.badge.accepted{background:#16a34a;}
-.badge.booked{background:#7c3aed;}
-.badge.paid{background:#f59e0b;color:#111827;}
-.badge.declined{background:#64748b;}
+.badge.accepted{background:#16a34a}
+.badge.booked{background:#7c3aed}
+.badge.paid{background:#f59e0b;color:#111827}
+.badge.declined{background:#64748b}
 
 .info{
 margin-top:14px;
@@ -344,15 +340,15 @@ text-decoration:none;
 display:inline-block;
 }
 
-.accept{background:#22c55e;color:white;}
-.booked{background:#8b5cf6;color:white;}
-.paid{background:#f59e0b;color:#111827;}
-.archive{background:#64748b;color:white;}
-.delete{background:#ef4444;color:white;}
-.text{background:#06b6d4;color:white;}
-.call{background:#16a34a;color:white;}
-.refresh{background:#ec4899;color:white;}
-.test{background:#2563eb;color:white;}
+.accept{background:#22c55e;color:white}
+.booked{background:#8b5cf6;color:white}
+.paid{background:#f59e0b;color:#111827}
+.archive{background:#64748b;color:white}
+.delete{background:#ef4444;color:white}
+.text{background:#06b6d4;color:white}
+.call{background:#16a34a;color:white}
+.refresh{background:#ec4899;color:white}
+.test{background:#2563eb;color:white}
 
 select,textarea,input{
 width:100%;
@@ -363,9 +359,7 @@ margin-top:10px;
 font-size:16px;
 }
 
-textarea{
-min-height:85px;
-}
+textarea{min-height:85px}
 
 .empty{
 background:white;
@@ -403,9 +397,7 @@ display:block;
 margin-bottom:3px;
 }
 
-.bottom-nav a.active{
-color:#075985;
-}
+.bottom-nav a.active{color:#075985}
 
 @media(max-width:800px){
 .app{
@@ -424,17 +416,11 @@ height:70px;
 font-size:25px;
 }
 
-.brand h1{
-font-size:24px;
-}
+.brand h1{font-size:24px}
 
-.brand p{
-font-size:14px;
-}
+.brand p{font-size:14px}
 
-.profile-card h2{
-font-size:20px;
-}
+.profile-card h2{font-size:20px}
 
 .circle{
 width:72px;
@@ -454,39 +440,27 @@ height:58px;
 font-size:24px;
 }
 
-.quick span{
-font-size:13px;
-}
+.quick span{font-size:13px}
 
 .stats{
 grid-template-columns:repeat(2,1fr);
 gap:10px;
 }
 
-.stat{
-padding:16px;
-}
+.stat{padding:16px}
 
-.stat h2{
-font-size:28px;
-}
+.stat h2{font-size:28px}
 
-.lead-card{
-padding:18px;
-}
+.lead-card{padding:18px}
 
-.lead-top{
-display:block;
-}
+.lead-top{display:block}
 
 .badge{
 display:inline-block;
 margin-top:10px;
 }
 
-.phone{
-font-size:22px;
-}
+.phone{font-size:22px}
 
 button,a.btn{
 width:48%;
@@ -561,7 +535,7 @@ duration:"45",
 recording:"",
 lead_score:"92",
 call_status:"New",
-provider_assigned:"Citywide Lock & Key",
+provider_assigned:"Robyn",
 lead_status:"New",
 notes:""
 });
@@ -630,8 +604,6 @@ res.status(500).json({ success:false, error:err.message });
 });
 
 app.get("/", async (req, res) => {
-const leads = await getLeads();
-
 res.send(layout("NLN Dashboard", `
 <div class="app">
 
@@ -641,7 +613,7 @@ res.send(layout("NLN Dashboard", `
 <div class="logo-box">NL</div>
 <div>
 <h1>Nationwide Leads Network</h1>
-<p>Texas, Maryland, New York & local service leads</p>
+<p>Locksmith lead dispatch dashboard</p>
 </div>
 </div>
 <div class="bell">🔔</div>
@@ -649,8 +621,8 @@ res.send(layout("NLN Dashboard", `
 
 <div class="profile-card">
 <div>
-<h2>Profile strength</h2>
-<p>Lead system connected and active</p>
+<h2>Provider dispatch system</h2>
+<p>5 locksmith drivers connected</p>
 </div>
 <div class="circle">91%</div>
 </div>
@@ -675,16 +647,18 @@ res.send(layout("NLN Dashboard", `
 <button class="refresh" onclick="loadLeads()">Refresh</button>
 </div>
 
-<h2 class="section-title">Incoming Leads</h2>
+<h2 class="section-title">Incoming Locksmith Leads</h2>
 <div id="leads"></div>
 
 </div>
 
 <script>
 const providers = {
-"Citywide Lock & Key": "4435781686",
-"Provider A": "4105551111",
-"Provider B": "6675552222"
+"Max": "4436792242",
+"Dreh": "2024125443",
+"Tee": "4104199281",
+"Robyn": "4435781686",
+"Car Key Chris": "2232630824"
 };
 
 let leadsData = [];
@@ -695,7 +669,7 @@ return String(phone || "").replace(/[^0-9]/g, "");
 
 function makeSmsLink(phone, lead){
 const text =
-"NEW LEAD\\n\\n" +
+"NEW LOCKSMITH LEAD\\n\\n" +
 "Customer: " + (lead.customer_phone || "Unknown") + "\\n\\n" +
 "Service: " + (lead.service || "Locksmith Service") + "\\n\\n" +
 "Source: " + (lead.source || "CallRail") + "\\n\\n" +
@@ -730,7 +704,7 @@ return;
 wrap.innerHTML = leadsData.map(lead => {
 const customerPhone = cleanPhone(lead.customer_phone);
 const assignedProvider = lead.provider_assigned || "Unassigned";
-const providerPhone = providers[assignedProvider] || providers["Citywide Lock & Key"];
+const providerPhone = providers[assignedProvider] || providers["Robyn"];
 const statusClass = String(lead.lead_status || "New").toLowerCase();
 const smsAssigned = makeSmsLink(providerPhone, lead);
 
@@ -752,10 +726,26 @@ return \`
 <strong>Created:</strong> \${new Date(lead.created_at).toLocaleString()}
 </div>
 
+<select onchange="assignProvider(\${lead.id}, this.value)">
+<option \${assignedProvider === "Unassigned" ? "selected" : ""}>Unassigned</option>
+<option \${assignedProvider === "Max" ? "selected" : ""}>Max</option>
+<option \${assignedProvider === "Dreh" ? "selected" : ""}>Dreh</option>
+<option \${assignedProvider === "Tee" ? "selected" : ""}>Tee</option>
+<option \${assignedProvider === "Robyn" ? "selected" : ""}>Robyn</option>
+<option \${assignedProvider === "Car Key Chris" ? "selected" : ""}>Car Key Chris</option>
+</select>
+
 <div class="btn-row">
 <a class="btn call" href="tel:\${customerPhone}">Call Customer</a>
-<a class="btn text" href="\${smsAssigned}">Send Text</a>
-<a class="btn text" href="\${makeSmsLink(providers["Citywide Lock & Key"], lead)}">Text Citywide</a>
+<a class="btn text" href="\${smsAssigned}">Send To Selected</a>
+</div>
+
+<div class="btn-row">
+<a class="btn text" href="\${makeSmsLink(providers["Max"], lead)}">Text Max</a>
+<a class="btn text" href="\${makeSmsLink(providers["Dreh"], lead)}">Text Dreh</a>
+<a class="btn text" href="\${makeSmsLink(providers["Tee"], lead)}">Text Tee</a>
+<a class="btn text" href="\${makeSmsLink(providers["Robyn"], lead)}">Text Robyn</a>
+<a class="btn text" href="\${makeSmsLink(providers["Car Key Chris"], lead)}">Text Chris</a>
 </div>
 
 <div class="btn-row">
@@ -765,13 +755,6 @@ return \`
 <button class="archive" onclick="archiveLead(\${lead.id})">Archive</button>
 <button class="delete" onclick="deleteLead(\${lead.id})">Delete</button>
 </div>
-
-<select onchange="assignProvider(\${lead.id}, this.value)">
-<option \${assignedProvider === "Unassigned" ? "selected" : ""}>Unassigned</option>
-<option \${assignedProvider === "Citywide Lock & Key" ? "selected" : ""}>Citywide Lock & Key</option>
-<option \${assignedProvider === "Provider A" ? "selected" : ""}>Provider A</option>
-<option \${assignedProvider === "Provider B" ? "selected" : ""}>Provider B</option>
-</select>
 
 <textarea id="notes-\${lead.id}" placeholder="Add notes...">\${lead.notes || ""}</textarea>
 <button class="test" onclick="saveNotes(\${lead.id})">Save Notes</button>
@@ -879,27 +862,15 @@ app.get("/providers", (req, res) => {
 res.send(layout("Providers", `
 <div class="app">
 <div class="hero">
-<h1>Providers</h1>
-<p>Provider routing list.</p>
+<h1>Locksmith Providers</h1>
+<p>5 drivers ready for job dispatch.</p>
 </div>
 
-<div class="lead-card">
-<h2>Citywide Lock & Key</h2>
-<p><strong>Phone:</strong> 443-578-1686</p>
-<p><strong>Status:</strong> Active</p>
-</div>
-
-<div class="lead-card">
-<h2>Provider A</h2>
-<p><strong>Phone:</strong> 410-555-1111</p>
-<p><strong>Status:</strong> Pending</p>
-</div>
-
-<div class="lead-card">
-<h2>Provider B</h2>
-<p><strong>Phone:</strong> 667-555-2222</p>
-<p><strong>Status:</strong> Active</p>
-</div>
+<div class="lead-card"><h2>Max</h2><p><strong>Phone:</strong> +1 443-679-2242</p><p><strong>Status:</strong> Active</p></div>
+<div class="lead-card"><h2>Dreh</h2><p><strong>Phone:</strong> +1 202-412-5443</p><p><strong>Status:</strong> Active</p></div>
+<div class="lead-card"><h2>Tee</h2><p><strong>Phone:</strong> +1 410-419-9281</p><p><strong>Status:</strong> Active</p></div>
+<div class="lead-card"><h2>Robyn</h2><p><strong>Phone:</strong> +1 443-578-1686</p><p><strong>Status:</strong> Active</p></div>
+<div class="lead-card"><h2>Car Key Chris</h2><p><strong>Phone:</strong> +1 223-263-0824</p><p><strong>Status:</strong> Automotive Keys</p></div>
 </div>
 `));
 });
@@ -917,6 +888,7 @@ res.send(layout("Settings", `
 <p>https://citywide-routing.onrender.com/lead/new</p>
 <p><strong>Lead Price:</strong> 35 dollars</p>
 <p><strong>Texting:</strong> iPhone SMS send button enabled</p>
+<p><strong>Providers:</strong> Max, Dreh, Tee, Robyn, Car Key Chris</p>
 </div>
 </div>
 `));
