@@ -10,14 +10,11 @@ app.use(express.urlencoded({ extended: true }));
 
 const pool = new Pool({
 connectionString: process.env.DATABASE_URL,
-ssl: {
-rejectUnauthorized: false
-}
+ssl: { rejectUnauthorized: false }
 });
 
 async function initDB() {
 try {
-
 await pool.query(`
 CREATE TABLE IF NOT EXISTS leads (
 id SERIAL PRIMARY KEY,
@@ -38,70 +35,26 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 `);
 
 console.log("✅ DB ready");
-
 } catch (err) {
-
-console.log(err);
-
+console.log("DB ERROR:", err);
 }
 }
 
 initDB();
 
-app.get("/health", (req, res) => {
-res.json({
-success: true,
-status: "online"
-});
-});
+async function getLeads() {
+const result = await pool.query(`
+SELECT *
+FROM leads
+WHERE archived = false
+ORDER BY created_at DESC
+`);
 
-app.post("/lead/new", async (req, res) => {
+return result.rows;
+}
 
-try {
-
-console.log(req.body);
-
-const lead = {
-customer_phone:
-req.body.callernum ||
-req.body.customer_phone ||
-"Unknown",
-
-tracking_number:
-req.body.trackingnum ||
-"",
-
-source:
-req.body.callsource ||
-"CallRail",
-
-service:
-req.body.keyword ||
-"Emergency Locksmith",
-
-duration:
-req.body.duration ||
-"0",
-
-recording:
-req.body.recording ||
-"",
-
-lead_score:
-req.body.score ||
-"92",
-
-call_status:
-"new",
-
-provider_assigned:
-"Unassigned",
-
-lead_status:
-"new"
-};
-
-await pool.query(
+async function saveLead(lead) {
+const result = await pool.query(
 `
 INSERT INTO leads (
 customer_phone,
@@ -113,9 +66,11 @@ recording,
 lead_score,
 call_status,
 provider_assigned,
-lead_status
+lead_status,
+notes
 )
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+RETURNING *
 `,
 [
 lead.customer_phone,
@@ -127,140 +82,528 @@ lead.recording,
 lead.lead_score,
 lead.call_status,
 lead.provider_assigned,
-lead.lead_status
+lead.lead_status,
+lead.notes
 ]
 );
 
-console.log("✅ LEAD SAVED");
-
-res.json({
-success: true
-});
-
-} catch (err) {
-
-console.log(err);
-
-res.status(500).json({
-success: false
-});
-
+return result.rows[0];
 }
+
+function layout(title, content) {
+return `
+<!DOCTYPE html>
+<html>
+<head>
+<title>${title}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+font-family:Arial, Helvetica, sans-serif;
+background:#f4f8fb;
+color:#0f172a;
+}
+
+.app{
+max-width:1180px;
+margin:auto;
+padding:18px;
+padding-bottom:95px;
+}
+
+.hero{
+background:white;
+border-radius:28px;
+padding:24px;
+box-shadow:0 12px 35px rgba(15,23,42,.08);
+margin-bottom:18px;
+}
+
+.top-row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:12px;
+}
+
+.brand{
+display:flex;
+align-items:center;
+gap:14px;
+}
+
+.logo-box{
+width:78px;
+height:78px;
+border-radius:22px;
+background:linear-gradient(135deg,#0b2a67,#0ea5e9);
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+font-size:28px;
+font-weight:900;
+box-shadow:0 10px 22px rgba(14,165,233,.25);
+position:relative;
+}
+
+.logo-box:after{
+content:"✓";
+position:absolute;
+right:-6px;
+bottom:-6px;
+background:#2563eb;
+color:white;
+width:30px;
+height:30px;
+border-radius:999px;
+display:flex;
+align-items:center;
+justify-content:center;
+border:3px solid white;
+font-size:15px;
+}
+
+.brand h1{
+margin:0;
+font-size:30px;
+}
+
+.brand p{
+margin:5px 0 0;
+color:#64748b;
+font-weight:bold;
+}
+
+.bell{
+width:48px;
+height:48px;
+border-radius:999px;
+background:#e0f7ff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:24px;
+}
+
+.profile-card{
+margin-top:20px;
+border:1px solid #e2e8f0;
+border-radius:22px;
+padding:18px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:14px;
+}
+
+.profile-card h2{
+margin:0;
+font-size:24px;
+}
+
+.profile-card p{
+margin:5px 0 0;
+color:#64748b;
+font-weight:bold;
+}
+
+.circle{
+width:84px;
+height:84px;
+border-radius:999px;
+border:9px solid #0891b2;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:900;
+font-size:20px;
+}
+
+.quick-actions{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:14px;
+margin-top:20px;
+}
+
+.quick{
+text-align:center;
+}
+
+.icon{
+width:74px;
+height:74px;
+margin:auto;
+border-radius:999px;
+background:#d8f7ff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:30px;
+}
+
+.quick span{
+display:block;
+margin-top:8px;
+font-weight:900;
+color:#075985;
+}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:14px;
+margin-bottom:18px;
+}
+
+.stat{
+background:white;
+border-radius:22px;
+padding:22px;
+box-shadow:0 12px 30px rgba(15,23,42,.06);
+}
+
+.stat h2{
+margin:0;
+font-size:34px;
+}
+
+.stat p{
+margin:6px 0 0;
+color:#64748b;
+font-weight:800;
+}
+
+.section-title{
+font-size:24px;
+margin:22px 0 12px;
+}
+
+.lead-card{
+background:white;
+border-radius:24px;
+padding:22px;
+margin-bottom:16px;
+box-shadow:0 12px 35px rgba(15,23,42,.08);
+border:1px solid #e2e8f0;
+}
+
+.lead-top{
+display:flex;
+justify-content:space-between;
+gap:12px;
+align-items:flex-start;
+}
+
+.phone{
+font-size:26px;
+font-weight:900;
+}
+
+.badge{
+border-radius:999px;
+padding:9px 14px;
+font-weight:900;
+color:white;
+background:#2563eb;
+}
+
+.badge.accepted{background:#16a34a;}
+.badge.booked{background:#7c3aed;}
+.badge.paid{background:#f59e0b;color:#111827;}
+.badge.declined{background:#64748b;}
+
+.info{
+margin-top:14px;
+line-height:1.8;
+color:#334155;
+font-weight:600;
+}
+
+.btn-row{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+margin-top:14px;
+}
+
+button,a.btn{
+border:none;
+border-radius:13px;
+padding:12px 14px;
+cursor:pointer;
+font-weight:900;
+text-decoration:none;
+display:inline-block;
+}
+
+.accept{background:#22c55e;color:white;}
+.booked{background:#8b5cf6;color:white;}
+.paid{background:#f59e0b;color:#111827;}
+.archive{background:#64748b;color:white;}
+.delete{background:#ef4444;color:white;}
+.text{background:#06b6d4;color:white;}
+.call{background:#16a34a;color:white;}
+.refresh{background:#ec4899;color:white;}
+.test{background:#2563eb;color:white;}
+
+select,textarea,input{
+width:100%;
+padding:13px;
+border:1px solid #cbd5e1;
+border-radius:13px;
+margin-top:10px;
+font-size:16px;
+}
+
+textarea{
+min-height:85px;
+}
+
+.empty{
+background:white;
+border-radius:24px;
+padding:38px;
+text-align:center;
+color:#64748b;
+font-weight:800;
+}
+
+.bottom-nav{
+position:fixed;
+left:0;
+right:0;
+bottom:0;
+background:#eef7fb;
+border-top:1px solid #dbeafe;
+display:flex;
+justify-content:space-around;
+padding:10px 6px 14px;
+z-index:999;
+}
+
+.bottom-nav a{
+text-decoration:none;
+color:#475569;
+font-weight:900;
+text-align:center;
+font-size:13px;
+}
+
+.bottom-nav .nav-icon{
+font-size:25px;
+display:block;
+margin-bottom:3px;
+}
+
+.bottom-nav a.active{
+color:#075985;
+}
+
+@media(max-width:800px){
+.app{
+padding:14px;
+padding-bottom:90px;
+}
+
+.hero{
+border-radius:24px;
+padding:18px;
+}
+
+.logo-box{
+width:70px;
+height:70px;
+font-size:25px;
+}
+
+.brand h1{
+font-size:24px;
+}
+
+.brand p{
+font-size:14px;
+}
+
+.profile-card h2{
+font-size:20px;
+}
+
+.circle{
+width:72px;
+height:72px;
+border-width:8px;
+font-size:18px;
+}
+
+.quick-actions{
+grid-template-columns:repeat(4,1fr);
+gap:8px;
+}
+
+.icon{
+width:58px;
+height:58px;
+font-size:24px;
+}
+
+.quick span{
+font-size:13px;
+}
+
+.stats{
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+}
+
+.stat{
+padding:16px;
+}
+
+.stat h2{
+font-size:28px;
+}
+
+.lead-card{
+padding:18px;
+}
+
+.lead-top{
+display:block;
+}
+
+.badge{
+display:inline-block;
+margin-top:10px;
+}
+
+.phone{
+font-size:22px;
+}
+
+button,a.btn{
+width:48%;
+text-align:center;
+padding:13px 10px;
+font-size:14px;
+}
+}
+</style>
+</head>
+
+<body>
+${content}
+
+<div class="bottom-nav">
+<a class="active" href="/"><span class="nav-icon">📍</span>Dashboard</a>
+<a href="/providers"><span class="nav-icon">👷</span>Providers</a>
+<a href="/calls"><span class="nav-icon">☎️</span>Calls</a>
+<a href="/settings"><span class="nav-icon">⚙️</span>Settings</a>
+<a href="/admin/leads" target="_blank"><span class="nav-icon">📄</span>Raw</a>
+</div>
+
+</body>
+</html>`;
+}
+
+app.get("/health", (req, res) => {
+res.json({ success:true, status:"online" });
 });
 
-app.get("/api/leads", async (req, res) => {
-
+app.post("/lead/new", async (req, res) => {
 try {
+console.log("📞 CALLRAIL WEBHOOK RECEIVED");
+console.log(req.body);
 
-const result = await pool.query(`
-SELECT *
-FROM leads
-WHERE archived = false
-ORDER BY created_at DESC
-`);
+const body = req.body;
 
-res.json(result.rows);
+const lead = {
+customer_phone: body.customer_phone_number || body.customer_number || body.callernum || body.from || "Unknown",
+tracking_number: body.tracking_phone_number || body.trackingnum || body.destinationnum || body.to || "Unknown",
+source: body.source || body.callsource || body.referrermedium || "CallRail",
+service: body.tag || body.keywords || body.lead_explanation || "Service Request",
+duration: String(body.duration || body.call_duration || "0"),
+recording: body.recording || body.recording_url || "",
+lead_score: String(body.lead_score || body.score || "N/A"),
+call_status: "New",
+provider_assigned: "Unassigned",
+lead_status: "New",
+notes: ""
+};
+
+const saved = await saveLead(lead);
+
+console.log("✅ LEAD SAVED", saved.id);
+
+res.json({ success:true, lead:saved });
 
 } catch (err) {
-
-console.log(err);
-
-res.status(500).json([]);
+console.log("LEAD ERROR:", err);
+res.status(500).json({ success:false, error:err.message });
 }
 });
 
-app.post("/api/leads/:id/status", async (req, res) => {
-
+app.post("/lead/test", async (req, res) => {
 try {
-
-const { status } = req.body;
-
-await pool.query(
-`
-UPDATE leads
-SET lead_status = $1
-WHERE id = $2
-`,
-[status, req.params.id]
-);
-
-res.json({
-success: true
+const saved = await saveLead({
+customer_phone:"443-555-0100",
+tracking_number:"443-578-1686",
+source:"Test Lead",
+service:"Emergency Lockout",
+duration:"45",
+recording:"",
+lead_score:"92",
+call_status:"New",
+provider_assigned:"Citywide Lock & Key",
+lead_status:"New",
+notes:""
 });
 
+res.json({ success:true, lead:saved });
 } catch (err) {
-
-console.log(err);
-
-res.status(500).json({
-success: false
-});
-
+res.status(500).json({ success:false, error:err.message });
 }
 });
 
-app.post("/api/leads/:id/provider", async (req, res) => {
-
-try {
-
-const { provider } = req.body;
-
-await pool.query(
-`
-UPDATE leads
-SET provider_assigned = $1
-WHERE id = $2
-`,
-[provider, req.params.id]
-);
-
-res.json({
-success: true
+app.get("/admin/leads", async (req, res) => {
+const leads = await getLeads();
+res.json({ success:true, leads });
 });
 
-} catch (err) {
-
-console.log(err);
-
-res.status(500).json({
-success: false
+app.post("/lead/:id/status", async (req, res) => {
+await pool.query("UPDATE leads SET lead_status=$1 WHERE id=$2", [req.body.status, req.params.id]);
+res.json({ success:true });
 });
 
-}
+app.post("/lead/:id/provider", async (req, res) => {
+await pool.query("UPDATE leads SET provider_assigned=$1 WHERE id=$2", [req.body.provider, req.params.id]);
+res.json({ success:true });
 });
 
-app.post("/api/leads/:id/archive", async (req, res) => {
-
-try {
-
-await pool.query(
-`
-UPDATE leads
-SET archived = true
-WHERE id = $1
-`,
-[req.params.id]
-);
-
-res.json({
-success: true
+app.post("/lead/:id/notes", async (req, res) => {
+await pool.query("UPDATE leads SET notes=$1 WHERE id=$2", [req.body.notes, req.params.id]);
+res.json({ success:true });
 });
 
-} catch (err) {
-
-console.log(err);
-
-res.status(500).json({
-success: false
+app.post("/lead/:id/archive", async (req, res) => {
+await pool.query("UPDATE leads SET archived=true WHERE id=$1", [req.params.id]);
+res.json({ success:true });
 });
 
-}
+app.delete("/lead/:id", async (req, res) => {
+await pool.query("DELETE FROM leads WHERE id=$1", [req.params.id]);
+res.json({ success:true });
 });
 
 app.post("/send-provider-text", async (req, res) => {
-
 try {
-
 const { phone, lead } = req.body;
 
 const smsBody = `
@@ -272,309 +615,315 @@ Service: ${lead.service || "Locksmith Service"}
 
 Source: ${lead.source || "CallRail"}
 
-Lead Score: ${lead.lead_score || 0}
+Lead Score: ${lead.lead_score || "N/A"}
 
 Call customer ASAP.
 `;
 
-const smsLink =
-`sms:${phone}?body=${encodeURIComponent(smsBody)}`;
+const smsLink = "sms:" + phone + "?body=" + encodeURIComponent(smsBody);
 
-res.json({
-success: true,
-smsLink
-});
+res.json({ success:true, smsLink });
 
 } catch (err) {
-
-console.log("TEXT ERROR:", err);
-
-res.status(500).json({
-success: false
-});
-
+res.status(500).json({ success:false, error:err.message });
 }
 });
 
 app.get("/", async (req, res) => {
+const leads = await getLeads();
 
-const result = await pool.query(`
-SELECT *
-FROM leads
-WHERE archived = false
-ORDER BY created_at DESC
-`);
+res.send(layout("NLN Dashboard", `
+<div class="app">
 
-const leads = result.rows;
-
-const cards = leads.map((lead) => {
-
-return `
-<div class="card">
-
-<h2>${lead.customer_phone}</h2>
-
-<p><strong>Service:</strong> ${lead.service}</p>
-
-<p><strong>Source:</strong> ${lead.source}</p>
-
-<p><strong>Status:</strong> ${lead.lead_status}</p>
-
-<p><strong>Provider:</strong> ${lead.provider_assigned}</p>
-
-<p><strong>Lead Score:</strong> ${lead.lead_score}</p>
-
-<p><strong>Created:</strong> ${lead.created_at}</p>
-
-<div class="buttons">
-
-<button onclick="updateStatus(${lead.id},'accepted')">
-Accept
-</button>
-
-<button onclick="updateStatus(${lead.id},'booked')">
-Booked
-</button>
-
-<button onclick="updateStatus(${lead.id},'paid')">
-Paid
-</button>
-
-<button onclick="archiveLead(${lead.id})">
-Archive
-</button>
-
-<button onclick="sendProviderText('${lead.customer_phone}','${lead.service}','${lead.source}','${lead.lead_score}')">
-Text Provider
-</button>
-
+<div class="hero">
+<div class="top-row">
+<div class="brand">
+<div class="logo-box">NL</div>
+<div>
+<h1>Nationwide Leads Network</h1>
+<p>Texas, Maryland, New York & local service leads</p>
+</div>
+</div>
+<div class="bell">🔔</div>
 </div>
 
+<div class="profile-card">
+<div>
+<h2>Profile strength</h2>
+<p>Lead system connected and active</p>
 </div>
-`;
-}).join("");
-
-res.send(`
-<html>
-
-<head>
-
-<title>NLN Dashboard</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-
-body{
-margin:0;
-background:#0b1020;
-color:white;
-font-family:Arial;
-}
-
-.layout{
-display:flex;
-min-height:100vh;
-}
-
-.sidebar{
-width:220px;
-background:#111827;
-padding:20px;
-}
-
-.sidebar h1{
-font-size:24px;
-}
-
-.sidebar a{
-display:block;
-color:white;
-text-decoration:none;
-margin:18px 0;
-}
-
-.content{
-flex:1;
-padding:20px;
-}
-
-.card{
-background:#172036;
-padding:20px;
-border-radius:14px;
-margin-bottom:20px;
-}
-
-.buttons{
-display:flex;
-flex-wrap:wrap;
-gap:10px;
-margin-top:15px;
-}
-
-button{
-border:none;
-border-radius:8px;
-padding:10px 14px;
-cursor:pointer;
-}
-
-@media(max-width:768px){
-
-.layout{
-flex-direction:column;
-}
-
-.sidebar{
-width:100%;
-display:flex;
-overflow:auto;
-gap:20px;
-}
-
-.sidebar a{
-white-space:nowrap;
-}
-
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="layout">
-
-<div class="sidebar">
-
-<h1>🔥 NLN</h1>
-
-<a href="/">Dashboard</a>
-<a href="/">Providers</a>
-<a href="/">Calls</a>
-<a href="/">Settings</a>
-<a href="/">Raw Leads</a>
-<a href="/health">Health</a>
-
+<div class="circle">91%</div>
 </div>
 
-<div class="content">
-
-<h1>NLN Lead Dashboard</h1>
-
-<button onclick="createTestLead()">
-Create Test Lead
-</button>
-
-<br><br>
-
-${cards}
-
+<div class="quick-actions">
+<div class="quick"><div class="icon">✏️</div><span>Edit</span></div>
+<div class="quick"><div class="icon">📈</div><span>Ads</span></div>
+<div class="quick"><div class="icon">☎️</div><span>Calls</span></div>
+<div class="quick"><div class="icon">⏰</div><span>Hours</span></div>
 </div>
+</div>
+
+<div class="stats">
+<div class="stat"><h2 id="total">0</h2><p>Total Leads</p></div>
+<div class="stat"><h2 id="accepted">0</h2><p>Accepted</p></div>
+<div class="stat"><h2 id="booked">0</h2><p>Booked</p></div>
+<div class="stat"><h2 id="paid">0</h2><p>Paid</p></div>
+</div>
+
+<div class="btn-row">
+<button class="test" onclick="createLead()">Create Test Lead</button>
+<button class="refresh" onclick="loadLeads()">Refresh</button>
+</div>
+
+<h2 class="section-title">Incoming Leads</h2>
+<div id="leads"></div>
 
 </div>
 
 <script>
+const providers = {
+"Citywide Lock & Key": "4435781686",
+"Provider A": "4105551111",
+"Provider B": "6675552222"
+};
+
+let leadsData = [];
+
+function cleanPhone(phone){
+return String(phone || "").replace(/[^0-9]/g, "");
+}
+
+function makeSmsLink(phone, lead){
+const text =
+"NEW LEAD\\n\\n" +
+"Customer: " + (lead.customer_phone || "Unknown") + "\\n\\n" +
+"Service: " + (lead.service || "Locksmith Service") + "\\n\\n" +
+"Source: " + (lead.source || "CallRail") + "\\n\\n" +
+"Lead Score: " + (lead.lead_score || "N/A") + "\\n\\n" +
+"Call customer ASAP.";
+
+return "sms:" + phone + "?body=" + encodeURIComponent(text);
+}
+
+async function loadLeads(){
+const res = await fetch("/admin/leads");
+const data = await res.json();
+
+leadsData = data.leads || [];
+
+document.getElementById("total").innerText = leadsData.length;
+document.getElementById("accepted").innerText = leadsData.filter(x => String(x.lead_status).toLowerCase() === "accepted").length;
+document.getElementById("booked").innerText = leadsData.filter(x => String(x.lead_status).toLowerCase() === "booked").length;
+document.getElementById("paid").innerText = leadsData.filter(x => String(x.lead_status).toLowerCase() === "paid").length;
+
+renderLeads();
+}
+
+function renderLeads(){
+const wrap = document.getElementById("leads");
+
+if(leadsData.length === 0){
+wrap.innerHTML = '<div class="empty">No leads yet. Make a CallRail test call or click Create Test Lead.</div>';
+return;
+}
+
+wrap.innerHTML = leadsData.map(lead => {
+const customerPhone = cleanPhone(lead.customer_phone);
+const assignedProvider = lead.provider_assigned || "Unassigned";
+const providerPhone = providers[assignedProvider] || providers["Citywide Lock & Key"];
+const statusClass = String(lead.lead_status || "New").toLowerCase();
+const smsAssigned = makeSmsLink(providerPhone, lead);
+
+return \`
+<div class="lead-card">
+<div class="lead-top">
+<div>
+<div class="phone">📞 \${lead.customer_phone || "Unknown"}</div>
+<div style="color:#64748b;font-weight:bold;">Lead #\${lead.id}</div>
+</div>
+<div class="badge \${statusClass}">\${lead.lead_status || "New"}</div>
+</div>
+
+<div class="info">
+<strong>Service:</strong> \${lead.service || "Service Request"}<br>
+<strong>Source:</strong> \${lead.source || "CallRail"}<br>
+<strong>Provider:</strong> \${assignedProvider}<br>
+<strong>Lead Score:</strong> \${lead.lead_score || "N/A"}<br>
+<strong>Created:</strong> \${new Date(lead.created_at).toLocaleString()}
+</div>
+
+<div class="btn-row">
+<a class="btn call" href="tel:\${customerPhone}">Call Customer</a>
+<a class="btn text" href="\${smsAssigned}">Send Text</a>
+<a class="btn text" href="\${makeSmsLink(providers["Citywide Lock & Key"], lead)}">Text Citywide</a>
+</div>
+
+<div class="btn-row">
+<button class="accept" onclick="updateStatus(\${lead.id}, 'Accepted')">Accept</button>
+<button class="booked" onclick="updateStatus(\${lead.id}, 'Booked')">Booked</button>
+<button class="paid" onclick="updateStatus(\${lead.id}, 'Paid')">Paid</button>
+<button class="archive" onclick="archiveLead(\${lead.id})">Archive</button>
+<button class="delete" onclick="deleteLead(\${lead.id})">Delete</button>
+</div>
+
+<select onchange="assignProvider(\${lead.id}, this.value)">
+<option \${assignedProvider === "Unassigned" ? "selected" : ""}>Unassigned</option>
+<option \${assignedProvider === "Citywide Lock & Key" ? "selected" : ""}>Citywide Lock & Key</option>
+<option \${assignedProvider === "Provider A" ? "selected" : ""}>Provider A</option>
+<option \${assignedProvider === "Provider B" ? "selected" : ""}>Provider B</option>
+</select>
+
+<textarea id="notes-\${lead.id}" placeholder="Add notes...">\${lead.notes || ""}</textarea>
+<button class="test" onclick="saveNotes(\${lead.id})">Save Notes</button>
+</div>
+\`;
+}).join("");
+}
+
+async function createLead(){
+await fetch("/lead/test", { method:"POST" });
+loadLeads();
+}
 
 async function updateStatus(id,status){
-
-await fetch('/api/leads/' + id + '/status',{
-method:'POST',
-headers:{
-'Content-Type':'application/json'
-},
-body:JSON.stringify({
-status
-})
+await fetch("/lead/" + id + "/status", {
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({ status })
 });
+loadLeads();
+}
 
-location.reload();
+async function assignProvider(id,provider){
+await fetch("/lead/" + id + "/provider", {
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({ provider })
+});
+loadLeads();
+}
+
+async function saveNotes(id){
+const notes = document.getElementById("notes-" + id).value;
+await fetch("/lead/" + id + "/notes", {
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({ notes })
+});
+loadLeads();
 }
 
 async function archiveLead(id){
-
-await fetch('/api/leads/' + id + '/archive',{
-method:'POST'
-});
-
-location.reload();
+await fetch("/lead/" + id + "/archive", { method:"POST" });
+loadLeads();
 }
 
-async function createTestLead(){
-
-await fetch('/lead/new',{
-method:'POST',
-headers:{
-'Content-Type':'application/json'
-},
-body:JSON.stringify({
-customer_phone:'443-555-0100',
-source:'Test Lead',
-service:'Emergency Lockout',
-score:'92'
-})
-});
-
-location.reload();
+async function deleteLead(id){
+if(!confirm("Delete this lead?")) return;
+await fetch("/lead/" + id, { method:"DELETE" });
+loadLeads();
 }
 
-async function sendProviderText(
-customer_phone,
-service,
-source,
-lead_score
-){
-
-const providerPhone =
-prompt("Provider phone number:");
-
-if(!providerPhone) return;
-
-const response = await fetch(
-'/send-provider-text',
-{
-method:'POST',
-headers:{
-'Content-Type':'application/json'
-},
-body:JSON.stringify({
-phone:providerPhone,
-lead:{
-customer_phone,
-service,
-source,
-lead_score
-}
-})
-}
-);
-
-const data = await response.json();
-
-if(data.smsLink){
-
-window.location.href =
-data.smsLink;
-
-}
-
-}
-
+loadLeads();
+setInterval(loadLeads, 5000);
 </script>
+`));
+});
 
-</body>
+app.get("/calls", async (req, res) => {
+res.send(layout("Calls", `
+<div class="app">
+<div class="hero">
+<h1>Calls</h1>
+<p>Live CallRail call leads from PostgreSQL.</p>
+</div>
+<div id="calls"></div>
+</div>
 
-</html>
-`);
+<script>
+async function loadCalls(){
+const res = await fetch("/admin/leads");
+const data = await res.json();
+const calls = data.leads || [];
+const wrap = document.getElementById("calls");
 
+if(calls.length === 0){
+wrap.innerHTML = '<div class="empty">No calls yet.</div>';
+return;
+}
+
+wrap.innerHTML = calls.map(call => \`
+<div class="lead-card">
+<div class="phone">📞 \${call.customer_phone || "Unknown"}</div>
+<div class="info">
+<strong>Source:</strong> \${call.source || "CallRail"}<br>
+<strong>Service:</strong> \${call.service || "Service Request"}<br>
+<strong>Duration:</strong> \${call.duration || "0"} seconds<br>
+<strong>Status:</strong> \${call.lead_status || "New"}<br>
+<strong>Provider:</strong> \${call.provider_assigned || "Unassigned"}<br>
+<strong>Lead Score:</strong> \${call.lead_score || "N/A"}<br>
+<strong>Created:</strong> \${new Date(call.created_at).toLocaleString()}
+</div>
+\${call.recording ? '<a class="btn text" href="' + call.recording + '" target="_blank">Listen Recording</a>' : '<p>No Recording</p>'}
+</div>
+\`).join("");
+}
+
+loadCalls();
+setInterval(loadCalls, 5000);
+</script>
+`));
+});
+
+app.get("/providers", (req, res) => {
+res.send(layout("Providers", `
+<div class="app">
+<div class="hero">
+<h1>Providers</h1>
+<p>Provider routing list.</p>
+</div>
+
+<div class="lead-card">
+<h2>Citywide Lock & Key</h2>
+<p><strong>Phone:</strong> 443-578-1686</p>
+<p><strong>Status:</strong> Active</p>
+</div>
+
+<div class="lead-card">
+<h2>Provider A</h2>
+<p><strong>Phone:</strong> 410-555-1111</p>
+<p><strong>Status:</strong> Pending</p>
+</div>
+
+<div class="lead-card">
+<h2>Provider B</h2>
+<p><strong>Phone:</strong> 667-555-2222</p>
+<p><strong>Status:</strong> Active</p>
+</div>
+</div>
+`));
+});
+
+app.get("/settings", (req, res) => {
+res.send(layout("Settings", `
+<div class="app">
+<div class="hero">
+<h1>Settings</h1>
+<p>NLN system setup.</p>
+</div>
+
+<div class="lead-card">
+<p><strong>Webhook:</strong></p>
+<p>https://citywide-routing.onrender.com/lead/new</p>
+<p><strong>Lead Price:</strong> 35 dollars</p>
+<p><strong>Texting:</strong> iPhone SMS send button enabled</p>
+</div>
+</div>
+`));
 });
 
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-
-console.log("✅ Server running on port", PORT);
-
+console.log("✅ Server running on port " + PORT);
 });
