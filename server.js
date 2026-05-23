@@ -37,7 +37,6 @@ recording TEXT,
 lead_score TEXT,
 provider_assigned TEXT,
 lead_status TEXT,
-customer_says TEXT,
 notes TEXT,
 job_amount TEXT DEFAULT '0',
 lead_cost TEXT DEFAULT '35',
@@ -49,7 +48,6 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 `);
 
 const columns = [
-["customer_says", "TEXT"],
 ["job_amount", "TEXT DEFAULT '0'"],
 ["lead_cost", "TEXT DEFAULT '35'"],
 ["provider_earnings", "TEXT DEFAULT '0'"],
@@ -83,8 +81,9 @@ const msg =
 `NEW LOCKSMITH JOB
 
 Customer Phone: ${lead.customer_phone || "Unknown"}
-Service: ${lead.service || "Locksmith Service"}
-Customer Says: ${lead.customer_says || "No details added yet"}
+Service / Call Summary:
+${lead.service || "Locksmith Service"}
+
 Job Amount: $${money(lead.job_amount)}
 Lead Cost: $${money(lead.lead_cost)}
 Status: ${lead.lead_status || "New"}
@@ -119,11 +118,12 @@ body{margin:0;background:#f4f8fb;font-family:Arial;color:#0f172a}
 .stat{background:#f8fafc;border-radius:22px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,.05)}
 .stat h2{margin:0;font-size:34px}
 .stat p{margin:6px 0 0;color:#64748b;font-weight:800}
-.info{margin:10px 0;font-size:18px;line-height:1.45;font-weight:700}
+.info{margin:10px 0;font-size:18px;line-height:1.45;font-weight:700;white-space:pre-wrap}
 .info b{color:#334155}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
 input,select,textarea{width:100%;padding:16px;border-radius:16px;border:1px solid #cbd5e1;font-size:17px;font-weight:700}
-textarea{min-height:100px}
+textarea{min-height:120px}
+.full{grid-column:1 / -1}
 .btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
 button,.btn{border:none;border-radius:18px;padding:17px;font-size:18px;font-weight:900;text-align:center;text-decoration:none;color:white;cursor:pointer;display:block;width:100%}
 .blue{background:linear-gradient(135deg,#2563eb,#1d4ed8)}
@@ -222,9 +222,7 @@ return `
 return `
 <div class="quickTextBox">
 <div class="quickTitle">🚀 Send Job To Provider Dashboard</div>
-<div class="providerTextGrid">
-${rows}
-</div>
+<div class="providerTextGrid">${rows}</div>
 </div>`;
 }
 
@@ -242,8 +240,7 @@ return `
 <div class="info"><b>Customer Phone:</b> ${lead.customer_phone || "Unknown"}</div>
 <div class="info"><b>Tracking Number:</b> ${lead.tracking_number || ""}</div>
 <div class="info"><b>Source:</b> ${lead.source || ""}</div>
-<div class="info"><b>Service:</b> ${lead.service || "Locksmith Service"}</div>
-<div class="info"><b>Customer Says:</b> ${lead.customer_says || "No customer details added yet"}</div>
+<div class="info"><b>Service / Call Summary:</b> ${lead.service || "Locksmith Service"}</div>
 <div class="info"><b>Provider:</b> ${lead.provider_assigned || "Not Assigned"}</div>
 <div class="info"><b>Status:</b> ${lead.lead_status || "New"}</div>
 <div class="info"><b>Job Amount:</b> $${money(lead.job_amount)}</div>
@@ -259,8 +256,8 @@ ${admin ? `
 <select name="provider_assigned">${options}</select>
 <input name="job_amount" value="${lead.job_amount || 0}" placeholder="Job Amount">
 <input name="lead_cost" value="${lead.lead_cost || 35}" placeholder="Lead Cost">
-<textarea name="customer_says" placeholder="Edit what customer said before sending">${lead.customer_says || ""}</textarea>
-<textarea name="notes" placeholder="Admin Notes">${lead.notes || ""}</textarea>
+<textarea class="full" name="service" placeholder="Edit service / call summary before sending">${lead.service || ""}</textarea>
+<textarea class="full" name="notes" placeholder="Admin Notes">${lead.notes || ""}</textarea>
 </div>
 <div class="btn-grid">
 <button class="blue" type="submit">💾 Save Edits</button>
@@ -343,7 +340,6 @@ let content = `
 </div>`;
 
 if (!leads.length) content += `<div class="card"><h2>No leads yet.</h2></div>`;
-
 leads.forEach(lead => content += leadCard(lead, true));
 
 res.send(adminPage(content));
@@ -405,7 +401,6 @@ const leads = result.rows;
 let content = `<div class="top"><h1>👷 ${provider} Dashboard</h1><p>Only your assigned jobs show here.</p></div>`;
 
 if (!leads.length) content += `<div class="card"><h2>No jobs assigned yet.</h2></div>`;
-
 leads.forEach(lead => content += leadCard(lead, false));
 
 res.send(providerPage(content, provider));
@@ -446,22 +441,21 @@ const data = req.body;
 const result = await pool.query(`
 INSERT INTO leads (
 customer_phone, tracking_number, source, service, duration, recording,
-lead_score, provider_assigned, lead_status, customer_says, notes,
+lead_score, provider_assigned, lead_status, notes,
 job_amount, lead_cost, provider_earnings, nln_profit
 )
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 RETURNING *
 `, [
 data.customer_phone || data.phone || "",
 data.tracking_number || "",
 data.source || "Manual",
-data.service || "Locksmith Service",
+data.service || data.notes || "Locksmith Service",
 data.duration || "",
 data.recording || "",
 data.lead_score || "",
 data.provider_assigned || "",
 data.lead_status || "New",
-data.customer_says || data.notes || "",
 data.notes || "",
 data.job_amount || "0",
 data.lead_cost || "35",
@@ -491,7 +485,7 @@ job_amount = $2,
 lead_cost = $3,
 provider_earnings = $4,
 nln_profit = $5,
-customer_says = $6,
+service = $6,
 notes = $7
 WHERE id = $8
 `, [
@@ -500,7 +494,7 @@ String(jobAmount),
 String(leadCost),
 String(providerEarnings),
 String(nlnProfit),
-req.body.customer_says || "",
+req.body.service || "",
 req.body.notes || "",
 id
 ]);
