@@ -369,7 +369,7 @@ setInterval(loadLeads, 7000);
 </script>
 `));
 });
-<p><strong>Lead Price:</strong> $35</p>
+<p><strong>Lead Price:</strong> \\$35</p>
 <p><strong>Webhook:</strong> /lead/new</p>
 </div>
 `));
