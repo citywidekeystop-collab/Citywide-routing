@@ -75,8 +75,6 @@ body.answered === false ? "Missed" : "New Lead",
 ""
 ]);
 
-console.log("✅ New lead saved:", result.rows[0]);
-
 res.json({ success: true, lead: result.rows[0] });
 } catch (err) {
 console.error("❌ Lead save error:", err);
@@ -162,227 +160,72 @@ await pool.query("DELETE FROM leads WHERE id=$1", [req.params.id]);
 res.json({ success: true });
 });
 
-app.get("/", (req, res) => {
-res.send(`
+function page(title, content) {
+return `
 <!DOCTYPE html>
 <html>
 <head>
-<title>NLN Lead Dashboard</title>
+<title>${title}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
 *{box-sizing:border-box}
-body{
-margin:0;
-font-family:Arial, sans-serif;
-background:#020617;
-color:white;
-}
-.layout{
-display:flex;
-min-height:100vh;
-}
-.sidebar{
-width:240px;
-background:#020617;
-border-right:1px solid #1e293b;
-padding:22px;
-position:fixed;
-top:0;
-bottom:0;
-}
-.logo{
-font-size:24px;
-font-weight:bold;
-margin-bottom:25px;
-}
-.nav a{
-display:block;
-color:#cbd5e1;
-padding:12px;
-border-radius:10px;
-text-decoration:none;
-margin-bottom:8px;
-}
-.nav a:hover,.nav a.active{
-background:#1d4ed8;
-color:white;
-}
-.main{
-margin-left:240px;
-width:calc(100% - 240px);
-padding:24px;
-}
-.top{
-background:linear-gradient(135deg,#0f172a,#1e3a8a);
-border:1px solid #334155;
-border-radius:20px;
-padding:24px;
-margin-bottom:20px;
-}
-.top h1{
-margin:0;
-font-size:30px;
-}
-.top p{
-color:#cbd5e1;
-}
-.actions{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-margin-top:18px;
-}
-button,a.btn{
-border:none;
-border-radius:10px;
-padding:11px 14px;
-font-weight:bold;
-cursor:pointer;
-text-decoration:none;
-color:white;
-background:#2563eb;
-}
-.stats{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
-gap:14px;
-margin-bottom:20px;
-}
-.stat{
-background:#0f172a;
-border:1px solid #1e293b;
-border-radius:16px;
-padding:18px;
-}
-.stat h2{
-margin:0;
-font-size:30px;
-color:#38bdf8;
-}
-.stat span{
-color:#94a3b8;
-font-size:14px;
-}
-.filters{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-margin-bottom:18px;
-}
-input,select,textarea{
-background:#020617;
-color:white;
-border:1px solid #334155;
-border-radius:10px;
-padding:10px;
-}
-input{
-min-width:260px;
-}
-.lead-card{
-background:#0f172a;
-border:1px solid #1e293b;
-border-radius:18px;
-padding:18px;
-margin-bottom:16px;
-box-shadow:0 12px 30px rgba(0,0,0,.3);
-}
-.lead-head{
-display:flex;
-justify-content:space-between;
-gap:12px;
-flex-wrap:wrap;
-}
-.lead-phone{
-font-size:22px;
-font-weight:bold;
-}
-.badge{
-padding:8px 14px;
-border-radius:999px;
-font-weight:bold;
-background:#16a34a;
-}
-.badge.Booked{background:#7c3aed}
-.badge.Paid{background:#f59e0b;color:#111827}
-.badge.Declined{background:#64748b}
-.info{
-margin-top:14px;
-color:#cbd5e1;
-line-height:1.8;
-}
-.controls{
-display:flex;
-gap:8px;
-flex-wrap:wrap;
-margin-top:14px;
-}
-.accept{background:#16a34a}
-.booked{background:#7c3aed}
-.paid{background:#f59e0b;color:#111827}
-.decline{background:#64748b}
-.archive{background:#475569}
-.delete{background:#dc2626}
-textarea{
-width:100%;
-min-height:70px;
-margin-top:12px;
-}
-.empty{
-padding:50px;
-text-align:center;
-border:1px dashed #334155;
-border-radius:18px;
-color:#94a3b8;
-background:#0f172a;
-}
-.small{
-color:#94a3b8;
-font-size:13px;
-}
-@media(max-width:800px){
-.sidebar{
-position:relative;
-width:100%;
-height:auto;
-}
-.layout{
-display:block;
-}
-.main{
-margin-left:0;
-width:100%;
-}
-}
+body{margin:0;font-family:Arial;background:#020617;color:white}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:240px;background:#020617;border-right:1px solid #1e293b;padding:22px;position:fixed;top:0;bottom:0}
+.logo{font-size:24px;font-weight:bold;margin-bottom:25px}
+.nav a{display:block;color:#cbd5e1;padding:12px;border-radius:10px;text-decoration:none;margin-bottom:8px}
+.nav a:hover,.nav a.active{background:#1d4ed8;color:white}
+.main{margin-left:240px;width:calc(100% - 240px);padding:24px}
+.top{background:linear-gradient(135deg,#0f172a,#1e3a8a);border:1px solid #334155;border-radius:20px;padding:24px;margin-bottom:20px}
+.card{background:#0f172a;border:1px solid #1e293b;border-radius:18px;padding:22px;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+.stat{background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:18px}
+.stat h2{margin:0;font-size:30px;color:#38bdf8}
+.stat span{color:#94a3b8}
+button,a.btn{border:none;border-radius:10px;padding:11px 14px;font-weight:bold;cursor:pointer;text-decoration:none;color:white;background:#2563eb}
+input,select,textarea{background:#020617;color:white;border:1px solid #334155;border-radius:10px;padding:10px}
+.lead-card{background:#0f172a;border:1px solid #1e293b;border-radius:18px;padding:18px;margin-bottom:16px}
+.lead-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.lead-phone{font-size:22px;font-weight:bold}
+.badge{padding:8px 14px;border-radius:999px;font-weight:bold;background:#16a34a}
+.badge.Booked{background:#7c3aed}.badge.Paid{background:#f59e0b;color:#111827}.badge.Declined{background:#64748b}
+.info{margin-top:14px;color:#cbd5e1;line-height:1.8}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.accept{background:#16a34a}.booked{background:#7c3aed}.paid{background:#f59e0b;color:#111827}.decline{background:#64748b}.archive{background:#475569}.delete{background:#dc2626}
+textarea{width:100%;min-height:70px;margin-top:12px}
+.empty{padding:50px;text-align:center;border:1px dashed #334155;border-radius:18px;color:#94a3b8;background:#0f172a}
+.small{color:#94a3b8;font-size:13px}
+@media(max-width:800px){.sidebar{position:relative;width:100%;height:auto}.layout{display:block}.main{margin-left:0;width:100%}}
 </style>
 </head>
-
 <body>
 <div class="layout">
-
 <aside class="sidebar">
 <div class="logo">🔥 NLN</div>
 <div class="nav">
-<a class="active" href="/">Dashboard</a>
+<a href="/">Dashboard</a>
+<a href="/providers">Providers</a>
+<a href="/calls">Calls</a>
+<a href="/invoices">Invoices</a>
+<a href="/settings">Settings</a>
 <a href="/admin/leads" target="_blank">Raw Leads</a>
 <a href="/health" target="_blank">Health</a>
-<a href="#">Providers</a>
-<a href="#">Calls</a>
-<a href="#">Invoices</a>
-<a href="#">Settings</a>
 </div>
 </aside>
+<main class="main">${content}</main>
+</div>
+</body>
+</html>`;
+}
 
-<main class="main">
+app.get("/", (req, res) => {
+res.send(page("NLN Dashboard", `
 <div class="top">
 <h1>NLN Lead Dashboard</h1>
 <p>Live CallRail leads, provider routing, booked jobs, paid leads, and permanent PostgreSQL storage.</p>
-<div class="actions">
 <button onclick="createTestLead()">+ Create Test Lead</button>
 <button onclick="loadLeads()">Refresh</button>
 <a class="btn" href="/admin/leads" target="_blank">View JSON</a>
-</div>
 </div>
 
 <div class="stats">
@@ -394,7 +237,7 @@ width:100%;
 <div class="stat"><h2 id="revenue">$0</h2><span>Lead Value</span></div>
 </div>
 
-<div class="filters">
+<div style="margin-bottom:18px">
 <input id="search" placeholder="Search phone, source, service..." oninput="renderLeads()">
 <select id="statusFilter" onchange="renderLeads()">
 <option value="">All Statuses</option>
@@ -407,9 +250,6 @@ width:100%;
 </div>
 
 <div id="leads"></div>
-</main>
-
-</div>
 
 <script>
 let allLeads = [];
@@ -419,12 +259,12 @@ const res = await fetch("/admin/leads");
 const data = await res.json();
 allLeads = data.leads || [];
 
-document.getElementById("total").innerText = allLeads.length;
-document.getElementById("newLeads").innerText = allLeads.filter(l => l.lead_status === "New").length;
-document.getElementById("accepted").innerText = allLeads.filter(l => l.lead_status === "Accepted").length;
-document.getElementById("booked").innerText = allLeads.filter(l => l.lead_status === "Booked").length;
-document.getElementById("paid").innerText = allLeads.filter(l => l.lead_status === "Paid").length;
-document.getElementById("revenue").innerText = "$" + (allLeads.length * 35);
+total.innerText = allLeads.length;
+newLeads.innerText = allLeads.filter(l => l.lead_status === "New").length;
+accepted.innerText = allLeads.filter(l => l.lead_status === "Accepted").length;
+booked.innerText = allLeads.filter(l => l.lead_status === "Booked").length;
+paid.innerText = allLeads.filter(l => l.lead_status === "Paid").length;
+revenue.innerText = "$" + (allLeads.length * 35);
 
 renderLeads();
 }
@@ -435,19 +275,15 @@ const status = document.getElementById("statusFilter").value;
 
 let leads = allLeads.filter(l => {
 const text = JSON.stringify(l).toLowerCase();
-const matchesSearch = text.includes(search);
-const matchesStatus = !status || l.lead_status === status;
-return matchesSearch && matchesStatus;
+return text.includes(search) && (!status || l.lead_status === status);
 });
 
-const box = document.getElementById("leads");
-
 if(!leads.length){
-box.innerHTML = '<div class="empty">No leads found.</div>';
+document.getElementById("leads").innerHTML = '<div class="empty">No leads found.</div>';
 return;
 }
 
-box.innerHTML = leads.map(lead => \`
+document.getElementById("leads").innerHTML = leads.map(lead => \`
 <div class="lead-card">
 <div class="lead-head">
 <div>
@@ -497,30 +333,18 @@ box.innerHTML = leads.map(lead => \`
 }
 
 async function updateStatus(id,status){
-await fetch("/lead/" + id + "/status", {
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({status})
-});
+await fetch("/lead/" + id + "/status", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({status})});
 await loadLeads();
 }
 
 async function assignProvider(id,provider){
-await fetch("/lead/" + id + "/provider", {
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({provider})
-});
+await fetch("/lead/" + id + "/provider", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({provider})});
 await loadLeads();
 }
 
 async function saveNotes(id){
 const notes = document.getElementById("notes-" + id).value;
-await fetch("/lead/" + id + "/notes", {
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({notes})
-});
+await fetch("/lead/" + id + "/notes", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({notes})});
 await loadLeads();
 }
 
@@ -543,10 +367,12 @@ await loadLeads();
 loadLeads();
 setInterval(loadLeads, 7000);
 </script>
-
-</body>
-</html>
-`);
+`));
+});
+<p><strong>Lead Price:</strong> $35</p>
+<p><strong>Webhook:</strong> /lead/new</p>
+</div>
+`));
 });
 
 const PORT = process.env.PORT || 10000;
