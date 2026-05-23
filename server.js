@@ -52,209 +52,48 @@ return `
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-margin:0;
-font-family:Arial;
-background:#020617;
-color:white;
-}
-
-.layout{
-display:flex;
-min-height:100vh;
-}
-
-.sidebar{
-width:230px;
-background:#0f172a;
-padding:20px;
-border-right:1px solid #1e293b;
-}
-
-.logo{
-font-size:28px;
-font-weight:bold;
-margin-bottom:30px;
-}
-
-.nav a{
-display:block;
-padding:12px;
-margin-bottom:10px;
-border-radius:12px;
-background:#111827;
-color:#cbd5e1;
-text-decoration:none;
-}
-
-.nav a:hover{
-background:#2563eb;
-color:white;
-}
-
-.main{
-flex:1;
-padding:25px;
-}
-
-.top{
-background:linear-gradient(135deg,#0f172a,#1d4ed8);
-padding:25px;
-border-radius:18px;
-margin-bottom:20px;
-}
-
-.card{
-background:#0f172a;
-border:1px solid #1e293b;
-border-radius:18px;
-padding:20px;
-margin-bottom:15px;
-}
-
-.stats{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-gap:12px;
-margin-bottom:20px;
-}
-
-.stat{
-background:#111827;
-padding:18px;
-border-radius:16px;
-}
-
-.stat h2{
-margin:0;
-color:#38bdf8;
-}
-
-button{
-border:none;
-padding:10px 14px;
-border-radius:10px;
-cursor:pointer;
-margin:4px;
-font-weight:bold;
-}
-
-.accept{background:#16a34a;color:white;}
-.booked{background:#7c3aed;color:white;}
-.paid{background:#f59e0b;color:black;}
-.archive{background:#475569;color:white;}
-.delete{background:#dc2626;color:white;}
-
-textarea{
-width:100%;
-margin-top:10px;
-background:#020617;
-color:white;
-border:1px solid #334155;
-border-radius:10px;
-padding:10px;
-}
-
-select,input{
-padding:10px;
-border-radius:10px;
-background:#020617;
-color:white;
-border:1px solid #334155;
-margin:4px;
-}
-
-a{
-color:#38bdf8;
-}
+body{margin:0;font-family:Arial;background:#020617;color:white}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:230px;background:#0f172a;padding:20px;border-right:1px solid #1e293b}
+.logo{font-size:28px;font-weight:bold;margin-bottom:30px}
+.nav a{display:block;padding:12px;margin-bottom:10px;border-radius:12px;background:#111827;color:#cbd5e1;text-decoration:none}
+.nav a:hover{background:#2563eb;color:white}
+.main{flex:1;padding:25px}
+.top{background:linear-gradient(135deg,#0f172a,#1d4ed8);padding:25px;border-radius:18px;margin-bottom:20px}
+.card{background:#0f172a;border:1px solid #1e293b;border-radius:18px;padding:20px;margin-bottom:15px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:#111827;padding:18px;border-radius:16px}
+.stat h2{margin:0;color:#38bdf8}
+button,.smsbtn,.callbtn{border:none;padding:10px 14px;border-radius:10px;cursor:pointer;margin:4px;font-weight:bold;text-decoration:none;display:inline-block}
+.accept{background:#16a34a;color:white}
+.booked{background:#7c3aed;color:white}
+.paid{background:#f59e0b;color:black}
+.archive{background:#475569;color:white}
+.delete{background:#dc2626;color:white}
+.smsbtn{background:#0ea5e9;color:white}
+.callbtn{background:#22c55e;color:white}
+textarea{width:100%;margin-top:10px;background:#020617;color:white;border:1px solid #334155;border-radius:10px;padding:10px}
+select,input{padding:10px;border-radius:10px;background:#020617;color:white;border:1px solid #334155;margin:4px}
+a{color:#38bdf8}
+.provider-box{margin-top:12px;padding:12px;background:#111827;border-radius:14px;border:1px solid #334155}
 
 @media(max-width:800px){
-
-.layout{
-display:block;
-}
-
-.sidebar{
-width:100%;
-position:sticky;
-top:0;
-z-index:999;
-padding:12px;
-border-right:none;
-border-bottom:1px solid #1e293b;
-}
-
-.logo{
-font-size:22px;
-margin-bottom:10px;
-}
-
-.nav{
-display:flex;
-overflow-x:auto;
-gap:8px;
-padding-bottom:6px;
-}
-
-.nav a{
-white-space:nowrap;
-font-size:13px;
-padding:10px 12px;
-margin-bottom:0;
-}
-
-.main{
-padding:14px;
-}
-
-.top{
-padding:18px;
-border-radius:16px;
-}
-
-.top h1{
-font-size:22px;
-}
-
-.stats{
-grid-template-columns:repeat(2,1fr);
-gap:10px;
-}
-
-.stat{
-padding:14px;
-}
-
-.stat h2{
-font-size:24px;
-}
-
-.card{
-padding:16px;
-border-radius:16px;
-}
-
-.card h2{
-font-size:20px;
-}
-
-button{
-width:48%;
-margin:4px 1%;
-padding:12px;
-font-size:14px;
-}
-
-select,
-input,
-textarea{
-width:100%;
-font-size:16px;
-}
-
-textarea{
-min-height:90px;
-}
+.layout{display:block}
+.sidebar{width:100%;position:sticky;top:0;z-index:999;padding:12px;border-right:none;border-bottom:1px solid #1e293b}
+.logo{font-size:22px;margin-bottom:10px}
+.nav{display:flex;overflow-x:auto;gap:8px;padding-bottom:6px}
+.nav a{white-space:nowrap;font-size:13px;padding:10px 12px;margin-bottom:0}
+.main{padding:14px}
+.top{padding:18px;border-radius:16px}
+.top h1{font-size:22px}
+.stats{grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{padding:14px}
+.stat h2{font-size:24px}
+.card{padding:16px;border-radius:16px}
+.card h2{font-size:20px}
+button,.smsbtn,.callbtn{width:48%;margin:4px 1%;padding:12px;font-size:14px;text-align:center}
+select,input,textarea{width:100%;font-size:16px}
+textarea{min-height:90px}
 }
 </style>
 </head>
@@ -319,10 +158,7 @@ return result.rows[0];
 }
 
 app.get("/health", (req, res) => {
-res.json({
-success:true,
-status:"online"
-});
+res.json({ success:true, status:"online" });
 });
 
 app.post("/lead/new", async (req, res) => {
@@ -333,41 +169,13 @@ console.log(req.body);
 const body = req.body;
 
 const lead = {
-customer_phone:
-body.customer_phone_number ||
-body.customer_number ||
-body.callernum ||
-body.from ||
-"Unknown",
-
-tracking_number:
-body.tracking_phone_number ||
-body.destinationnum ||
-body.to ||
-"Unknown",
-
-source:
-body.source ||
-body.callsource ||
-"CallRail",
-
-service:
-body.tag ||
-body.keywords ||
-body.lead_explanation ||
-"Service Request",
-
-duration:
-String(body.duration || body.call_duration || "0"),
-
-recording:
-body.recording ||
-body.recording_url ||
-"",
-
-lead_score:
-String(body.lead_score || "N/A"),
-
+customer_phone: body.customer_phone_number || body.customer_number || body.callernum || body.from || "Unknown",
+tracking_number: body.tracking_phone_number || body.destinationnum || body.to || "Unknown",
+source: body.source || body.callsource || "CallRail",
+service: body.tag || body.keywords || body.lead_explanation || "Service Request",
+duration: String(body.duration || body.call_duration || "0"),
+recording: body.recording || body.recording_url || "",
+lead_score: String(body.lead_score || "N/A"),
 call_status:"New",
 provider_assigned:"Unassigned",
 lead_status:"New",
@@ -379,18 +187,11 @@ const saved = await saveLead(lead);
 
 console.log("✅ LEAD SAVED", saved.id);
 
-res.json({
-success:true,
-lead:saved
-});
+res.json({ success:true, lead:saved });
 
 } catch (err) {
 console.error(err);
-
-res.status(500).json({
-success:false,
-error:err.message
-});
+res.status(500).json({ success:false, error:err.message });
 }
 });
 
@@ -413,17 +214,11 @@ notes:""
 
 const saved = await saveLead(lead);
 
-res.json({
-success:true,
-lead:saved
-});
+res.json({ success:true, lead:saved });
 
 } catch (err) {
 console.error(err);
-
-res.status(500).json({
-success:false
-});
+res.status(500).json({ success:false });
 }
 });
 
@@ -434,10 +229,7 @@ WHERE archived = false
 ORDER BY created_at DESC
 `);
 
-res.json({
-success:true,
-leads:result.rows
-});
+res.json({ success:true, leads:result.rows });
 });
 
 app.post("/lead/:id/status", async (req, res) => {
@@ -489,7 +281,7 @@ app.get("/", (req, res) => {
 res.send(page("Dashboard", `
 <div class="top">
 <h1>NLN Lead Dashboard</h1>
-<p>Live CallRail leads and provider routing system.</p>
+<p>Assign leads and text providers from your iPhone.</p>
 <button onclick="createLead()">Create Test Lead</button>
 <button onclick="loadLeads()">Refresh</button>
 </div>
@@ -504,7 +296,30 @@ res.send(page("Dashboard", `
 <div id="leads"></div>
 
 <script>
+const providers = {
+"Citywide Lock & Key": "4435781686",
+"Provider A": "4105551111",
+"Provider B": "6675552222"
+};
+
 let leadsData = [];
+
+function cleanPhone(phone){
+return String(phone || "").replace(/[^0-9]/g, "");
+}
+
+function makeSmsLink(providerPhone, lead){
+const msg =
+"NEW LEAD%0A%0A" +
+"Customer: " + encodeURIComponent(lead.customer_phone || "Unknown") + "%0A" +
+"Service: " + encodeURIComponent(lead.service || "Service Request") + "%0A" +
+"Source: " + encodeURIComponent(lead.source || "CallRail") + "%0A" +
+"Lead Score: " + encodeURIComponent(lead.lead_score || "N/A") + "%0A%0A" +
+"Call customer ASAP.%0A" +
+"Dashboard: https://citywide-routing.onrender.com";
+
+return "sms:" + providerPhone + "&body=" + msg;
+}
 
 async function loadLeads(){
 const res = await fetch("/admin/leads");
@@ -512,17 +327,10 @@ const data = await res.json();
 
 leadsData = data.leads || [];
 
-document.getElementById("total").innerText =
-leadsData.length;
-
-document.getElementById("accepted").innerText =
-leadsData.filter(x => x.lead_status === "Accepted").length;
-
-document.getElementById("booked").innerText =
-leadsData.filter(x => x.lead_status === "Booked").length;
-
-document.getElementById("paid").innerText =
-leadsData.filter(x => x.lead_status === "Paid").length;
+document.getElementById("total").innerText = leadsData.length;
+document.getElementById("accepted").innerText = leadsData.filter(x => x.lead_status === "Accepted").length;
+document.getElementById("booked").innerText = leadsData.filter(x => x.lead_status === "Booked").length;
+document.getElementById("paid").innerText = leadsData.filter(x => x.lead_status === "Paid").length;
 
 renderLeads();
 }
@@ -531,21 +339,38 @@ function renderLeads(){
 const wrap = document.getElementById("leads");
 
 if(leadsData.length === 0){
-wrap.innerHTML =
-'<div class="card"><h2>No leads yet</h2></div>';
+wrap.innerHTML = '<div class="card"><h2>No leads yet</h2></div>';
 return;
 }
 
 wrap.innerHTML = leadsData.map(lead => {
+const customerPhone = cleanPhone(lead.customer_phone);
+const assignedProvider = lead.provider_assigned || "Unassigned";
+const providerPhone = providers[assignedProvider] || providers["Citywide Lock & Key"];
+const smsLink = makeSmsLink(providerPhone, lead);
+const callLink = customerPhone ? "tel:" + customerPhone : "#";
+
 return \`
 <div class="card">
 <h2>📞 \${lead.customer_phone}</h2>
 <p><strong>Service:</strong> \${lead.service}</p>
 <p><strong>Source:</strong> \${lead.source}</p>
 <p><strong>Status:</strong> \${lead.lead_status}</p>
-<p><strong>Provider:</strong> \${lead.provider_assigned}</p>
+<p><strong>Provider:</strong> \${assignedProvider}</p>
 <p><strong>Lead Score:</strong> \${lead.lead_score}</p>
 <p><strong>Created:</strong> \${new Date(lead.created_at).toLocaleString()}</p>
+
+<a class="callbtn" href="\${callLink}">Call Customer</a>
+<a class="smsbtn" href="\${smsLink}">Text Assigned Provider</a>
+
+<div class="provider-box">
+<strong>Quick Send:</strong><br>
+<a class="smsbtn" href="\${makeSmsLink(providers["Citywide Lock & Key"], lead)}">Text Citywide</a>
+<a class="smsbtn" href="\${makeSmsLink(providers["Provider A"], lead)}">Text Provider A</a>
+<a class="smsbtn" href="\${makeSmsLink(providers["Provider B"], lead)}">Text Provider B</a>
+</div>
+
+<br>
 
 <button class="accept" onclick="updateStatus(\${lead.id},'Accepted')">Accept</button>
 <button class="booked" onclick="updateStatus(\${lead.id},'Booked')">Booked</button>
@@ -556,14 +381,13 @@ return \`
 <br>
 
 <select onchange="assignProvider(\${lead.id}, this.value)">
-<option>Unassigned</option>
-<option>Citywide Lock & Key</option>
-<option>Provider A</option>
-<option>Provider B</option>
+<option \${assignedProvider === "Unassigned" ? "selected" : ""}>Unassigned</option>
+<option \${assignedProvider === "Citywide Lock & Key" ? "selected" : ""}>Citywide Lock & Key</option>
+<option \${assignedProvider === "Provider A" ? "selected" : ""}>Provider A</option>
+<option \${assignedProvider === "Provider B" ? "selected" : ""}>Provider B</option>
 </select>
 
 <textarea id="notes-\${lead.id}">\${lead.notes || ""}</textarea>
-
 <button onclick="saveNotes(\${lead.id})">Save Notes</button>
 </div>
 \`;
@@ -596,8 +420,7 @@ loadLeads();
 }
 
 async function saveNotes(id){
-const notes =
-document.getElementById("notes-" + id).value;
+const notes = document.getElementById("notes-" + id).value;
 
 await fetch("/lead/" + id + "/notes", {
 method:"POST",
@@ -609,18 +432,12 @@ loadLeads();
 }
 
 async function archiveLead(id){
-await fetch("/lead/" + id + "/archive", {
-method:"POST"
-});
-
+await fetch("/lead/" + id + "/archive", { method:"POST" });
 loadLeads();
 }
 
 async function deleteLead(id){
-await fetch("/lead/" + id, {
-method:"DELETE"
-});
-
+await fetch("/lead/" + id, { method:"DELETE" });
 loadLeads();
 }
 
@@ -648,8 +465,7 @@ const calls = data.leads || [];
 const wrap = document.getElementById("calls");
 
 if(calls.length === 0){
-wrap.innerHTML =
-'<div class="card"><h2>No calls yet</h2></div>';
+wrap.innerHTML = '<div class="card"><h2>No calls yet</h2></div>';
 return;
 }
 
@@ -683,9 +499,9 @@ app.get("/providers", (req, res) => {
 res.send(page("Providers", `
 <div class="card">
 <h1>Providers</h1>
-<p>Citywide Lock & Key — Active</p>
-<p>Provider A — Pending</p>
-<p>Provider B — Active</p>
+<p>Citywide Lock & Key — 443-578-1686</p>
+<p>Provider A — 410-555-1111</p>
+<p>Provider B — 667-555-2222</p>
 </div>
 `));
 });
@@ -697,6 +513,7 @@ res.send(page("Settings", `
 <p><strong>Webhook:</strong></p>
 <p>https://citywide-routing.onrender.com/lead/new</p>
 <p><strong>Lead Price:</strong> 35 dollars</p>
+<p><strong>Texting:</strong> iPhone SMS links enabled</p>
 </div>
 `));
 });
