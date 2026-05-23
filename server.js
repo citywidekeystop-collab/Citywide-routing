@@ -10,10 +10,13 @@ app.use(express.urlencoded({ extended: true }));
 
 const pool = new Pool({
 connectionString: process.env.DATABASE_URL,
-ssl: { rejectUnauthorized: false }
+ssl: {
+rejectUnauthorized: false,
+},
 });
 
 async function initDB() {
+try {
 await pool.query(`
 CREATE TABLE IF NOT EXISTS leads (
 id SERIAL PRIMARY KEY,
@@ -34,60 +37,410 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 `);
 
-console.log("✅ DB table checked/updated");
+console.log("✅ DB ready");
+} catch (err) {
+console.error(err);
+}
 }
 
 initDB();
 
-app.get("/health", (req, res) => {
-res.json({
-success: true,
-status: "online",
-app: "NLN Dashboard",
-database: !!process.env.DATABASE_URL
-});
-});
+function page(title, content) {
+return `
+<!DOCTYPE html>
+<html>
+<head>
+<title>${title}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-app.post("/lead/new", async (req, res) => {
-try {
-const body = req.body;
+<style>
 
-const result = await pool.query(`
-INSERT INTO leads (
-customer_phone, tracking_number, source, service, duration,
-recording, lead_score, call_status, provider_assigned,
-lead_status, price, notes
-)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-RETURNING *
-`, [
-body.customer_phone_number || body.customer_number || body.callernum || body.from || "Unknown",
-body.tracking_phone_number || body.tracking_number || body.destinationnum || body.to || "Unknown",
-body.source || body.callsource || body.campaign || "CallRail",
-body.tag || body.lead_explanation || body.keywords || "Service Request",
-body.duration || body.call_duration || "0",
-body.recording || body.recording_url || "",
-body.lead_score || "N/A",
-body.answered === false ? "Missed" : "New Lead",
-"Unassigned",
-"New",
-"$35",
-""
-]);
-
-res.json({ success: true, lead: result.rows[0] });
-} catch (err) {
-console.error("❌ Lead save error:", err);
-res.status(500).json({ success: false, error: err.message });
+body{
+margin:0;
+font-family:Arial;
+background:#020617;
+color:white;
 }
+
+.layout{
+display:flex;
+min-height:100vh;
+}
+
+.sidebar{
+width:240px;
+background:#0f172a;
+padding:20px;
+border-right:1px solid #1e293b;
+}
+
+.logo{
+font-size:26px;
+font-weight:bold;
+margin-bottom:30px;
+}
+
+.nav a{
+display:block;
+padding:12px;
+margin-bottom:10px;
+border-radius:12px;
+text-decoration:none;
+color:#cbd5e1;
+background:#111827;
+}
+
+.nav a:hover{
+background:#2563eb;
+}
+
+.main{
+flex:1;
+padding:25px;
+}
+
+.top{
+background:linear-gradient(135deg,#0f172a,#1d4ed8);
+padding:25px;
+border-radius:20px;
+margin-bottom:20px;
+}
+
+.card{
+background:#0f172a;
+border:1px solid #1e293b;
+border-radius:18px;
+padding:20px;
+margin-bottom:18px;
+}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+gap:15px;
+margin-bottom:20px;
+}
+
+.stat{
+background:#111827;
+padding:20px;
+border-radius:18px;
+}
+
+.stat h2{
+margin:0;
+color:#38bdf8;
+}
+
+button{
+border:none;
+padding:10px 14px;
+border-radius:10px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.accept{background:#16a34a;color:white;}
+.booked{background:#7c3aed;color:white;}
+.paid{background:#f59e0b;color:black;}
+.archive{background:#475569;color:white;}
+.delete{background:#dc2626;color:white;}
+
+textarea{
+width:100%;
+margin-top:10px;
+background:#020617;
+color:white;
+border:1px solid #334155;
+border-radius:10px;
+padding:10px;
+}
+
+select{
+padding:10px;
+border-radius:10px;
+margin-top:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<div class="sidebar">
+
+<div class="logo">🔥 NLN</div>
+
+<div class="nav">
+<a href="/">Dashboard</a>
+<a href="/providers">Providers</a>
+<a href="/calls">Calls</a>
+<a href="/settings">Settings</a>
+<a href="/admin/leads" target="_blank">Raw Leads</a>
+</div>
+
+</div>
+
+<div class="main">
+
+${content}
+
+</div>
+
+</div>
+
+</body>
+</html>
+`;
+}
+
+app.get("/", (req, res) => {
+res.send(page("NLN Dashboard", `
+
+<div class="top">
+<h1>NLN Lead Dashboard</h1>
+
+<button onclick="createLead()">
+Create Test Lead
+</button>
+
+</div>
+
+<div class="stats">
+
+<div class="stat">
+<h2 id="total">0</h2>
+<p>Total Leads</p>
+</div>
+
+<div class="stat">
+<h2 id="accepted">0</h2>
+<p>Accepted</p>
+</div>
+
+<div class="stat">
+<h2 id="booked">0</h2>
+<p>Booked</p>
+</div>
+
+<div class="stat">
+<h2 id="paid">0</h2>
+<p>Paid</p>
+</div>
+
+</div>
+
+<div id="leads"></div>
+
+<script>
+
+let leadsData = [];
+
+async function loadLeads(){
+
+const res = await fetch("/admin/leads");
+const data = await res.json();
+
+leadsData = data.leads;
+
+document.getElementById("total").innerText =
+leadsData.length;
+
+document.getElementById("accepted").innerText =
+leadsData.filter(x=>x.lead_status==="Accepted").length;
+
+document.getElementById("booked").innerText =
+leadsData.filter(x=>x.lead_status==="Booked").length;
+
+document.getElementById("paid").innerText =
+leadsData.filter(x=>x.lead_status==="Paid").length;
+
+renderLeads();
+}
+
+function renderLeads(){
+
+const wrap = document.getElementById("leads");
+
+wrap.innerHTML = leadsData.map(lead => \`
+
+<div class="card">
+
+<h2>\${lead.customer_phone}</h2>
+
+<p><strong>Service:</strong> \${lead.service}</p>
+<p><strong>Status:</strong> \${lead.lead_status}</p>
+<p><strong>Provider:</strong> \${lead.provider_assigned}</p>
+<p><strong>Lead Score:</strong> \${lead.lead_score}</p>
+
+<div style="margin-top:12px">
+
+<button class="accept"
+onclick="updateStatus(\${lead.id},'Accepted')">
+Accept
+</button>
+
+<button class="booked"
+onclick="updateStatus(\${lead.id},'Booked')">
+Booked
+</button>
+
+<button class="paid"
+onclick="updateStatus(\${lead.id},'Paid')">
+Paid
+</button>
+
+<button class="archive"
+onclick="archiveLead(\${lead.id})">
+Archive
+</button>
+
+<button class="delete"
+onclick="deleteLead(\${lead.id})">
+Delete
+</button>
+
+</div>
+
+<select onchange="assignProvider(\${lead.id},this.value)">
+
+<option>Citywide Lock & Key</option>
+<option>Provider A</option>
+<option>Provider B</option>
+
+</select>
+
+<textarea id="notes-\${lead.id}">
+\${lead.notes || ""}
+</textarea>
+
+<button onclick="saveNotes(\${lead.id})">
+Save Notes
+</button>
+
+</div>
+
+\`).join("");
+}
+
+async function createLead(){
+await fetch("/lead/test",{method:"POST"});
+loadLeads();
+}
+
+async function updateStatus(id,status){
+
+await fetch("/lead/"+id+"/status",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({status})
+});
+
+loadLeads();
+}
+
+async function archiveLead(id){
+
+await fetch("/lead/"+id+"/archive",{
+method:"POST"
+});
+
+loadLeads();
+}
+
+async function deleteLead(id){
+
+await fetch("/lead/"+id,{
+method:"DELETE"
+});
+
+loadLeads();
+}
+
+async function assignProvider(id,provider){
+
+await fetch("/lead/"+id+"/provider",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({provider})
+});
+
+loadLeads();
+}
+
+async function saveNotes(id){
+
+const notes =
+document.getElementById("notes-"+id).value;
+
+await fetch("/lead/"+id+"/notes",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({notes})
+});
+
+loadLeads();
+}
+
+loadLeads();
+
+</script>
+
+`));
+});
+
+app.get("/providers", (req, res) => {
+res.send(page("Providers", `
+<div class="card">
+<h1>Providers</h1>
+<p>Provider management area.</p>
+</div>
+`));
+});
+
+app.get("/calls", (req, res) => {
+res.send(page("Calls", `
+<div class="card">
+<h1>Calls</h1>
+<p>Incoming calls and recordings will show here.</p>
+</div>
+`));
+});
+
+app.get("/settings", (req, res) => {
+res.send(page("Settings", `
+<div class="card">
+<h1>Settings</h1>
+<p>Dashboard settings area.</p>
+<p>Webhook URL: /lead/new</p>
+</div>
+`));
 });
 
 app.post("/lead/test", async (req, res) => {
+
 const result = await pool.query(`
 INSERT INTO leads (
-customer_phone, tracking_number, source, service, duration,
-recording, lead_score, call_status, provider_assigned,
-lead_status, price, notes
+customer_phone,
+tracking_number,
+source,
+service,
+duration,
+recording,
+lead_score,
+call_status,
+provider_assigned,
+lead_status,
+price,
+notes
 )
 VALUES (
 '443-555-0100',
@@ -97,282 +450,90 @@ VALUES (
 '55',
 '',
 '92',
-'New Lead',
+'New',
 'Citywide Lock & Key',
 'New',
-'$35',
+'35',
 ''
 )
 RETURNING *
 `);
 
-res.json({ success: true, lead: result.rows[0] });
+res.json({
+success:true,
+lead:result.rows[0]
+});
 });
 
 app.get("/admin/leads", async (req, res) => {
+
 const result = await pool.query(`
 SELECT * FROM leads
-WHERE archived = false
+WHERE archived=false
 ORDER BY created_at DESC
 `);
 
 res.json({
-success: true,
-total: result.rows.length,
-leads: result.rows
+success:true,
+leads:result.rows
 });
 });
 
 app.post("/lead/:id/status", async (req, res) => {
+
 await pool.query(
 "UPDATE leads SET lead_status=$1 WHERE id=$2",
 [req.body.status, req.params.id]
 );
-res.json({ success: true });
+
+res.json({success:true});
 });
 
 app.post("/lead/:id/provider", async (req, res) => {
+
 await pool.query(
 "UPDATE leads SET provider_assigned=$1 WHERE id=$2",
 [req.body.provider, req.params.id]
 );
-res.json({ success: true });
+
+res.json({success:true});
 });
 
 app.post("/lead/:id/notes", async (req, res) => {
+
 await pool.query(
 "UPDATE leads SET notes=$1 WHERE id=$2",
 [req.body.notes, req.params.id]
 );
-res.json({ success: true });
+
+res.json({success:true});
 });
 
 app.post("/lead/:id/archive", async (req, res) => {
+
 await pool.query(
 "UPDATE leads SET archived=true WHERE id=$1",
 [req.params.id]
 );
-res.json({ success: true });
+
+res.json({success:true});
 });
 
 app.delete("/lead/:id", async (req, res) => {
-await pool.query("DELETE FROM leads WHERE id=$1", [req.params.id]);
-res.json({ success: true });
+
+await pool.query(
+"DELETE FROM leads WHERE id=$1",
+[req.params.id]
+);
+
+res.json({success:true});
 });
 
-function page(title, content) {
-return `
-<!DOCTYPE html>
-<html>
-<head>
-<title>${title}</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial;background:#020617;color:white}
-.layout{display:flex;min-height:100vh}
-.sidebar{width:240px;background:#020617;border-right:1px solid #1e293b;padding:22px;position:fixed;top:0;bottom:0}
-.logo{font-size:24px;font-weight:bold;margin-bottom:25px}
-.nav a{display:block;color:#cbd5e1;padding:12px;border-radius:10px;text-decoration:none;margin-bottom:8px}
-.nav a:hover,.nav a.active{background:#1d4ed8;color:white}
-.main{margin-left:240px;width:calc(100% - 240px);padding:24px}
-.top{background:linear-gradient(135deg,#0f172a,#1e3a8a);border:1px solid #334155;border-radius:20px;padding:24px;margin-bottom:20px}
-.card{background:#0f172a;border:1px solid #1e293b;border-radius:18px;padding:22px;margin-bottom:16px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
-.stat{background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:18px}
-.stat h2{margin:0;font-size:30px;color:#38bdf8}
-.stat span{color:#94a3b8}
-button,a.btn{border:none;border-radius:10px;padding:11px 14px;font-weight:bold;cursor:pointer;text-decoration:none;color:white;background:#2563eb}
-input,select,textarea{background:#020617;color:white;border:1px solid #334155;border-radius:10px;padding:10px}
-.lead-card{background:#0f172a;border:1px solid #1e293b;border-radius:18px;padding:18px;margin-bottom:16px}
-.lead-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.lead-phone{font-size:22px;font-weight:bold}
-.badge{padding:8px 14px;border-radius:999px;font-weight:bold;background:#16a34a}
-.badge.Booked{background:#7c3aed}.badge.Paid{background:#f59e0b;color:#111827}.badge.Declined{background:#64748b}
-.info{margin-top:14px;color:#cbd5e1;line-height:1.8}
-.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.accept{background:#16a34a}.booked{background:#7c3aed}.paid{background:#f59e0b;color:#111827}.decline{background:#64748b}.archive{background:#475569}.delete{background:#dc2626}
-textarea{width:100%;min-height:70px;margin-top:12px}
-.empty{padding:50px;text-align:center;border:1px dashed #334155;border-radius:18px;color:#94a3b8;background:#0f172a}
-.small{color:#94a3b8;font-size:13px}
-@media(max-width:800px){.sidebar{position:relative;width:100%;height:auto}.layout{display:block}.main{margin-left:0;width:100%}}
-</style>
-</head>
-<body>
-<div class="layout">
-<aside class="sidebar">
-<div class="logo">🔥 NLN</div>
-<div class="nav">
-<a href="/">Dashboard</a>
-<a href="/providers">Providers</a>
-<a href="/calls">Calls</a>
-<a href="/invoices">Invoices</a>
-<a href="/settings">Settings</a>
-<a href="/admin/leads" target="_blank">Raw Leads</a>
-<a href="/health" target="_blank">Health</a>
-</div>
-</aside>
-<main class="main">${content}</main>
-</div>
-</body>
-</html>`;
-}
-
-app.get("/", (req, res) => {
-res.send(page("NLN Dashboard", `
-<div class="top">
-<h1>NLN Lead Dashboard</h1>
-<p>Live CallRail leads, provider routing, booked jobs, paid leads, and permanent PostgreSQL storage.</p>
-<button onclick="createTestLead()">+ Create Test Lead</button>
-<button onclick="loadLeads()">Refresh</button>
-<a class="btn" href="/admin/leads" target="_blank">View JSON</a>
-</div>
-
-<div class="stats">
-<div class="stat"><h2 id="total">0</h2><span>Total Leads</span></div>
-<div class="stat"><h2 id="newLeads">0</h2><span>New Leads</span></div>
-<div class="stat"><h2 id="accepted">0</h2><span>Accepted</span></div>
-<div class="stat"><h2 id="booked">0</h2><span>Booked</span></div>
-<div class="stat"><h2 id="paid">0</h2><span>Paid</span></div>
-<div class="stat"><h2 id="revenue">$0</h2><span>Lead Value</span></div>
-</div>
-
-<div style="margin-bottom:18px">
-<input id="search" placeholder="Search phone, source, service..." oninput="renderLeads()">
-<select id="statusFilter" onchange="renderLeads()">
-<option value="">All Statuses</option>
-<option>New</option>
-<option>Accepted</option>
-<option>Booked</option>
-<option>Paid</option>
-<option>Declined</option>
-</select>
-</div>
-
-<div id="leads"></div>
-
-<script>
-let allLeads = [];
-
-async function loadLeads(){
-const res = await fetch("/admin/leads");
-const data = await res.json();
-allLeads = data.leads || [];
-
-total.innerText = allLeads.length;
-newLeads.innerText = allLeads.filter(l => l.lead_status === "New").length;
-accepted.innerText = allLeads.filter(l => l.lead_status === "Accepted").length;
-booked.innerText = allLeads.filter(l => l.lead_status === "Booked").length;
-paid.innerText = allLeads.filter(l => l.lead_status === "Paid").length;
-revenue.innerText = "$" + (allLeads.length * 35);
-
-renderLeads();
-}
-
-function renderLeads(){
-const search = document.getElementById("search").value.toLowerCase();
-const status = document.getElementById("statusFilter").value;
-
-let leads = allLeads.filter(l => {
-const text = JSON.stringify(l).toLowerCase();
-return text.includes(search) && (!status || l.lead_status === status);
+app.get("/health", (req, res) => {
+res.json({
+success:true,
+status:"online"
 });
-
-if(!leads.length){
-document.getElementById("leads").innerHTML = '<div class="empty">No leads found.</div>';
-return;
-}
-
-document.getElementById("leads").innerHTML = leads.map(lead => \`
-<div class="lead-card">
-<div class="lead-head">
-<div>
-<div class="lead-phone">📞 \${lead.customer_phone}</div>
-<div class="small">Lead #\${lead.id}</div>
-</div>
-<div class="badge \${lead.lead_status}">\${lead.lead_status}</div>
-</div>
-
-<div class="info">
-<strong>Service:</strong> \${lead.service || "Service Request"}<br>
-<strong>Source:</strong> \${lead.source || "Unknown"}<br>
-<strong>Tracking #:</strong> \${lead.tracking_number || "Unknown"}<br>
-<strong>Duration:</strong> \${lead.duration || "0"} seconds<br>
-<strong>Lead Score:</strong> \${lead.lead_score || "N/A"}<br>
-<strong>Provider:</strong> \${lead.provider_assigned || "Unassigned"}<br>
-<strong>Price:</strong> \${lead.price || "$35"}<br>
-<strong>Created:</strong> \${new Date(lead.created_at).toLocaleString()}
-</div>
-
-<div class="controls">
-<button class="accept" onclick="updateStatus(\${lead.id}, 'Accepted')">Accept</button>
-<button class="booked" onclick="updateStatus(\${lead.id}, 'Booked')">Booked</button>
-<button class="paid" onclick="updateStatus(\${lead.id}, 'Paid')">Paid</button>
-<button class="decline" onclick="updateStatus(\${lead.id}, 'Declined')">Decline</button>
-<button class="archive" onclick="archiveLead(\${lead.id})">Archive</button>
-<button class="delete" onclick="deleteLead(\${lead.id})">Delete</button>
-\${lead.recording ? '<a class="btn" href="' + lead.recording + '" target="_blank">Recording</a>' : ''}
-</div>
-
-<div class="controls">
-<select onchange="assignProvider(\${lead.id}, this.value)">
-<option \${lead.provider_assigned === "Unassigned" ? "selected" : ""}>Unassigned</option>
-<option \${lead.provider_assigned === "Citywide Lock & Key" ? "selected" : ""}>Citywide Lock & Key</option>
-<option \${lead.provider_assigned === "Provider A" ? "selected" : ""}>Provider A</option>
-<option \${lead.provider_assigned === "Provider B" ? "selected" : ""}>Provider B</option>
-<option \${lead.provider_assigned === "Provider C" ? "selected" : ""}>Provider C</option>
-</select>
-</div>
-
-<textarea id="notes-\${lead.id}" placeholder="Add lead notes...">\${lead.notes || ""}</textarea>
-<div class="controls">
-<button onclick="saveNotes(\${lead.id})">Save Notes</button>
-</div>
-</div>
-\`).join("");
-}
-
-async function updateStatus(id,status){
-await fetch("/lead/" + id + "/status", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({status})});
-await loadLeads();
-}
-
-async function assignProvider(id,provider){
-await fetch("/lead/" + id + "/provider", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({provider})});
-await loadLeads();
-}
-
-async function saveNotes(id){
-const notes = document.getElementById("notes-" + id).value;
-await fetch("/lead/" + id + "/notes", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({notes})});
-await loadLeads();
-}
-
-async function archiveLead(id){
-await fetch("/lead/" + id + "/archive", {method:"POST"});
-await loadLeads();
-}
-
-async function deleteLead(id){
-if(!confirm("Delete this lead?")) return;
-await fetch("/lead/" + id, {method:"DELETE"});
-await loadLeads();
-}
-
-async function createTestLead(){
-await fetch("/lead/test", {method:"POST"});
-await loadLeads();
-}
-
-loadLeads();
-setInterval(loadLeads, 7000);
-</script>
-`));
-});
-<p><strong>Lead Price:</strong> \\$35</p>
-<p><strong>Webhook:</strong> /lead/new</p>
-</div>
-`));
 });
 
 const PORT = process.env.PORT || 10000;
