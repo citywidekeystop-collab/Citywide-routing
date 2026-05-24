@@ -3,7 +3,6 @@ const cors = require("cors");
 const { Pool } = require("pg");
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -50,20 +49,12 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 function requireAdmin(req, res, next) {
 const token = req.query.token || req.headers["x-admin-token"];
-
-if (token !== ADMIN_TOKEN) {
-return res.status(401).send("Admin Locked");
-}
-
+if (token !== ADMIN_TOKEN) return res.status(401).send("Admin Locked");
 next();
 }
 
 function money(n) {
 return "$" + Number(n || 0).toLocaleString();
-}
-
-function profit(l) {
-return Number(l.job_amount || 0) - Number(l.lead_cost || 0);
 }
 
 function safe(v) {
@@ -74,28 +65,26 @@ return String(v ?? "")
 .replaceAll('"', "&quot;");
 }
 
-app.get("/", (req, res) => {
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
+function profit(l) {
+return Number(l.job_amount || 0) - Number(l.lead_cost || 0);
+}
 
-app.get("/health", (req, res) => {
-res.json({ ok: true });
-});
+function cleanStatus(s) {
+const status = String(s || "").toLowerCase().trim();
+if (status === "assigned") return "assigned";
+if (status === "enroute" || status === "en route") return "enroute";
+if (status === "completed" || status === "complete") return "completed";
+if (status === "paid" || status === "closed") return "paid";
+return "new";
+}
+
+app.get("/", (req, res) => res.redirect(`/admin?token=${ADMIN_TOKEN}`));
+app.get("/health", (req, res) => res.json({ ok: true }));
 
 app.post("/admin/add-job", requireAdmin, async (req, res) => {
-try {
-
 await pool.query(`
-INSERT INTO leads (
-customer_phone,
-source,
-service,
-provider_assigned,
-lead_status,
-job_amount,
-lead_cost,
-notes
-)
+INSERT INTO leads
+(customer_phone, source, service, provider_assigned, lead_status, job_amount, lead_cost, notes)
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 `, [
 req.body.customer_phone || "Unknown",
@@ -109,37 +98,17 @@ req.body.notes || ""
 ]);
 
 res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-
-} catch (e) {
-res.send(e.message);
-}
 });
 
 app.post("/admin/update/:id", requireAdmin, async (req, res) => {
-
-try {
-
-const status =
-req.body.quickStatus ||
-req.body.lead_status ||
-"new";
-
-const jobAmount =
-Number(req.body.job_amount || 0);
-
-const leadCost =
-Number(req.body.lead_cost || 0);
-
-const providerEarnings =
-Math.max(0, jobAmount - leadCost);
-
-const nlnProfit =
-jobAmount - leadCost;
+const status = cleanStatus(req.body.quickStatus || req.body.lead_status);
+const jobAmount = Number(req.body.job_amount || 0);
+const leadCost = Number(req.body.lead_cost || 0);
+const nlnProfit = jobAmount - leadCost;
 
 await pool.query(`
 UPDATE leads
-SET
-provider_assigned=$1,
+SET provider_assigned=$1,
 lead_status=$2,
 job_amount=$3,
 lead_cost=$4,
@@ -152,765 +121,227 @@ req.body.provider_assigned || "",
 status,
 String(jobAmount),
 String(leadCost),
-String(providerEarnings),
+String(Math.max(0, nlnProfit)),
 String(nlnProfit),
 req.body.notes || "",
 req.params.id
 ]);
 
 res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-
-} catch (e) {
-
-res.send(e.message);
-
-}
 });
 
 app.post("/admin/delete/:id", requireAdmin, async (req, res) => {
-
-try {
-
-await pool.query(
-"DELETE FROM leads WHERE id=$1",
-[req.params.id]
-);
-
+await pool.query("DELETE FROM leads WHERE id=$1", [req.params.id]);
 res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-
-} catch (e) {
-
-res.send(e.message);
-
-}
 });
 
 app.get("/admin", requireAdmin, async (req, res) => {
-
 const result = await pool.query(`
-SELECT *
-FROM leads
+SELECT * FROM leads
 WHERE archived=false OR archived IS NULL
 ORDER BY id DESC
 `);
 
-const leads = result.rows;
+const leads = result.rows.map(l => ({
+...l,
+clean_status: cleanStatus(l.lead_status)
+}));
 
-const revenue =
-leads.reduce((s,l)=>
-s + Number(l.job_amount || 0),0);
-
-const costs =
-leads.reduce((s,l)=>
-s + Number(l.lead_cost || 0),0);
-
-const totalProfit = revenue - costs;
-
-const completed =
-leads.filter(l =>
-["completed","paid"]
-.includes(
-String(l.lead_status || "")
-.toLowerCase()
-)
-).length;
+const revenue = leads.reduce((s, l) => s + Number(l.job_amount || 0), 0);
+const cost = leads.reduce((s, l) => s + Number(l.lead_cost || 0), 0);
+const totalProfit = revenue - cost;
+const completed = leads.filter(l => ["completed", "paid"].includes(l.clean_status)).length;
 
 const columns = [
-["new","New Leads"],
-["assigned","Assigned"],
-["enroute","En Route"],
-["completed","Completed"],
-["paid","Paid / Closed"]
+["new", "New Leads"],
+["assigned", "Assigned"],
+["enroute", "En Route"],
+["completed", "Completed"],
+["paid", "Paid / Closed"]
 ];
 
 function card(l) {
-
-const phone =
-l.customer_phone ||
-l.tracking_number ||
-"";
-
-const providerPhone =
-providers[l.provider_assigned] || "";
+const phone = l.customer_phone || l.tracking_number || "";
+const providerPhone = providers[l.provider_assigned] || "";
 
 return `
-
 <div class="job-card">
-
 <div class="job-top">
 <b>Job #${l.id}</b>
-
-<span class="pill ${safe(l.lead_status || "new")}">
-${safe(l.lead_status || "new").toUpperCase()}
-</span>
+<span class="pill ${l.clean_status}">${l.clean_status.toUpperCase()}</span>
 </div>
 
-<p><b>Service:</b> ${safe(l.service)}</p>
-<p><b>Phone:</b> ${safe(phone)}</p>
+<p><b>Service:</b> ${safe(l.service || l.notes || "Lead")}</p>
+<p><b>Phone:</b> ${safe(phone || "Unknown")}</p>
 <p><b>Provider:</b> ${safe(l.provider_assigned || "Not Assigned")}</p>
 <p><b>Job Amount:</b> ${money(l.job_amount)}</p>
 <p><b>Lead Cost:</b> ${money(l.lead_cost)}</p>
+<p><b>Profit:</b> <span class="${profit(l) >= 0 ? "good" : "bad"}">${money(profit(l))}</span></p>
 
-<p>
-<b>Profit:</b>
+<details>
+<summary>Lead Details</summary>
+<div class="details">${safe(l.notes || l.service || "No details")}</div>
+</details>
 
-<span class="${profit(l)>=0 ? "good":"bad"}">
-${money(profit(l))}
-</span>
-</p>
-
-<form
-method="POST"
-action="/admin/update/${l.id}?token=${ADMIN_TOKEN}">
-
+<form method="POST" action="/admin/update/${l.id}?token=${ADMIN_TOKEN}">
 <select name="provider_assigned">
-
-<option value="">
-Assign Provider
-</option>
-
+<option value="">Assign Provider</option>
 ${Object.keys(providers).map(p => `
-<option
-value="${p}"
-${l.provider_assigned===p ? "selected":""}>
-${p}
-</option>
+<option value="${p}" ${l.provider_assigned === p ? "selected" : ""}>${p}</option>
 `).join("")}
-
 </select>
 
 <select name="lead_status">
-
-${[
-"new",
-"assigned",
-"enroute",
-"completed",
-"paid"
-].map(s => `
-<option
-value="${s}"
-${l.lead_status===s ? "selected":""}>
-${s}
-</option>
+${["new","assigned","enroute","completed","paid"].map(s => `
+<option value="${s}" ${l.clean_status === s ? "selected" : ""}>${s}</option>
 `).join("")}
-
 </select>
 
-<input
-name="job_amount"
-type="number"
-value="${safe(l.job_amount || 0)}"
-placeholder="Job Amount">
-
-<input
-name="lead_cost"
-type="number"
-value="${safe(l.lead_cost || 35)}"
-placeholder="Lead Cost">
-
-<textarea
-name="notes"
-placeholder="Admin Notes">${safe(l.notes || "")}</textarea>
+<input name="job_amount" type="number" value="${safe(l.job_amount || 0)}" placeholder="Job amount">
+<input name="lead_cost" type="number" value="${safe(l.lead_cost || 35)}" placeholder="Lead cost">
+<textarea name="notes" placeholder="Admin notes">${safe(l.notes || "")}</textarea>
 
 <div class="btn-grid">
-
-<button class="btn blue" type="submit">
-Save
-</button>
-
-<a
-class="btn green"
-href="tel:${safe(phone)}">
-Call
-</a>
-
-<a
-class="btn purple"
-href="${providerPhone ? `sms:${providerPhone}` : "#"}">
-Text Provider
-</a>
-
-<button
-class="btn orange"
-type="submit"
-name="quickStatus"
-value="enroute">
-En Route
-</button>
-
-<button
-class="btn dark"
-type="submit"
-name="quickStatus"
-value="completed">
-Complete
-</button>
-
-<button
-class="btn teal"
-type="submit"
-name="quickStatus"
-value="paid">
-Paid
-</button>
-
+<button class="btn blue" type="submit">Save</button>
+<a class="btn green" href="tel:${safe(phone)}">Call</a>
+<a class="btn purple" href="${providerPhone ? `sms:${safe(providerPhone)}` : "#"}">Text Provider</a>
+<button class="btn orange" type="submit" name="quickStatus" value="enroute">En Route</button>
+<button class="btn dark" type="submit" name="quickStatus" value="completed">Complete</button>
+<button class="btn teal" type="submit" name="quickStatus" value="paid">Paid</button>
 </div>
-
 </form>
 
-<form
-method="POST"
-action="/admin/delete/${l.id}?token=${ADMIN_TOKEN}">
-
-<button
-class="delete"
-type="submit">
-
-Delete Job
-
-</button>
-
+<form method="POST" action="/admin/delete/${l.id}?token=${ADMIN_TOKEN}">
+<button class="delete" type="submit">Delete Job</button>
 </form>
-
 </div>
 `;
 }
 
 res.send(`
-
 <!DOCTYPE html>
-
 <html>
-
 <head>
-
-<meta
-name="viewport"
-content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NLN Dispatch</title>
-
 <style>
-
-*{
-box-sizing:border-box
-}
-
-body{
-margin:0;
-font-family:Arial;
-background:#f4f7fb;
-color:#0f172a
-}
-
-.app{
-display:flex
-}
-
-.sidebar{
-width:250px;
-background:linear-gradient(180deg,#020617,#0f172a);
-color:white;
-position:fixed;
-top:0;
-bottom:0;
-padding:22px
-}
-
-.logo h1{
-font-size:36px;
-margin:0
-}
-
-.nav a{
-display:block;
-color:white;
-text-decoration:none;
-padding:14px;
-border-radius:14px;
-margin:7px 0;
-font-weight:800
-}
-
-.nav a.active{
-background:linear-gradient(135deg,#2563eb,#7c3aed)
-}
-
-.main{
-margin-left:250px;
-width:calc(100% - 250px);
-padding:24px
-}
-
-.topbar{
-display:flex;
-justify-content:space-between;
-gap:15px;
-align-items:center
-}
-
-.search{
-padding:15px;
-border-radius:16px;
-border:1px solid #ddd;
-width:360px
-}
-
-.stats{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:14px;
-margin:20px 0
-}
-
-.stat{
-background:white;
-border-radius:22px;
-padding:18px;
-box-shadow:0 10px 25px #0001
-}
-
-.quick-buttons{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:12px;
-margin-bottom:20px
-}
-
-.quick-btn{
-text-align:center;
-text-decoration:none;
-padding:15px;
-border-radius:16px;
-color:white;
-font-weight:900
-}
-
-.board{
-display:grid;
-grid-template-columns:repeat(5,minmax(270px,1fr));
-gap:16px;
-overflow-x:auto
-}
-
-.column{
-background:white;
-border-radius:24px;
-padding:14px;
-min-height:500px
-}
-
-.job-card{
-background:white;
-border:1px solid #e5e7eb;
-border-radius:20px;
-padding:15px;
-margin-bottom:14px;
-box-shadow:0 12px 25px #0001
-}
-
-.job-top{
-display:flex;
-justify-content:space-between
-}
-
-.pill{
-font-size:10px;
-padding:6px 9px;
-border-radius:999px;
-font-weight:900
-}
-
-.new{
-background:#dbeafe;
-color:#1d4ed8
-}
-
-.assigned{
-background:#fef3c7;
-color:#92400e
-}
-
-.enroute{
-background:#ede9fe;
-color:#6d28d9
-}
-
-.completed{
-background:#dcfce7;
-color:#15803d
-}
-
-.paid{
-background:#e2e8f0;
-color:#334155
-}
-
-select,
-input,
-textarea{
-width:100%;
-padding:12px;
-margin-top:8px;
-border-radius:12px;
-border:1px solid #ddd
-}
-
-.btn-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:8px;
-margin-top:10px
-}
-
-.btn{
-padding:12px;
-border:0;
-border-radius:13px;
-color:white;
-font-weight:900;
-text-align:center;
-text-decoration:none;
-cursor:pointer
-}
-
-.blue{
-background:#2563eb
-}
-
-.green{
-background:#16a34a
-}
-
-.purple{
-background:#9333ea
-}
-
-.orange{
-background:#ea580c
-}
-
-.dark{
-background:#111827
-}
-
-.teal{
-background:#0f766e
-}
-
-.delete{
-width:100%;
-padding:11px;
-border:0;
-border-radius:12px;
-background:#fee2e2;
-color:#991b1b;
-margin-top:10px;
-font-weight:900;
-cursor:pointer
-}
-
-.good{
-color:#16a34a
-}
-
-.bad{
-color:#dc2626
-}
-
-.add-panel{
-background:white;
-border-radius:24px;
-padding:22px;
-margin-top:22px
-}
-
-.add-grid{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:10px
-}
-
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:#f4f7fb;color:#0f172a}
+.app{display:flex}
+.sidebar{width:250px;background:linear-gradient(180deg,#020617,#0f172a);color:white;position:fixed;top:0;bottom:0;padding:22px}
+.logo h1{font-size:36px;margin:0}
+.nav a{display:block;color:white;text-decoration:none;padding:14px;border-radius:14px;margin:7px 0;font-weight:800}
+.nav a.active{background:linear-gradient(135deg,#2563eb,#7c3aed)}
+.main{margin-left:250px;width:calc(100% - 250px);padding:24px}
+.topbar{display:flex;justify-content:space-between;gap:15px;align-items:center}
+.search{padding:15px;border-radius:16px;border:1px solid #ddd;width:360px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0}
+.stat{background:white;border-radius:22px;padding:18px;box-shadow:0 10px 25px #0001}
+.quick-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.quick-btn{text-align:center;text-decoration:none;padding:15px;border-radius:16px;color:white;font-weight:900}
+.board{display:grid;grid-template-columns:repeat(5,minmax(270px,1fr));gap:16px;overflow-x:auto}
+.column{background:white;border-radius:24px;padding:14px;min-height:500px}
+.job-card{background:white;border:1px solid #e5e7eb;border-radius:20px;padding:15px;margin-bottom:14px;box-shadow:0 12px 25px #0001}
+.job-top{display:flex;justify-content:space-between}
+.pill{font-size:10px;padding:6px 9px;border-radius:999px;font-weight:900}
+.new{background:#dbeafe;color:#1d4ed8}
+.assigned{background:#fef3c7;color:#92400e}
+.enroute{background:#ede9fe;color:#6d28d9}
+.completed{background:#dcfce7;color:#15803d}
+.paid{background:#e2e8f0;color:#334155}
+select,input,textarea{width:100%;padding:12px;margin-top:8px;border-radius:12px;border:1px solid #ddd}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.btn{padding:12px;border:0;border-radius:13px;color:white;font-weight:900;text-align:center;text-decoration:none;cursor:pointer}
+.blue{background:#2563eb}.green{background:#16a34a}.purple{background:#9333ea}.orange{background:#ea580c}.dark{background:#111827}.teal{background:#0f766e}
+.delete{width:100%;padding:11px;border:0;border-radius:12px;background:#fee2e2;color:#991b1b;margin-top:10px;font-weight:900;cursor:pointer}
+.good{color:#16a34a}.bad{color:#dc2626}
+.add-panel{background:white;border-radius:24px;padding:22px;margin-top:22px}
+.add-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media(max-width:1000px){
-
-.sidebar{
-display:none
+.sidebar{display:none}
+.main{margin-left:0;width:100%;padding:14px 12px 90px}
+.topbar{display:block}
+.search{width:100%;margin:12px 0}
+.stats{grid-template-columns:repeat(2,1fr)}
+.quick-buttons{grid-template-columns:1fr 1fr}
+.board{display:block}
+.column{margin-bottom:16px;min-height:auto}
+.add-grid{grid-template-columns:1fr}
 }
-
-.main{
-margin-left:0;
-width:100%;
-padding:14px 12px 90px
-}
-
-.topbar{
-display:block
-}
-
-.search{
-width:100%;
-margin:12px 0
-}
-
-.stats{
-grid-template-columns:repeat(2,1fr)
-}
-
-.quick-buttons{
-grid-template-columns:1fr 1fr
-}
-
-.board{
-display:block
-}
-
-.column{
-margin-bottom:16px;
-min-height:auto
-}
-
-.add-grid{
-grid-template-columns:1fr
-}
-
-}
-
 </style>
-
 </head>
-
 <body>
-
 <div class="app">
-
 <aside class="sidebar">
-
-<div class="logo">
-<h1>NLN</h1>
-<b>CITYWIDE ROUTING</b>
-</div>
-
+<div class="logo"><h1>NLN</h1><b>CITYWIDE ROUTING</b></div>
 <div class="nav">
-
-<a
-class="active"
-href="/admin?token=${ADMIN_TOKEN}">
-
-Dashboard
-
-</a>
-
-<a href="#addJob">
-Add Job
-</a>
-
+<a class="active" href="/admin?token=${ADMIN_TOKEN}">Dashboard</a>
+<a href="#addJob">Add Job</a>
 </div>
-
 </aside>
 
 <main class="main">
-
 <div class="topbar">
-
 <div>
 <h1>NLN Dispatch Command Center</h1>
 <p>Citywide Routing Control Center</p>
 </div>
-
-<input
-class="search"
-placeholder="Search jobs...">
-
+<input class="search" placeholder="Search jobs...">
 </div>
 
 <section class="stats">
-
-<div class="stat">
-<h2>${leads.length}</h2>
-<p>Total Leads</p>
-</div>
-
-<div class="stat">
-<h2>${money(revenue)}</h2>
-<p>Job Amounts</p>
-</div>
-
-<div class="stat">
-<h2>${money(totalProfit)}</h2>
-<p>NLN Profit</p>
-</div>
-
-<div class="stat">
-<h2>${completed}</h2>
-<p>Completed</p>
-</div>
-
+<div class="stat"><h2>${leads.length}</h2><p>Total Leads</p></div>
+<div class="stat"><h2>${money(revenue)}</h2><p>Job Amounts</p></div>
+<div class="stat"><h2>${money(totalProfit)}</h2><p>NLN Profit</p></div>
+<div class="stat"><h2>${completed}</h2><p>Completed</p></div>
 </section>
 
 <div class="quick-buttons">
-
-<a
-class="quick-btn blue"
-href="#addJob">
-
-+ Add Job
-
-</a>
-
-<a
-class="quick-btn green"
-href="/admin?token=${ADMIN_TOKEN}">
-
-Refresh
-
-</a>
-
-<a
-class="quick-btn purple"
-href="tel:+14435781686">
-
-Call Main
-
-</a>
-
-<a
-class="quick-btn dark"
-href="/health">
-
-System
-
-</a>
-
+<a class="quick-btn blue" href="#addJob">+ Add Job</a>
+<a class="quick-btn green" href="/admin?token=${ADMIN_TOKEN}">Refresh</a>
+<a class="quick-btn purple" href="tel:+14435781686">Call Main</a>
+<a class="quick-btn dark" href="/health">System</a>
 </div>
 
 <section class="board">
-
 ${columns.map(([key,title]) => {
-
-const items = leads.filter(l => {
-
-const status =
-String(l.lead_status || "")
-.toLowerCase()
-.trim();
-
-if (key === "new") {
-return (
-!status ||
-status === "new" ||
-status === "open" ||
-status === "pending"
-);
-}
-
-return status === key;
-
-});
-
+const items = leads.filter(l => l.clean_status === key);
 return `
-
 <div class="column">
-
-<h3>
-${title}
-(${items.length})
-</h3>
-
+<h3>${title} (${items.length})</h3>
 ${items.map(card).join("") || "<p>No jobs</p>"}
-
 </div>
-
 `;
-
 }).join("")}
-
 </section>
 
-<section
-class="add-panel"
-id="addJob">
-
+<section class="add-panel" id="addJob">
 <h2>Add Quick Job</h2>
-
-<form
-method="POST"
-action="/admin/add-job?token=${ADMIN_TOKEN}">
-
+<form method="POST" action="/admin/add-job?token=${ADMIN_TOKEN}">
 <div class="add-grid">
-
-<input
-name="customer_phone"
-placeholder="Customer phone">
-
-<input
-name="service"
-placeholder="Service">
-
-<input
-name="source"
-placeholder="Source">
-
-<input
-name="job_amount"
-type="number"
-placeholder="Job amount">
-
-<input
-name="lead_cost"
-type="number"
-placeholder="Lead cost">
-
+<input name="customer_phone" placeholder="Customer phone">
+<input name="service" placeholder="Service">
+<input name="source" placeholder="Source">
+<input name="job_amount" type="number" placeholder="Job amount">
+<input name="lead_cost" type="number" placeholder="Lead cost">
 <select name="provider_assigned">
-
-<option value="">
-Assign provider
-</option>
-
-${Object.keys(providers).map(p => `
-<option value="${p}">
-${p}
-</option>
-`).join("")}
-
+<option value="">Assign provider</option>
+${Object.keys(providers).map(p => `<option value="${p}">${p}</option>`).join("")}
 </select>
-
 </div>
-
-<textarea
-name="notes"
-placeholder="Notes"></textarea>
-
-<button
-class="btn blue"
-style="margin-top:12px">
-
-Create Job
-
-</button>
-
+<textarea name="notes" placeholder="Notes"></textarea>
+<button class="btn blue" style="margin-top:12px">Create Job</button>
 </form>
-
 </section>
-
 </main>
-
 </div>
-
 </body>
-
 </html>
-
 `);
-
 });
 
 initDB().then(() => {
-
-app.listen(PORT, () => {
-
-console.log("NLN running");
-
+app.listen(PORT, () => console.log("NLN running"));
 });
 
 });
