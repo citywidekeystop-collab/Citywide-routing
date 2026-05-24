@@ -1,7 +1,7 @@
-
 {
 "name": "nln-dispatch-dashboard",
 "version": "1.0.0",
+"description": "NLN Towbook Style Dispatch Dashboard With Database",
 "main": "server.js",
 "scripts": {
 "start": "node server.js"
@@ -15,5 +15,3 @@
 "node": ">=18"
 }
 }
-
-
