@@ -344,4 +344,3 @@ initDB().then(() => {
 app.listen(PORT, () => console.log("NLN running"));
 });
 
-});
