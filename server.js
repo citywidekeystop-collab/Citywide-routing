@@ -1,620 +1,597 @@
 const express = require("express");
-const cors = require("cors");
-const { Pool } = require("pg");
-
 const app = express();
-app.use(cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const pool = new Pool({
-connectionString: process.env.DATABASE_URL,
-ssl: { rejectUnauthorized: false }
-});
+const PORT = process.env.PORT || 3000;
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "nln-admin-2026";
 
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "citywide123";
-
-const providers = {
-Max: "4436792242",
-Dreh: "2024125443",
-Tee: "4104199281",
-Robyn: "4435781686",
-"Car Key Chris": "2232630824"
-};
-
-async function initDB() {
-try {
-await pool.query(`
-CREATE TABLE IF NOT EXISTS leads (
-id SERIAL PRIMARY KEY,
-customer_phone TEXT,
-tracking_number TEXT,
-source TEXT,
-service TEXT,
-duration TEXT,
-recording TEXT,
-lead_score TEXT,
-provider_assigned TEXT,
-lead_status TEXT,
-notes TEXT,
-job_amount TEXT DEFAULT '0',
-lead_cost TEXT DEFAULT '35',
-provider_earnings TEXT DEFAULT '0',
-nln_profit TEXT DEFAULT '35',
-archived BOOLEAN DEFAULT false,
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-`);
-
-const columns = [
-["duration", "TEXT"],
-["recording", "TEXT"],
-["lead_score", "TEXT"],
-["job_amount", "TEXT DEFAULT '0'"],
-["lead_cost", "TEXT DEFAULT '35'"],
-["provider_earnings", "TEXT DEFAULT '0'"],
-["nln_profit", "TEXT DEFAULT '35'"],
-["notes", "TEXT"],
-["archived", "BOOLEAN DEFAULT false"]
+let providers = [
+{ id: 1, name: "Max", phone: "+14436792242", balance: 500, earnings: 0 },
+{ id: 2, name: "Dreh", phone: "+12024125443", balance: 500, earnings: 0 },
+{ id: 3, name: "Tee", phone: "+14104199281", balance: 500, earnings: 0 },
+{ id: 4, name: "Robyn", phone: "+14434199281", balance: 500, earnings: 0 }
 ];
 
-for (const [name, type] of columns) {
-await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${name} ${type}`);
+let leads = [
+{
+id: 43,
+customer: "Unknown",
+phone: "Unknown",
+trackingNumber: "+14437819117",
+source: "Google My Business",
+service: "Car Key Replacement",
+location: "Edgewood Area",
+details: "Customer called about key cutting for a 2006 Hyundai Tucson. Customer accepted quote and ended call.",
+providerId: null,
+status: "new",
+jobAmount: 0,
+leadCost: 35,
+notes: "",
+createdAt: new Date().toLocaleString()
 }
-
-console.log("✅ DB ready");
-} catch (err) {
-console.log("DB ERROR:", err);
-}
-}
-
-initDB();
+];
 
 function money(n) {
-return Number(n || 0).toFixed(0);
+return "$" + Number(n || 0).toLocaleString();
 }
 
-function cleanPhone(phone) {
-return String(phone || "").replace(/[^0-9]/g, "");
+function getProvider(id) {
+return providers.find(p => String(p.id) === String(id));
 }
 
-function smsLink(phone, lead) {
-const msg = `NEW LOCKSMITH JOB
-
-Customer Phone: ${lead.customer_phone || "Unknown"}
-
-Service / Lead Details:
-${lead.service || "Locksmith Service"}
-
-Job Amount: $${money(lead.job_amount)}
-Lead Cost: $${money(lead.lead_cost)}
-Status: ${lead.lead_status || "New"}
-
-Call customer ASAP.`;
-
-return "sms:+1" + cleanPhone(phone) + "?body=" + encodeURIComponent(msg);
+function profit(lead) {
+return Number(lead.jobAmount || 0) - Number(lead.leadCost || 0);
 }
 
-async function getLeads() {
-const result = await pool.query(`
-SELECT *
-FROM leads
-WHERE archived = false
-ORDER BY created_at DESC
-`);
-return result.rows;
-}
-
-function baseStyle() {
-return `
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#f4f8fb;font-family:Arial;color:#0f172a}
-.wrap{max-width:1150px;margin:0 auto;padding:18px;padding-bottom:120px}
-.top,.card{background:white;border-radius:28px;padding:22px;margin-bottom:18px;box-shadow:0 12px 30px rgba(0,0,0,.08)}
-.logo{display:flex;align-items:center;gap:14px}
-.logo-box{width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,#0b2a67,#06b6d4);color:white;display:flex;align-items:center;justify-content:center;font-size:34px}
-.logo h1{margin:0;font-size:28px}
-.logo p{margin:4px 0 0;color:#64748b;font-weight:700}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
-.stat{background:#f8fafc;border-radius:22px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,.05)}
-.stat h2{margin:0;font-size:34px}
-.stat p{margin:6px 0 0;color:#64748b;font-weight:800}
-.info{margin:10px 0;font-size:18px;line-height:1.45;font-weight:700;white-space:pre-wrap}
-.info b{color:#334155}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-input,select,textarea{width:100%;padding:16px;border-radius:16px;border:1px solid #cbd5e1;font-size:17px;font-weight:700}
-textarea{min-height:130px}
-.full{grid-column:1 / -1}
-.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
-button,.btn{border:none;border-radius:18px;padding:17px;font-size:18px;font-weight:900;text-align:center;text-decoration:none;color:white;cursor:pointer;display:block;width:100%}
-.blue{background:linear-gradient(135deg,#2563eb,#1d4ed8)}
-.green{background:linear-gradient(135deg,#22c55e,#15803d)}
-.purple{background:linear-gradient(135deg,#8b5cf6,#6d28d9)}
-.orange{background:linear-gradient(135deg,#f59e0b,#d97706);color:#111827}
-.gray{background:linear-gradient(135deg,#64748b,#475569)}
-.red{background:linear-gradient(135deg,#ef4444,#dc2626)}
-.teal{background:linear-gradient(135deg,#06b6d4,#0891b2)}
-.quickTextBox{margin-top:20px;padding:18px;border-radius:26px;background:linear-gradient(135deg,#f8fafc,#e0e7ff);border:1px solid #dbe3f0;box-shadow:0 14px 35px rgba(15,23,42,.12)}
-.quickTitle{font-size:22px;font-weight:900;color:#111827;text-align:center;margin-bottom:14px}
-.providerTextGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.providerTextBtn{padding:18px;border-radius:20px;color:white;text-align:center;text-decoration:none;font-size:17px;font-weight:900;box-shadow:0 10px 22px rgba(0,0,0,.18)}
-.maxBtn{background:linear-gradient(135deg,#2563eb,#1d4ed8)}
-.drehBtn{background:linear-gradient(135deg,#7c3aed,#5b21b6)}
-.teeBtn{background:linear-gradient(135deg,#06b6d4,#0891b2)}
-.robynBtn{background:linear-gradient(135deg,#22c55e,#15803d)}
-.chrisBtn{background:linear-gradient(135deg,#111827,#334155)}
-.bottom{position:fixed;left:0;right:0;bottom:0;background:white;display:flex;justify-content:space-around;padding:13px 8px;box-shadow:0 -8px 25px rgba(0,0,0,.13);z-index:999}
-.bottom a{color:#334155;text-decoration:none;font-weight:900;font-size:15px;text-align:center}
-@media(max-width:800px){.stats,.form-grid,.providerTextGrid{grid-template-columns:1fr}.btn-grid{grid-template-columns:1fr 1fr}.logo h1{font-size:23px}}
-</style>`;
-}
-
-function adminPage(content) {
-return `
-<!DOCTYPE html>
-<html>
-<head>
-<title>NLN Admin</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-${baseStyle()}
-</head>
-<body>
-<div class="wrap">${content}</div>
-<div class="bottom">
-<a href="/admin?token=${ADMIN_TOKEN}">🏠<br>Admin</a>
-<a href="/add-job?token=${ADMIN_TOKEN}">➕<br>Add Job</a>
-<a href="/providers?token=${ADMIN_TOKEN}">👷<br>Providers</a>
-<a href="/calls?token=${ADMIN_TOKEN}">☎️<br>Calls</a>
-<a href="/settings?token=${ADMIN_TOKEN}">⚙️<br>Settings</a>
-</div>
-</body>
-</html>`;
-}
-
-function providerPage(content, provider) {
-const safe = encodeURIComponent(provider);
-return `
-<!DOCTYPE html>
-<html>
-<head>
-<title>${provider} Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-${baseStyle()}
-</head>
-<body>
-<div class="wrap">${content}</div>
-<div class="bottom">
-<a href="/provider/${safe}">📋<br>My Jobs</a>
-<a href="/provider/${safe}?filter=new">🆕<br>New</a>
-<a href="/provider/${safe}?filter=completed">✅<br>Done</a>
-<a href="/provider/${safe}/earnings">💵<br>Earnings</a>
-</div>
-</body>
-</html>`;
-}
-
-function requireAdmin(req, res) {
-const token = req.query.token || req.body.token;
+function requireAdmin(req, res, next) {
+const token = req.query.token || req.headers["x-admin-token"];
 if (token !== ADMIN_TOKEN) {
-res.send(`<h2 style="font-family:Arial;text-align:center;margin-top:80px;">Locked Admin Dashboard</h2>`);
-return false;
+return res.status(401).send(`
+<h2>NLN Admin Locked</h2>
+<p>Add your admin token to the URL:</p>
+<p><b>?token=${ADMIN_TOKEN}</b></p>
+`);
 }
-return true;
+next();
 }
-
-function providerDispatchButtons(lead) {
-const rows = Object.keys(providers).map(name => {
-const cls =
-name === "Max" ? "maxBtn" :
-name === "Dreh" ? "drehBtn" :
-name === "Tee" ? "teeBtn" :
-name === "Robyn" ? "robynBtn" : "chrisBtn";
-
-return `
-<a class="providerTextBtn ${cls}" href="${smsLink(providers[name], lead)}">💬 Text ${name}</a>
-<form method="POST" action="/lead/${lead.id}/send/${encodeURIComponent(name)}">
-<input type="hidden" name="token" value="${ADMIN_TOKEN}">
-<button class="providerTextBtn ${cls}" type="submit">🚀 Send To ${name}</button>
-</form>
-`;
-}).join("");
-
-return `
-<div class="quickTextBox">
-<div class="quickTitle">🚀 Send Job To Provider Dashboard</div>
-<div class="providerTextGrid">${rows}</div>
-</div>`;
-}
-
-function leadCard(lead, admin = true) {
-const providerEarnings = Number(lead.job_amount || 0) - Number(lead.lead_cost || 0);
-const nlnProfit = Number(lead.lead_cost || 0);
-
-const options = Object.keys(providers).map(p =>
-`<option value="${p}" ${lead.provider_assigned === p ? "selected" : ""}>${p}</option>`
-).join("");
-
-return `
-<div class="card">
-<div class="info"><b>Lead #:</b> ${lead.id}</div>
-<div class="info"><b>Customer Phone:</b> ${lead.customer_phone || "Unknown"}</div>
-<div class="info"><b>Tracking Number:</b> ${lead.tracking_number || ""}</div>
-<div class="info"><b>Source:</b> ${lead.source || ""}</div>
-<div class="info"><b>Service / Lead Details:</b> ${lead.service || "Locksmith Service"}</div>
-<div class="info"><b>Provider:</b> ${lead.provider_assigned || "Not Assigned"}</div>
-<div class="info"><b>Status:</b> ${lead.lead_status || "New"}</div>
-<div class="info"><b>Job Amount:</b> $${money(lead.job_amount)}</div>
-<div class="info"><b>Lead Cost:</b> $${money(lead.lead_cost)}</div>
-<div class="info"><b>Provider Earnings:</b> $${money(providerEarnings)}</div>
-<div class="info"><b>NLN Profit:</b> $${money(nlnProfit)}</div>
-<div class="info"><b>Recording:</b> ${lead.recording ? `<a href="${lead.recording}" target="_blank">Open Recording</a>` : "None"}</div>
-<div class="info"><b>Notes:</b> ${lead.notes || ""}</div>
-
-${admin ? `
-<form method="POST" action="/lead/${lead.id}/pricing">
-<input type="hidden" name="token" value="${ADMIN_TOKEN}">
-<div class="form-grid">
-<select name="provider_assigned">${options}</select>
-<input name="job_amount" value="${lead.job_amount || 0}" placeholder="Job Amount">
-<input name="lead_cost" value="${lead.lead_cost || 35}" placeholder="Lead Cost">
-<textarea class="full" name="service" placeholder="Edit LSA message / call summary before sending">${lead.service || ""}</textarea>
-<textarea class="full" name="notes" placeholder="Admin Notes">${lead.notes || ""}</textarea>
-</div>
-<div class="btn-grid">
-<button class="blue" type="submit">💾 Save Edits</button>
-<a class="btn green" href="tel:${cleanPhone(lead.customer_phone)}">📞 Call Customer</a>
-</div>
-</form>
-${providerDispatchButtons(lead)}
-` : ""}
-
-<div class="btn-grid">
-<form method="POST" action="/lead/${lead.id}/status"><input type="hidden" name="status" value="Accepted"><button class="green">✅ Accept</button></form>
-<form method="POST" action="/lead/${lead.id}/status"><input type="hidden" name="status" value="On The Way"><button class="purple">🚗 On The Way</button></form>
-<form method="POST" action="/lead/${lead.id}/status"><input type="hidden" name="status" value="Completed"><button class="teal">✅ Complete</button></form>
-<form method="POST" action="/lead/${lead.id}/status"><input type="hidden" name="status" value="Paid"><button class="orange">💵 Paid</button></form>
-${admin ? `
-<form method="POST" action="/lead/${lead.id}/archive"><input type="hidden" name="token" value="${ADMIN_TOKEN}"><button class="gray">📦 Archive</button></form>
-<form method="POST" action="/lead/${lead.id}/delete"><input type="hidden" name="token" value="${ADMIN_TOKEN}"><button class="red">🗑 Delete</button></form>
-` : ""}
-</div>
-</div>`;
-}
-
-app.get("/", (req, res) => res.redirect(`/admin?token=${ADMIN_TOKEN}`));
 
 app.get("/health", (req, res) => {
-res.json({ success: true, status: "online" });
+res.json({ ok: true, system: "NLN Routing Dashboard" });
 });
 
-app.get("/admin", async (req, res) => {
-if (!requireAdmin(req, res)) return;
-const leads = await getLeads();
+app.post("/lead/new", (req, res) => {
+const body = req.body || {};
+const lead = {
+id: Date.now(),
+customer: body.customer || "Unknown",
+phone: body.phone || "Unknown",
+trackingNumber: body.trackingNumber || "",
+source: body.source || "Manual / LSA",
+service: body.service || "Locksmith Service",
+location: body.location || "",
+details: body.details || "",
+providerId: null,
+status: "new",
+jobAmount: Number(body.jobAmount || 0),
+leadCost: Number(body.leadCost || 35),
+notes: "",
+createdAt: new Date().toLocaleString()
+};
 
+leads.unshift(lead);
+res.json({ success: true, lead });
+});
+
+app.post("/admin/update/:id", requireAdmin, (req, res) => {
+const lead = leads.find(l => String(l.id) === String(req.params.id));
+if (!lead) return res.redirect("/admin?token=" + ADMIN_TOKEN);
+
+lead.providerId = req.body.providerId || null;
+lead.status = req.body.status || lead.status;
+lead.jobAmount = Number(req.body.jobAmount || 0);
+lead.leadCost = Number(req.body.leadCost || 0);
+lead.notes = req.body.notes || "";
+
+res.redirect("/admin?token=" + ADMIN_TOKEN);
+});
+
+app.post("/admin/add-job", requireAdmin, (req, res) => {
+leads.unshift({
+id: Date.now(),
+customer: req.body.customer || "Unknown",
+phone: req.body.phone || "Unknown",
+trackingNumber: req.body.trackingNumber || "",
+source: req.body.source || "Manual",
+service: req.body.service || "Locksmith Service",
+location: req.body.location || "",
+details: req.body.details || "",
+providerId: req.body.providerId || null,
+status: req.body.status || "new",
+jobAmount: Number(req.body.jobAmount || 0),
+leadCost: Number(req.body.leadCost || 35),
+notes: req.body.notes || "",
+createdAt: new Date().toLocaleString()
+});
+
+res.redirect("/admin?token=" + ADMIN_TOKEN);
+});
+
+app.get("/", (req, res) => {
+res.redirect("/admin?token=" + ADMIN_TOKEN);
+});
+
+app.get("/admin", requireAdmin, (req, res) => {
 const totalLeads = leads.length;
-const totalJobAmount = leads.reduce((sum, l) => sum + Number(l.job_amount || 0), 0);
-const totalLeadCost = leads.reduce((sum, l) => sum + Number(l.lead_cost || 0), 0);
-const completed = leads.filter(l => String(l.lead_status).toLowerCase().includes("complete")).length;
+const totalJobs = leads.reduce((sum, l) => sum + Number(l.jobAmount || 0), 0);
+const totalLeadCost = leads.reduce((sum, l) => sum + Number(l.leadCost || 0), 0);
+const totalProfit = totalJobs - totalLeadCost;
+const completed = leads.filter(l => l.status === "completed" || l.status === "paid").length;
+const providerEarnings = leads.reduce((sum, l) => {
+if (l.providerId) return sum + Math.max(0, Number(l.jobAmount || 0) - Number(l.leadCost || 0));
+return sum;
+}, 0);
 
-let content = `
-<div class="top">
-<div class="logo">
-<div class="logo-box">🔐</div>
-<div>
-<h1>NLN Admin Dashboard</h1>
-<p>Citywide Routing Control Center</p>
-</div>
-</div>
-<div class="stats">
-<div class="stat"><h2>${totalLeads}</h2><p>Total Leads</p></div>
-<div class="stat"><h2>$${money(totalJobAmount)}</h2><p>Job Amounts</p></div>
-<div class="stat"><h2>$${money(totalLeadCost)}</h2><p>NLN Profit</p></div>
-<div class="stat"><h2>${completed}</h2><p>Completed</p></div>
-</div>
-</div>`;
+const columns = [
+{ key: "new", title: "New Leads" },
+{ key: "assigned", title: "Assigned" },
+{ key: "enroute", title: "En Route" },
+{ key: "completed", title: "Completed" },
+{ key: "paid", title: "Paid / Closed" }
+];
 
-if (!leads.length) content += `<div class="card"><h2>No leads yet.</h2></div>`;
-leads.forEach(lead => content += leadCard(lead, true));
-res.send(adminPage(content));
-});
-
-app.get("/add-job", (req, res) => {
-if (!requireAdmin(req, res)) return;
-
-const providerOptions = Object.keys(providers).map(p => `<option value="${p}">${p}</option>`).join("");
-
-const content = `
-<div class="top">
-<h1>➕ Add Job / LSA Message Lead</h1>
-<p>Use this when LSA sends a message lead instead of a phone call.</p>
+function leadCard(l) {
+const provider = getProvider(l.providerId);
+return `
+<div class="job-card">
+<div class="job-top">
+<b>Job #${l.id}</b>
+<span class="pill ${l.status}">${l.status.toUpperCase()}</span>
 </div>
 
-<div class="card">
-<form method="POST" action="/add-job">
-<input type="hidden" name="token" value="${ADMIN_TOKEN}">
+<p><span>Service:</span> ${l.service}</p>
+<p><span>Location:</span> ${l.location || "Not set"}</p>
+<p><span>Customer:</span> ${l.customer}</p>
+<p><span>Phone:</span> ${l.phone}</p>
+<p><span>Provider:</span> ${provider ? provider.name : "Not Assigned"}</p>
+<p><span>Job Amount:</span> ${money(l.jobAmount)}</p>
+<p><span>Lead Cost:</span> ${money(l.leadCost)}</p>
+<p><span>Profit:</span> <b class="${profit(l) >= 0 ? "green" : "red"}">${money(profit(l))}</b></p>
 
-<div class="form-grid">
-<input name="customer_phone" placeholder="Customer Phone, if shown">
-<input name="tracking_number" placeholder="Tracking / LSA Number">
-<select name="provider_assigned">
-<option value="">Not Assigned Yet</option>
-${providerOptions}
+<details>
+<summary>Lead Details</summary>
+<div class="details">${l.details || "No details"}</div>
+</details>
+
+<form method="POST" action="/admin/update/${l.id}?token=${ADMIN_TOKEN}">
+<select name="providerId">
+<option value="">Assign Provider</option>
+${providers.map(p => `
+<option value="${p.id}" ${String(p.id) === String(l.providerId) ? "selected" : ""}>
+${p.name}
+</option>
+`).join("")}
 </select>
-<input name="job_amount" placeholder="Job Amount" value="0">
-<input name="lead_cost" placeholder="Lead Cost" value="35">
-<input name="source" value="Google LSA Message" placeholder="Source">
-</div>
 
-<textarea class="full" name="service" placeholder="Paste LSA conversation here. Example: Vehicle lockout Baltimore. Customer says: My door is locked with the key inside. Requested quote."></textarea>
+<select name="status">
+${["new","assigned","enroute","completed","paid"].map(s => `
+<option value="${s}" ${l.status === s ? "selected" : ""}>${s}</option>
+`).join("")}
+</select>
 
-<textarea class="full" name="notes" placeholder="Admin notes"></textarea>
+<input name="jobAmount" type="number" placeholder="Job amount" value="${l.jobAmount}">
+<input name="leadCost" type="number" placeholder="Lead cost" value="${l.leadCost}">
+<textarea name="notes" placeholder="Admin notes">${l.notes || ""}</textarea>
 
 <div class="btn-grid">
-<button class="blue" type="submit">➕ Create Job</button>
-<a class="btn gray" href="/admin?token=${ADMIN_TOKEN}">Back To Admin</a>
+<button class="btn blue">Save</button>
+<a class="btn green" href="tel:${l.phone}">Call</a>
+<a class="btn purple" href="sms:${provider ? provider.phone : ""}">Text Provider</a>
+<button class="btn dark" name="status" value="completed">Complete</button>
 </div>
 </form>
-</div>`;
-
-res.send(adminPage(content));
-});
-
-app.post("/add-job", async (req, res) => {
-if (!requireAdmin(req, res)) return;
-
-const data = req.body;
-const jobAmount = Number(data.job_amount || 0);
-const leadCost = Number(data.lead_cost || 35);
-
-await pool.query(`
-INSERT INTO leads (
-customer_phone, tracking_number, source, service,
-provider_assigned, lead_status, notes,
-job_amount, lead_cost, provider_earnings, nln_profit
-)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-`, [
-data.customer_phone || "",
-data.tracking_number || "",
-data.source || "Google LSA Message",
-data.service || "LSA message lead",
-data.provider_assigned || "",
-data.provider_assigned ? "Dispatched" : "New",
-data.notes || "",
-String(jobAmount),
-String(leadCost),
-String(jobAmount - leadCost),
-String(leadCost)
-]);
-
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.get("/providers", (req, res) => {
-if (!requireAdmin(req, res)) return;
-
-let content = `<div class="top"><h1>👷 Provider Dashboards</h1><p>Providers only see assigned jobs.</p></div><div class="card">`;
-Object.keys(providers).forEach(p => {
-content += `<a class="btn blue" style="margin-bottom:12px;" href="/provider/${encodeURIComponent(p)}">Open ${p} Dashboard</a>`;
-});
-content += `</div>`;
-res.send(adminPage(content));
-});
-
-app.get("/calls", async (req, res) => {
-if (!requireAdmin(req, res)) return;
-const leads = await getLeads();
-let content = `<div class="top"><h1>☎️ Calls / Leads</h1></div>`;
-leads.forEach(lead => content += leadCard(lead, true));
-res.send(adminPage(content));
-});
-
-app.get("/settings", (req, res) => {
-if (!requireAdmin(req, res)) return;
-
-let content = `
-<div class="top"><h1>⚙️ Settings</h1><p>Provider dispatch buttons are active.</p></div>
-<div class="card">
-<h2>Providers</h2>
-${Object.entries(providers).map(([name, phone]) => `<p><b>${name}:</b> ${phone}</p>`).join("")}
-</div>`;
-
-res.send(adminPage(content));
-});
-
-app.get("/provider/:provider", async (req, res) => {
-const provider = req.params.provider;
-const filter = req.query.filter || "";
-
-let query = `
-SELECT *
-FROM leads
-WHERE archived = false
-AND provider_assigned = $1
-`;
-
-if (filter === "new") query += ` AND (lead_status IS NULL OR lead_status = 'New' OR lead_status = 'Dispatched')`;
-if (filter === "completed") query += ` AND lead_status = 'Completed'`;
-query += ` ORDER BY created_at DESC`;
-
-const result = await pool.query(query, [provider]);
-const leads = result.rows;
-
-let content = `<div class="top"><h1>👷 ${provider} Dashboard</h1><p>Only your assigned jobs show here.</p></div>`;
-if (!leads.length) content += `<div class="card"><h2>No jobs assigned yet.</h2></div>`;
-leads.forEach(lead => content += leadCard(lead, false));
-
-res.send(providerPage(content, provider));
-});
-
-app.get("/provider/:provider/earnings", async (req, res) => {
-const provider = req.params.provider;
-
-const result = await pool.query(`
-SELECT *
-FROM leads
-WHERE archived = false
-AND provider_assigned = $1
-ORDER BY created_at DESC
-`, [provider]);
-
-const leads = result.rows;
-const earnings = leads.reduce((sum, l) => sum + (Number(l.job_amount || 0) - Number(l.lead_cost || 0)), 0);
-
-let content = `
-<div class="top">
-<h1>💵 ${provider} Earnings</h1>
-<div class="stats">
-<div class="stat"><h2>${leads.length}</h2><p>Total Jobs</p></div>
-<div class="stat"><h2>$${money(earnings)}</h2><p>Total Earnings</p></div>
 </div>
-</div>`;
-
-leads.forEach(lead => content += leadCard(lead, false));
-res.send(providerPage(content, provider));
-});
-
-app.post("/lead/new", async (req, res) => {
-try {
-const data = req.body;
-
-const phone =
-data.customer_phone ||
-data.customer_number ||
-data.caller_number ||
-data.caller_phone_number ||
-data.source_number ||
-data.phone_number ||
-data.phone ||
-"";
-
-const tracking =
-data.tracking_number ||
-data.tracking_phone_number ||
-data.destination_number ||
-data.business_phone_number ||
-"";
-
-const recording =
-data.recording ||
-data.recording_url ||
-data.call_recording ||
-data.audio_url ||
-"";
-
-const summary =
-data.summary ||
-data.call_summary ||
-data.transcription ||
-data.transcript ||
-data.customer_message ||
-data.message ||
-data.note ||
-data.notes ||
-data.service ||
-"Locksmith Service";
-
-const result = await pool.query(`
-INSERT INTO leads (
-customer_phone, tracking_number, source, service, duration, recording,
-lead_score, provider_assigned, lead_status, notes,
-job_amount, lead_cost, provider_earnings, nln_profit
-)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-RETURNING *
-`, [
-phone,
-tracking,
-data.source || data.campaign || data.referrer || "Google My Business",
-summary,
-data.duration || data.call_duration || "",
-recording,
-data.lead_score || data.score || "",
-data.provider_assigned || "",
-data.lead_status || "New",
-data.notes || "",
-data.job_amount || "0",
-data.lead_cost || "35",
-data.provider_earnings || "0",
-data.nln_profit || "35"
-]);
-
-res.json({ success: true, lead: result.rows[0] });
-} catch (err) {
-res.status(500).json({ success: false, error: err.message });
+`;
 }
+
+res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+<title>NLN Dispatch Command Center</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;
+font-family:Inter,Arial,sans-serif;
+background:#f5f7fb;
+color:#0f172a;
+}
+.app{
+display:flex;
+min-height:100vh;
+}
+.sidebar{
+width:250px;
+background:linear-gradient(180deg,#020617,#0f172a);
+color:white;
+padding:22px;
+position:fixed;
+top:0;
+bottom:0;
+left:0;
+}
+.logo{
+display:flex;
+align-items:center;
+gap:12px;
+margin-bottom:28px;
+}
+.logo-badge{
+width:50px;
+height:50px;
+border-radius:18px;
+background:linear-gradient(135deg,#2563eb,#7c3aed);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:28px;
+box-shadow:0 18px 35px rgba(37,99,235,.35);
+}
+.logo h1{
+margin:0;
+font-size:34px;
+letter-spacing:-2px;
+}
+.logo small{
+font-weight:800;
+opacity:.75;
+}
+.nav a{
+display:flex;
+gap:12px;
+align-items:center;
+text-decoration:none;
+color:white;
+padding:14px 16px;
+border-radius:14px;
+margin:6px 0;
+font-weight:700;
+opacity:.82;
+}
+.nav a.active,.nav a:hover{
+background:linear-gradient(135deg,#2563eb,#7c3aed);
+opacity:1;
+}
+.side-card{
+margin-top:28px;
+background:rgba(255,255,255,.08);
+border:1px solid rgba(255,255,255,.12);
+border-radius:20px;
+padding:18px;
+}
+.side-card p{
+display:flex;
+justify-content:space-between;
+margin:10px 0;
+font-size:14px;
+}
+.main{
+margin-left:250px;
+width:calc(100% - 250px);
+padding:22px 28px 90px;
+}
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:18px;
+margin-bottom:22px;
+}
+.topbar h2{
+margin:0;
+font-size:28px;
+}
+.topbar p{margin:5px 0;color:#64748b}
+.search{
+flex:1;
+max-width:430px;
+padding:16px 18px;
+border-radius:16px;
+border:1px solid #e2e8f0;
+}
+.top-actions{
+display:flex;
+gap:12px;
+}
+.top-btn{
+border:0;
+padding:15px 18px;
+border-radius:16px;
+font-weight:900;
+cursor:pointer;
+background:white;
+box-shadow:0 8px 20px rgba(15,23,42,.08);
+}
+.top-btn.primary{
+color:white;
+background:linear-gradient(135deg,#2563eb,#7c3aed);
+}
+.stats{
+display:grid;
+grid-template-columns:repeat(6,1fr);
+gap:16px;
+margin-bottom:24px;
+}
+.stat{
+background:white;
+border-radius:22px;
+padding:20px;
+box-shadow:0 10px 25px rgba(15,23,42,.07);
+border:1px solid #e5e7eb;
+}
+.stat h3{
+margin:0;
+font-size:28px;
+}
+.stat p{
+margin:5px 0 0;
+color:#64748b;
+font-weight:700;
+font-size:13px;
+}
+.board{
+display:grid;
+grid-template-columns:repeat(5, minmax(260px,1fr));
+gap:16px;
+overflow-x:auto;
+}
+.column{
+background:rgba(255,255,255,.7);
+border:1px solid #e2e8f0;
+border-radius:22px;
+padding:14px;
+min-height:500px;
+}
+.column h3{
+margin:5px 5px 14px;
+font-size:15px;
+text-transform:uppercase;
+}
+.count{
+background:#2563eb;
+color:white;
+padding:4px 9px;
+border-radius:999px;
+margin-left:8px;
+font-size:12px;
+}
+.job-card{
+background:white;
+border:1px solid #e5e7eb;
+border-radius:20px;
+padding:16px;
+margin-bottom:14px;
+box-shadow:0 12px 25px rgba(15,23,42,.08);
+}
+.job-top{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:12px;
+}
+.pill{
+font-size:10px;
+padding:6px 9px;
+border-radius:999px;
+font-weight:900;
+}
+.pill.new{background:#dbeafe;color:#1d4ed8}
+.pill.assigned{background:#fef3c7;color:#92400e}
+.pill.enroute{background:#ede9fe;color:#6d28d9}
+.pill.completed{background:#dcfce7;color:#15803d}
+.pill.paid{background:#e2e8f0;color:#334155}
+.job-card p{
+margin:7px 0;
+font-size:13px;
+}
+.job-card span{
+color:#64748b;
+font-weight:700;
+}
+.green{color:#16a34a}
+.red{color:#dc2626}
+.details{
+margin:10px 0;
+padding:10px;
+background:#f8fafc;
+border-radius:12px;
+font-size:13px;
+color:#334155;
+}
+select,input,textarea{
+width:100%;
+border:1px solid #e2e8f0;
+border-radius:12px;
+padding:12px;
+margin-top:8px;
+}
+textarea{min-height:70px}
+.btn-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:9px;
+margin-top:10px;
+}
+.btn{
+text-align:center;
+text-decoration:none;
+border:0;
+padding:12px;
+border-radius:13px;
+color:white;
+font-weight:900;
+cursor:pointer;
+font-size:13px;
+}
+.blue{background:linear-gradient(135deg,#2563eb,#06b6d4)}
+.green{background:linear-gradient(135deg,#16a34a,#22c55e);color:white}
+.purple{background:linear-gradient(135deg,#7c3aed,#ec4899)}
+.dark{background:linear-gradient(135deg,#111827,#374151)}
+.add-panel{
+margin-top:24px;
+background:white;
+border-radius:24px;
+padding:22px;
+box-shadow:0 12px 25px rgba(15,23,42,.07);
+}
+.add-grid{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:12px;
+}
+.mobile-nav{
+display:none;
+}
+@media(max-width:1000px){
+.sidebar{display:none}
+.main{margin-left:0;width:100%;padding:16px 16px 90px}
+.topbar{display:block}
+.search{width:100%;max-width:none;margin:15px 0}
+.stats{grid-template-columns:repeat(2,1fr)}
+.board{grid-template-columns:1fr}
+.add-grid{grid-template-columns:1fr}
+.mobile-nav{
+display:flex;
+position:fixed;
+bottom:12px;
+left:12px;
+right:12px;
+background:white;
+border-radius:22px;
+box-shadow:0 15px 40px rgba(15,23,42,.2);
+justify-content:space-around;
+padding:12px;
+z-index:99;
+}
+.mobile-nav a{
+text-decoration:none;
+color:#0f172a;
+font-size:12px;
+font-weight:900;
+}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<aside class="sidebar">
+<div class="logo">
+<div class="logo-badge">🛡️</div>
+<div>
+<h1>NLN</h1>
+<small>CITYWIDE ROUTING</small>
+</div>
+</div>
+
+<div class="nav">
+<a class="active">▦ Dispatch</a>
+<a>☎ Calls / Leads</a>
+<a>▣ Jobs</a>
+<a>👤 Providers</a>
+<a>👥 Customers</a>
+<a>▤ Invoices</a>
+<a>💳 Payments</a>
+<a>📊 Reports</a>
+<a>⚙ Settings</a>
+</div>
+
+<div class="side-card">
+<b>Today's Summary</b>
+<p><span>Total Jobs</span><b>${totalLeads}</b></p>
+<p><span>Completed</span><b>${completed}</b></p>
+<p><span>Revenue</span><b>${money(totalJobs)}</b></p>
+<p><span>Profit</span><b>${money(totalProfit)}</b></p>
+</div>
+</aside>
+
+<main class="main">
+<div class="topbar">
+<div>
+<h2>NLN Dispatch Command Center</h2>
+<p>Citywide Routing Control Center</p>
+</div>
+
+<input class="search" placeholder="Search jobs, customers, providers...">
+
+<div class="top-actions">
+<button class="top-btn">☎ Call Logs</button>
+<button class="top-btn">💬 Messages</button>
+<button class="top-btn primary">+ Add Job</button>
+</div>
+</div>
+
+<section class="stats">
+<div class="stat"><h3>${totalLeads}</h3><p>Total Leads</p></div>
+<div class="stat"><h3>${money(totalJobs)}</h3><p>Job Amounts</p></div>
+<div class="stat"><h3>${money(totalProfit)}</h3><p>NLN Profit</p></div>
+<div class="stat"><h3>${completed}</h3><p>Completed</p></div>
+<div class="stat"><h3>${money(providerEarnings)}</h3><p>Provider Earnings</p></div>
+<div class="stat"><h3>${leads.length}</h3><p>Total Jobs</p></div>
+</section>
+
+<section class="board">
+${columns.map(col => {
+const items = leads.filter(l => l.status === col.key);
+return `
+<div class="column">
+<h3>${col.title} <span class="count">${items.length}</span></h3>
+${items.map(leadCard).join("") || `<p style="color:#94a3b8;padding:15px;">No jobs</p>`}
+</div>
+`;
+}).join("")}
+</section>
+
+<section class="add-panel">
+<h2>Add Quick Job / LSA Message Lead</h2>
+<form method="POST" action="/admin/add-job?token=${ADMIN_TOKEN}">
+<div class="add-grid">
+<input name="customer" placeholder="Customer name">
+<input name="phone" placeholder="Customer phone">
+<input name="service" placeholder="Service type">
+<input name="location" placeholder="Location">
+<input name="source" placeholder="Source: LSA / GMB / Manual">
+<input name="jobAmount" type="number" placeholder="Job amount">
+<input name="leadCost" type="number" placeholder="Lead cost">
+<select name="providerId">
+<option value="">Assign provider</option>
+${providers.map(p => `<option value="${p.id}">${p.name}</option>`).join("")}
+</select>
+</div>
+<textarea name="details" placeholder="Paste LSA message or call details here"></textarea>
+<button class="btn blue" style="margin-top:12px;width:220px;">Create Job</button>
+</form>
+</section>
+</main>
+</div>
+
+<div class="mobile-nav">
+<a>▦ Board</a>
+<a>▣ Jobs</a>
+<a>👤 Providers</a>
+<a>⚙ More</a>
+</div>
+
+</body>
+</html>
+`);
 });
 
-app.post("/lead/:id/pricing", async (req, res) => {
-if (!requireAdmin(req, res)) return;
-
-const id = req.params.id;
-const jobAmount = Number(req.body.job_amount || 0);
-const leadCost = Number(req.body.lead_cost || 0);
-const providerEarnings = jobAmount - leadCost;
-const nlnProfit = leadCost;
-
-await pool.query(`
-UPDATE leads
-SET provider_assigned = $1,
-job_amount = $2,
-lead_cost = $3,
-provider_earnings = $4,
-nln_profit = $5,
-service = $6,
-notes = $7
-WHERE id = $8
-`, [
-req.body.provider_assigned || "",
-String(jobAmount),
-String(leadCost),
-String(providerEarnings),
-String(nlnProfit),
-req.body.service || "",
-req.body.notes || "",
-id
-]);
-
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/lead/:id/send/:provider", async (req, res) => {
-if (!requireAdmin(req, res)) return;
-
-await pool.query(`
-UPDATE leads
-SET provider_assigned = $1,
-lead_status = 'Dispatched'
-WHERE id = $2
-`, [req.params.provider, req.params.id]);
-
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/lead/:id/status", async (req, res) => {
-await pool.query(`
-UPDATE leads
-SET lead_status = $1
-WHERE id = $2
-`, [req.body.status || "New", req.params.id]);
-
-res.redirect(req.get("referer") || `/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/lead/:id/archive", async (req, res) => {
-if (!requireAdmin(req, res)) return;
-await pool.query(`UPDATE leads SET archived = true WHERE id = $1`, [req.params.id]);
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/lead/:id/delete", async (req, res) => {
-if (!requireAdmin(req, res)) return;
-await pool.query(`DELETE FROM leads WHERE id = $1`, [req.params.id]);
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-console.log("✅ Citywide Routing server running on port " + PORT);
+console.log("NLN Dashboard running on port " + PORT);
 });
