@@ -45,19 +45,7 @@ return providers[name]
 
 function money(v) {
 return "$" + Number(v || 0).toLocaleString();
-"Manual test lead",
-
-"0",
-
-"35"
-
-]);
-
-res.send(
-"CallRail test lead added"
-);
-
-});
+}
 
 // =====================================================
 // CLEAN CALLRAIL WEBHOOK
