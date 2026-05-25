@@ -13,8 +13,14 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "nln-admin-2026";
 
 const pool = new Pool({
 connectionString: process.env.DATABASE_URL,
-ssl: { rejectUnauthorized: false }
+ssl: {
+rejectUnauthorized: false
+}
 });
+
+// =====================================================
+// PROVIDERS
+// =====================================================
 
 const providers = {
 Max: "+14436792242",
@@ -22,6 +28,10 @@ Dreh: "+12024125443",
 Tee: "+14104199281",
 Robyn: "+14435781686"
 };
+
+// =====================================================
+// HELPERS
+// =====================================================
 
 function safe(v) {
 return String(v || "");
@@ -33,86 +43,24 @@ return providers[name]
 .slice(-4);
 }
 
-// =====================================================
-// DATABASE
-// =====================================================
+function money(v) {
+return "$" + Number(v || 0).toLocaleString();
+"Manual test lead",
 
-async function initDB() {
-
-await pool.query(`
-CREATE TABLE IF NOT EXISTS leads (
-id SERIAL PRIMARY KEY,
-customer_name TEXT,
-customer_phone TEXT,
-service TEXT,
-source TEXT,
-provider_assigned TEXT,
-lead_status TEXT DEFAULT 'NEW',
-recording TEXT,
-notes TEXT,
-job_amount TEXT DEFAULT '0',
-lead_cost TEXT DEFAULT '35',
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-`);
-
-}
-
-// =====================================================
-// ROOT
-// =====================================================
-
-app.get("/", (req, res) => {
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-// =====================================================
-// HEALTH
-// =====================================================
-
-app.get("/health", (req, res) => {
-res.send("SERVER RUNNING");
-});
-
-// =====================================================
-// CALLRAIL TEST
-// =====================================================
-
-app.get("/callrail/test", async (req, res) => {
-
-await pool.query(`
-INSERT INTO leads (
-customer_name,
-customer_phone,
-service,
-source,
-provider_assigned,
-lead_status,
-recording,
-notes,
-job_amount,
-lead_cost
-)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-`, [
-"CallRail Test Lead",
-"+14430000000",
-"Incoming Phone Call",
-"CallRail",
-"",
-"NEW",
-"",
-"Manual CallRail Test",
 "0",
+
 "35"
+
 ]);
 
-res.send("CallRail test lead added");
+res.send(
+"CallRail test lead added"
+);
 
 });
 
 // =====================================================
-// CALLRAIL WEBHOOK
+// CLEAN CALLRAIL WEBHOOK
 // =====================================================
 
 app.post("/callrail/webhook", async (req, res) => {
@@ -121,6 +69,39 @@ try {
 
 const b = req.body || {};
 
+const customerName =
+b.customer_name ||
+b.name ||
+b.company ||
+"Phone Lead";
+
+const customerPhone =
+b.customer_phone ||
+b.customer_number ||
+b.caller_number ||
+b.from ||
+b.phone ||
+"Unknown";
+
+const serviceType =
+b.service ||
+b.call_type ||
+"Incoming Phone Call";
+
+const recordingUrl =
+b.recording ||
+b.recording_url ||
+b.call_recording ||
+"";
+
+const cleanNotes =
+b.call_summary ||
+b.summary ||
+b.transcription ||
+b.transcript ||
+b.note ||
+"Incoming CallRail phone lead";
+
 await pool.query(`
 INSERT INTO leads (
 customer_name,
@@ -137,18 +118,11 @@ lead_cost
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 `, [
 
-b.customer_name ||
-b.name ||
-"Phone Lead",
+customerName,
 
-b.customer_phone ||
-b.customer_number ||
-b.caller_number ||
-b.from ||
-"Unknown",
+customerPhone,
 
-b.service ||
-"Phone Call",
+serviceType,
 
 "CallRail",
 
@@ -156,11 +130,9 @@ b.service ||
 
 "NEW",
 
-b.recording ||
-b.recording_url ||
-"",
+recordingUrl,
 
-JSON.stringify(b).slice(0, 3000),
+cleanNotes,
 
 "0",
 
@@ -168,13 +140,20 @@ JSON.stringify(b).slice(0, 3000),
 
 ]);
 
+console.log(
+"CALLRAIL LEAD INSERTED"
+);
+
 res.status(200).json({
 success: true
 });
 
 } catch (err) {
 
-console.log(err);
+console.log(
+"CALLRAIL ERROR:",
+err
+);
 
 res.status(500).json({
 success: false
@@ -190,7 +169,9 @@ success: false
 
 app.post("/admin/assign/:id", async (req, res) => {
 
-if (req.query.token !== ADMIN_TOKEN) {
+if (
+req.query.token !== ADMIN_TOKEN
+) {
 return res.send("LOCKED");
 }
 
@@ -200,65 +181,16 @@ SET provider_assigned=$1,
 lead_status='ASSIGNED'
 WHERE id=$2
 `, [
+
 req.body.provider_assigned,
+
 req.params.id
-]);
-
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-
-});
-
-// =====================================================
-// ADD JOB
-// =====================================================
-
-app.post("/admin/add-job", async (req, res) => {
-
-if (req.query.token !== ADMIN_TOKEN) {
-return res.send("LOCKED");
-}
-
-await pool.query(`
-INSERT INTO leads (
-customer_name,
-customer_phone,
-service,
-source,
-provider_assigned,
-lead_status,
-recording,
-notes,
-job_amount,
-lead_cost
-)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-`, [
-
-req.body.customer_name || "Unknown",
-
-req.body.customer_phone || "Unknown",
-
-req.body.service || "Locksmith Service",
-
-req.body.source || "Manual",
-
-req.body.provider_assigned || "",
-
-req.body.provider_assigned
-? "ASSIGNED"
-: "NEW",
-
-req.body.recording || "",
-
-req.body.notes || "",
-
-req.body.job_amount || "0",
-
-"35"
 
 ]);
 
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
+res.redirect(
+`/admin?token=${ADMIN_TOKEN}`
+);
 
 });
 
@@ -268,7 +200,9 @@ res.redirect(`/admin?token=${ADMIN_TOKEN}`);
 
 app.get("/admin", async (req, res) => {
 
-if (req.query.token !== ADMIN_TOKEN) {
+if (
+req.query.token !== ADMIN_TOKEN
+) {
 return res.send("ADMIN LOCKED");
 }
 
@@ -286,79 +220,46 @@ res.send(`
 
 <head>
 
-<title>NLN Admin</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-
-body{
-margin:0;
-background:#020817;
-color:white;
-font-family:Arial;
+<title>
+NLN Dashboard
+background:#ea580c;
 }
 
-.wrap{
-max-width:1400px;
-margin:auto;
-padding:20px;
-}
+select,
+input,
+${money(job.job_amount)}
+</div>
 
-.title{
-font-size:42px;
-font-weight:900;
-margin-bottom:20px;
-}
+<div class="sub">
+${safe(job.notes)}
+</div>
 
-.stats{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-gap:16px;
-margin-bottom:20px;
-}
+<div class="buttons">
 
-.card{
-background:#071226;
-border-radius:24px;
-padding:25px;
-border:1px solid #1e293b;
-}
+<a
+class="btn blue"
+href="tel:${safe(job.customer_phone)}">
+Call
+</a>
 
-.big{
-font-size:42px;
-font-weight:900;
-}
+<a
+class="btn purple"
+href="sms:${safe(job.customer_phone)}">
+Text
+</a>
 
-.jobs{
-display:flex;
-flex-direction:column;
-gap:20px;
-}
+<a
+class="btn orange"
+href="${safe(job.recording || "#")}">
+Recording
+</a>
 
-.job{
-background:#071226;
-border-radius:24px;
-border:1px solid #1e293b;
-padding:20px;
-}
+${job.provider_assigned ? `
 
-.job-title{
-font-size:28px;
-font-weight:900;
-line-height:1.4;
-margin-bottom:10px;
-word-break:break-word;
-}
-
-.sub{
-color:#94a3b8;
-line-height:1.7;
-word-break:break-word;
-}
-
-.buttons{
-display:flex;
+<a
+class="btn green"
+href="sms:${providers[job.provider_assigned] || ""}?body=New NLN Job: ${encodeURIComponent(job.service + " | " + job.customer_name + " | " + job.customer_phone)}">
+Text Provider
 gap:10px;
 flex-wrap:wrap;
 margin-top:18px;
@@ -371,469 +272,16 @@ border-radius:14px;
 color:white;
 font-weight:900;
 text-decoration:none;
-cursor:pointer;
 }
 
-.blue{background:#2563eb}
-.purple{background:#9333ea}
-.green{background:#16a34a}
-.orange{background:#ea580c}
-
-form{
-margin-top:16px;
+.blue{
+background:#2563eb;
 }
 
-select,input,textarea{
-width:100%;
-padding:16px;
-margin-top:12px;
-border:none;
-border-radius:14px;
-background:#0f172a;
-color:white;
-box-sizing:border-box;
-}
-
-.submit{
-width:100%;
-padding:18px;
-margin-top:18px;
-border:none;
-border-radius:14px;
-background:linear-gradient(90deg,#2563eb,#7c3aed);
-color:white;
-font-size:18px;
-font-weight:900;
-}
-
-@media(max-width:700px){
-
-.job-title{
-font-size:22px;
-}
-
-.buttons{
-display:grid;
-grid-template-columns:1fr 1fr;
-}
-
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="wrap">
-
-<div class="title">
-Admin Dashboard
-</div>
-
-<div class="stats">
-
-<div class="card">
-<div class="big">${leads.length}</div>
-<div>Total Jobs</div>
-</div>
-
-<div class="card">
-<div class="big">${Object.keys(providers).length}</div>
-<div>Providers</div>
-</div>
-
-<div class="card">
-<div class="big">$0</div>
-<div>Payment Threshold</div>
-</div>
-
-</div>
-
-<div class="card">
-
-<h2>Add Job</h2>
-
-<form method="POST" action="/admin/add-job?token=${ADMIN_TOKEN}">
-
-<input name="customer_name" placeholder="Customer Name">
-
-<input name="customer_phone" placeholder="Customer Phone">
-
-<input name="service" placeholder="Service">
-
-<input name="source" placeholder="Source">
-
-<input name="job_amount" placeholder="Job Amount">
-
-<input name="recording" placeholder="Recording URL">
-
-<textarea name="notes" placeholder="Notes"></textarea>
-
-<button class="submit">
-Create Job
-</button>
-
-</form>
-
-</div>
-
-<div style="height:20px"></div>
-
-<div class="jobs">
-
-${leads.map(job => `
-
-<div class="job">
-
-<div class="job-title">
-${safe(job.service)}
+.purple{
+background:#9333ea;
+${money(job.job_amount)}
 </div>
 
 <div class="sub">
-${safe(job.customer_name)} • ${safe(job.customer_phone)}
-</div>
-
-<div class="sub">
-Status: ${safe(job.lead_status)}
-</div>
-
-<div class="sub">
-Provider: ${safe(job.provider_assigned || "Not Assigned")}
-</div>
-
-<div class="sub">
-Amount: $${safe(job.job_amount)}
-</div>
-
-<div class="buttons">
-
-<a class="btn blue"
-href="tel:${safe(job.customer_phone)}">
-Call
-</a>
-
-<a class="btn purple"
-href="sms:${safe(job.customer_phone)}">
-Text
-</a>
-
-<a class="btn orange"
-href="${safe(job.recording || "#")}">
-Recording
-</a>
-
-</div>
-
-<form method="POST"
-action="/admin/assign/${job.id}?token=${ADMIN_TOKEN}">
-
-<select name="provider_assigned">
-
-<option value="">Send To Provider</option>
-
-${Object.keys(providers).map(p => `
-<option value="${p}">
-${p}
-</option>
-`).join("")}
-
-</select>
-
-<button class="submit">
-Assign Job
-</button>
-
-</form>
-
-</div>
-
-`).join("")}
-
-</div>
-
-</div>
-
-</body>
-
-</html>
-
-`);
-
-});
-
-// =====================================================
-// PROVIDER DASHBOARD
-// =====================================================
-
-app.get("/provider/:name", async (req, res) => {
-
-const name = req.params.name;
-
-if (!providers[name]) {
-return res.send("Provider not found");
-}
-
-if (req.query.code !== providerCode(name)) {
-
-return res.send(`
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-
-body{
-margin:0;
-background:#020817;
-color:white;
-font-family:Arial;
-display:flex;
-align-items:center;
-justify-content:center;
-min-height:100vh;
-padding:20px;
-}
-
-.box{
-width:100%;
-max-width:360px;
-background:#071226;
-border-radius:24px;
-padding:28px;
-border:1px solid #1e293b;
-}
-
-input{
-width:100%;
-padding:16px;
-margin-top:14px;
-border:none;
-border-radius:14px;
-background:#0f172a;
-color:white;
-box-sizing:border-box;
-}
-
-button{
-width:100%;
-padding:18px;
-margin-top:18px;
-border:none;
-border-radius:14px;
-background:linear-gradient(90deg,#2563eb,#7c3aed);
-color:white;
-font-weight:900;
-font-size:18px;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<form class="box">
-
-<h1>${name}</h1>
-
-<p>Enter 4 digit provider code</p>
-
-<input
-name="code"
-maxlength="4"
-placeholder="4 digit code">
-
-<button>
-Login
-</button>
-
-</form>
-
-</body>
-
-</html>
-`);
-
-}
-
-const r = await pool.query(`
-SELECT *
-FROM leads
-WHERE provider_assigned=$1
-OR lead_status='NEW'
-ORDER BY id DESC
-`,[name]);
-
-const leads = r.rows;
-
-res.send(`
-
-<html>
-
-<head>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-
-body{
-margin:0;
-background:#020817;
-color:white;
-font-family:Arial;
-}
-
-.wrap{
-max-width:1200px;
-margin:auto;
-padding:20px;
-}
-
-.title{
-font-size:36px;
-font-weight:900;
-margin-bottom:20px;
-}
-
-.jobs{
-display:flex;
-flex-direction:column;
-gap:20px;
-}
-
-.job{
-background:#071226;
-border-radius:24px;
-border:1px solid #1e293b;
-padding:20px;
-}
-
-.job-title{
-font-size:28px;
-font-weight:900;
-line-height:1.4;
-margin-bottom:10px;
-word-break:break-word;
-}
-
-.sub{
-color:#94a3b8;
-line-height:1.7;
-word-break:break-word;
-}
-
-.buttons{
-display:flex;
-flex-wrap:wrap;
-gap:10px;
-margin-top:18px;
-}
-
-.btn{
-border:none;
-padding:14px 18px;
-border-radius:14px;
-color:white;
-font-weight:900;
-text-decoration:none;
-}
-
-.blue{background:#2563eb}
-.purple{background:#9333ea}
-.green{background:#16a34a}
-.orange{background:#ea580c}
-
-@media(max-width:700px){
-
-.job-title{
-font-size:22px;
-}
-
-.buttons{
-display:grid;
-grid-template-columns:1fr 1fr;
-}
-
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="wrap">
-
-<div class="title">
-${name} Dashboard
-</div>
-
-<div class="jobs">
-
-${leads.map(job => `
-
-<div class="job">
-
-<div class="job-title">
-${safe(job.service)}
-</div>
-
-<div class="sub">
-${safe(job.customer_name)} • ${safe(job.customer_phone)}
-</div>
-
-<div class="sub">
-Status: ${safe(job.lead_status)}
-</div>
-
-<div class="sub">
-Amount: $${safe(job.job_amount)}
-</div>
-
-<div class="buttons">
-
-<a class="btn blue"
-href="tel:${safe(job.customer_phone)}">
-Call
-</a>
-
-<a class="btn purple"
-href="sms:${safe(job.customer_phone)}">
-Text
-</a>
-
-<a class="btn orange"
-href="${safe(job.recording || "#")}">
-Recording
-</a>
-
-</div>
-
-</div>
-
-`).join("")}
-
-</div>
-
-</div>
-
-</body>
-
-</html>
-
-`);
-
-});
-
-// =====================================================
-// START SERVER
-// =====================================================
-
-initDB().then(() => {
-
-app.listen(PORT, () => {
-console.log("SERVER RUNNING");
-});
-
-});
+${safe(job.notes)}
