@@ -66,9 +66,8 @@ return "NEW";
 }
 
 function requireAdmin(req, res, next) {
-if ((req.query.token || req.headers["x-admin-token"]) !== ADMIN_TOKEN) {
-return res.status(403).send("ADMIN LOCKED");
-}
+const token = req.query.token || req.headers["x-admin-token"];
+if (token !== ADMIN_TOKEN) return res.status(403).send("ADMIN LOCKED");
 next();
 }
 
@@ -112,7 +111,7 @@ a{text-decoration:none;color:white}
 .status{padding:9px 13px;border-radius:12px;font-size:12px;font-weight:900}
 .NEW{background:#2563eb}.ASSIGNED{background:#d97706}.ENROUTE{background:#7c3aed}.ARRIVED{background:#0ea5e9}.COMPLETED{background:#16a34a}.PAID{background:#475569}.DECLINED{background:#991b1b}
 .sub{color:#cbd5e1;line-height:1.55;margin-top:7px;word-break:break-word}
-.note{background:#020817;border-radius:16px;padding:14px;margin-top:12px;color:#dbeafe;line-height:1.55;max-height:150px;overflow:auto}
+.note{background:#020817;border-radius:16px;padding:14px;margin-top:12px;color:#dbeafe;line-height:1.55;max-height:110px;overflow:auto}
 .buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .btn{border:0;border-radius:12px;padding:12px 15px;color:white;font-weight:900;cursor:pointer;display:inline-block;text-align:center}
 .blue{background:#2563eb}.purple{background:#9333ea}.green{background:#16a34a}.orange{background:#ea580c}.red{background:#991b1b}.dark{background:#111827}
@@ -121,7 +120,9 @@ input,select,textarea{width:100%;padding:14px;border:0;border-radius:13px;backgr
 .submit{width:100%;margin-top:12px;padding:15px;border:0;border-radius:13px;background:linear-gradient(90deg,#2563eb,#7c3aed);color:white;font-weight:900;font-size:16px}
 form.inline{display:inline}
 .mobile-nav{display:none}
-
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{width:100%;max-width:430px;background:#071226;border:1px solid #1e293b;border-radius:28px;padding:28px;box-shadow:0 18px 50px #0007}
+.login-box h1{margin:0 0 8px;font-size:34px}
 @media(max-width:900px){
 .side{display:none}
 .main{margin-left:0;width:100%;padding:16px 14px 110px}
@@ -141,15 +142,7 @@ form.inline{display:inline}
 }
 
 function callRailSummary(b) {
-const summary =
-b.call_summary ||
-b.summary ||
-b.formatted_customer_name ||
-b.transcription ||
-b.transcript ||
-b.note ||
-"";
-
+const summary = b.call_summary || b.summary || b.transcription || b.transcript || b.note || "";
 const city = b.customer_city || b.formatted_customer_location || "";
 const tracking = b.tracking_phone_number || b.formatted_tracking_phone_number || "";
 const source = b.source_name || b.source || "";
@@ -164,36 +157,15 @@ return clean || "Incoming CallRail phone lead";
 }
 
 function callRailCustomerPhone(b) {
-return (
-b.customer_phone_number ||
-b.formatted_customer_phone_number ||
-b.customer_number ||
-b.caller_number ||
-b.customer_phone ||
-b.from ||
-b.phone ||
-"Unknown"
-);
+return b.customer_phone_number || b.formatted_customer_phone_number || b.customer_number || b.caller_number || b.customer_phone || b.from || b.phone || "Unknown";
 }
 
 function callRailCustomerName(b) {
-return (
-b.formatted_customer_name ||
-b.customer_name ||
-b.name ||
-b.company ||
-"Phone Lead"
-);
+return b.formatted_customer_name || b.customer_name || b.name || b.company || "Phone Lead";
 }
 
 function callRailRecording(b) {
-return (
-b.recording ||
-b.recording_url ||
-b.call_recording ||
-b.recording_player ||
-""
-);
+return b.recording || b.recording_url || b.call_recording || b.recording_player || "";
 }
 
 function renderJob(job, providerMode = false, providerName = "") {
@@ -268,7 +240,20 @@ ${Object.keys(providers).map(p => `<option value="${safe(p)}">${safe(p)}</option
 }
 
 app.get("/", (req, res) => res.redirect(`/admin?token=${ADMIN_TOKEN}`));
+
 app.get("/health", (req, res) => res.send("SERVER RUNNING"));
+
+app.get("/manifest.json", (req, res) => {
+res.json({
+name: "NLN Provider",
+short_name: "NLN",
+start_url: "/provider-login/Max",
+display: "standalone",
+background_color: "#020817",
+theme_color: "#020817",
+icons: []
+});
+});
 
 app.get("/callrail/test", async (req, res) => {
 await pool.query(
@@ -282,7 +267,6 @@ res.send("CallRail test lead added");
 app.post("/callrail/webhook", async (req, res) => {
 try {
 const b = req.body || {};
-
 await pool.query(
 `INSERT INTO leads (customer_name, customer_phone, service, source, provider_assigned, lead_status, recording, notes, job_amount, lead_cost)
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
@@ -363,10 +347,47 @@ await pool.query(
 res.redirect(`/provider/${encodeURIComponent(name)}?code=${providerCode(name)}`);
 });
 
+app.get("/provider-login/:name", (req, res) => {
+const name = req.params.name;
+if (!providers[name]) return res.send("Provider not found");
+
+res.send(`
+<html>
+<head>
+<title>${safe(name)} Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NLN Provider">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>${css()}</style>
+</head>
+<body>
+<div class="login-wrap">
+<div class="login-box">
+<h1>${safe(name)} Login</h1>
+<p class="muted">Enter your private 4-digit access code.</p>
+<input id="code" maxlength="4" placeholder="4 digit code">
+<button class="submit" onclick="login()">Login</button>
+</div>
+</div>
+<script>
+function login(){
+const code = document.getElementById("code").value;
+if(!code){ alert("Enter your code"); return; }
+window.location.href = "/provider/${encodeURIComponent(name)}?code=" + encodeURIComponent(code);
+}
+</script>
+</body>
+</html>
+`);
+});
+
 app.get("/admin", requireAdmin, async (req, res) => {
-const leads = await getLeads();
-const revenue = leads.reduce((s, l) => s + Number(l.job_amount || 0), 0);
-const completed = leads.filter(l => ["COMPLETED", "PAID"].includes(l.lead_status)).length;
+const allLeads = await getLeads();
+const activeLeads = allLeads.filter(l => !["COMPLETED", "PAID", "DECLINED"].includes(l.lead_status));
+const closedLeads = allLeads.filter(l => ["COMPLETED", "PAID", "DECLINED"].includes(l.lead_status));
+const revenue = allLeads.reduce((s, l) => s + Number(l.job_amount || 0), 0);
 
 res.send(`
 <html>
@@ -386,6 +407,7 @@ res.send(`
 <a href="#addJob">➕ Add Job</a>
 <a href="#providers">👥 Providers</a>
 <a href="#payments">💳 Payments</a>
+<a href="#closed">✅ Closed</a>
 </div>
 </aside>
 
@@ -401,9 +423,9 @@ res.send(`
 </div>
 
 <div class="stats">
-<div class="card"><div class="big">${leads.length}</div><div class="muted">Total Jobs</div></div>
+<div class="card"><div class="big">${activeLeads.length}</div><div class="muted">Active Jobs</div></div>
 <div class="card"><div class="big">${money(revenue)}</div><div class="muted">Revenue</div></div>
-<div class="card"><div class="big">${completed}</div><div class="muted">Completed</div></div>
+<div class="card"><div class="big">${closedLeads.length}</div><div class="muted">Closed</div></div>
 <div class="card"><div class="big">${Object.keys(providers).length}</div><div class="muted">Providers</div></div>
 </div>
 
@@ -438,10 +460,11 @@ ${Object.entries(providers).map(([n,p]) => `
 <div class="card">
 <h3>${safe(n)}</h3>
 <div class="muted">${safe(p)}</div>
+<div class="muted">Private Login: /provider-login/${encodeURIComponent(n)}</div>
 <div class="buttons">
 <a class="btn blue" href="tel:${safe(p)}">Call</a>
 <a class="btn purple" href="sms:${safe(p)}">Text</a>
-<a class="btn green" href="/provider/${encodeURIComponent(n)}?code=${providerCode(n)}">Dashboard</a>
+<a class="btn green" href="/provider-login/${encodeURIComponent(n)}">Login Page</a>
 </div>
 </div>
 `).join("")}
@@ -470,8 +493,13 @@ ${Object.keys(providers).map(p => `<option value="${safe(p)}">${safe(p)}</option
 </section>
 
 <section class="panel" id="jobs" style="margin-top:18px">
-<h2>Recent Jobs</h2>
-<div class="jobs">${leads.map(j => renderJob(j)).join("") || "<div class='card'>No jobs yet.</div>"}</div>
+<h2>Active Jobs</h2>
+<div class="jobs">${activeLeads.map(j => renderJob(j)).join("") || "<div class='card'>No active jobs.</div>"}</div>
+</section>
+
+<section class="panel" id="closed" style="margin-top:18px">
+<h2>Closed Jobs</h2>
+<div class="jobs">${closedLeads.slice(0, 20).map(j => renderJob(j)).join("") || "<div class='card'>No closed jobs.</div>"}</div>
 </section>
 </main>
 </div>
@@ -492,33 +520,46 @@ const name = req.params.name;
 if (!providers[name]) return res.send("Provider not found");
 
 if (req.query.code !== providerCode(name)) {
-return res.send(`
-<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>${css()}</style></head>
-<body><div class="main" style="margin:0;width:100%"><div class="card">
-<h1>${safe(name)} Login</h1>
-<p class="muted">Enter your 4 digit provider code.</p>
-<form><input name="code" maxlength="4" placeholder="4 digit code"><button class="submit">Login</button></form>
-</div></div></body></html>
-`);
+return res.redirect(`/provider-login/${encodeURIComponent(name)}`);
 }
 
-const leads = (await getLeads()).filter(l => l.provider_assigned === name || l.lead_status === "NEW");
+const allLeads = await getLeads();
+const leads = allLeads.filter(l =>
+l.provider_assigned === name &&
+!["COMPLETED", "PAID", "DECLINED"].includes(l.lead_status)
+);
 
 res.send(`
-<html><head><title>${safe(name)} Dashboard</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>${css()}</style></head>
+<html>
+<head>
+<title>${safe(name)} Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NLN Provider">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>${css()}</style>
+</head>
 <body>
 <main class="main" style="margin:0;width:100%">
 <div class="top">
-<div><h1>${safe(name)} Dashboard</h1><div class="muted">Provider Dispatch Panel</div></div>
+<div><h1>${safe(name)} Dashboard</h1><div class="muted">Provider Dispatch App</div></div>
 <div class="avatar">${safe(name[0])}</div>
 </div>
 <div class="stats">
-<div class="card"><div class="big">${leads.length}</div><div class="muted">Visible Jobs</div></div>
+<div class="card"><div class="big">${leads.length}</div><div class="muted">Assigned Jobs</div></div>
 <div class="card"><div class="big">Online</div><div class="muted">Status</div></div>
 </div>
-<section class="panel"><h2>Jobs</h2><div class="jobs">${leads.map(j => renderJob(j, true, name)).join("") || "<div class='card'>No jobs yet.</div>"}</div></section>
+<section class="panel"><h2>My Jobs</h2><div class="jobs">${leads.map(j => renderJob(j, true, name)).join("") || "<div class='card'>No jobs assigned.</div>"}</div></section>
 </main>
-</body></html>
+<div class="mobile-nav">
+<a href="#"><span>🏠</span>Home</a>
+<a href="#jobs"><span>💼</span>Jobs</a>
+<a href="tel:+14435781686"><span>📞</span>Dispatch</a>
+<a href="javascript:location.reload()"><span>🔄</span>Refresh</a>
+</div>
+</body>
+</html>
 `);
 });
 
