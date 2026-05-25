@@ -23,7 +23,22 @@ Tee: "+14104199281",
 Robyn: "+14435781686"
 };
 
+function safe(v) {
+return String(v || "");
+}
+
+function providerCode(name) {
+return providers[name]
+.replace(/\D/g, "")
+.slice(-4);
+}
+
+// =====================================================
+// DATABASE
+// =====================================================
+
 async function initDB() {
+
 await pool.query(`
 CREATE TABLE IF NOT EXISTS leads (
 id SERIAL PRIMARY KEY,
@@ -40,14 +55,7 @@ lead_cost TEXT DEFAULT '35',
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 `);
-}
 
-function providerCode(name) {
-return providers[name].replace(/\D/g, "").slice(-4);
-}
-
-function safe(v) {
-return String(v || "");
 }
 
 // =====================================================
@@ -89,17 +97,18 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 `, [
 "CallRail Test Lead",
 "+14430000000",
-"Test Phone Call",
-"CallRail Test",
+"Incoming Phone Call",
+"CallRail",
 "",
 "NEW",
 "",
-"Manual test lead",
+"Manual CallRail Test",
 "0",
 "35"
 ]);
 
 res.send("CallRail test lead added");
+
 });
 
 // =====================================================
@@ -127,9 +136,10 @@ lead_cost
 )
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 `, [
+
 b.customer_name ||
 b.name ||
-"CallRail Lead",
+"Phone Lead",
 
 b.customer_phone ||
 b.customer_number ||
@@ -138,8 +148,7 @@ b.from ||
 "Unknown",
 
 b.service ||
-b.call_type ||
-"Phone Call Lead",
+"Phone Call",
 
 "CallRail",
 
@@ -151,11 +160,12 @@ b.recording ||
 b.recording_url ||
 "",
 
-JSON.stringify(b).slice(0, 2000),
+JSON.stringify(b).slice(0, 3000),
 
 "0",
 
 "35"
+
 ]);
 
 res.status(200).json({
@@ -175,305 +185,26 @@ success: false
 });
 
 // =====================================================
-// ADMIN DASHBOARD
+// ASSIGN PROVIDER
 // =====================================================
 
-app.get("/admin", async (req, res) => {
+app.post("/admin/assign/:id", async (req, res) => {
 
 if (req.query.token !== ADMIN_TOKEN) {
-return res.send("ADMIN LOCKED");
+return res.send("LOCKED");
 }
 
-const r = await pool.query(`
-SELECT *
-FROM leads
-ORDER BY id DESC
-`);
-
-const leads = r.rows;
-
-res.send(`
-<html>
-<head>
-<title>NLN Dashboard</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-
-body{
-margin:0;
-background:#020817;
-color:white;
-font-family:Arial;
-}
-
-.wrap{
-max-width:1400px;
-margin:auto;
-padding:20px;
-}
-
-.top{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:20px;
-}
-
-.title{
-font-size:40px;
-font-weight:900;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-gap:18px;
-margin-bottom:20px;
-}
-
-.card{
-background:#071226;
-border-radius:24px;
-padding:25px;
-border:1px solid #1e293b;
-}
-
-.big{
-font-size:42px;
-font-weight:900;
-}
-
-.jobs{
-display:flex;
-flex-direction:column;
-gap:18px;
-}
-
-.job{
-background:#071226;
-border-radius:24px;
-border:1px solid #1e293b;
-padding:20px;
-}
-
-.job-title{
-font-size:28px;
-font-weight:900;
-line-height:1.4;
-margin-bottom:10px;
-word-break:break-word;
-}
-
-.sub{
-color:#94a3b8;
-line-height:1.6;
-font-size:16px;
-word-break:break-word;
-}
-
-.buttons{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-margin-top:18px;
-}
-
-.btn{
-border:none;
-padding:14px 18px;
-border-radius:14px;
-color:white;
-font-weight:900;
-text-decoration:none;
-cursor:pointer;
-}
-
-.blue{background:#2563eb}
-.purple{background:#9333ea}
-.green{background:#16a34a}
-.orange{background:#ea580c}
-.red{background:#991b1b}
-
-form{
-margin-top:20px;
-}
-
-input,select,textarea{
-width:100%;
-padding:16px;
-margin-top:12px;
-border:none;
-border-radius:14px;
-background:#0f172a;
-color:white;
-box-sizing:border-box;
-}
-
-.submit{
-width:100%;
-padding:18px;
-margin-top:18px;
-border:none;
-border-radius:14px;
-background:linear-gradient(90deg,#2563eb,#7c3aed);
-color:white;
-font-weight:900;
-font-size:18px;
-}
-
-@media(max-width:700px){
-
-.title{
-font-size:28px;
-}
-
-.job-title{
-font-size:22px;
-}
-
-.buttons{
-display:grid;
-grid-template-columns:1fr 1fr;
-}
-
-.btn{
-text-align:center;
-}
-
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="wrap">
-
-<div class="top">
-<div>
-<div class="title">Admin Dashboard</div>
-<div style="color:#94a3b8">Luxury Dispatch Center</div>
-</div>
-</div>
-
-<div class="grid">
-
-<div class="card">
-<div class="big">${leads.length}</div>
-<div>Total Jobs</div>
-</div>
-
-<div class="card">
-<div class="big">${Object.keys(providers).length}</div>
-<div>Providers</div>
-</div>
-
-<div class="card">
-<div class="big">$0</div>
-<div>Payment Threshold</div>
-</div>
-
-</div>
-
-<div class="card">
-
-<h2>Add Job</h2>
-
-<form method="POST" action="/admin/add-job?token=${ADMIN_TOKEN}">
-
-<input name="customer_name" placeholder="Customer Name">
-
-<input name="customer_phone" placeholder="Customer Phone">
-
-<input name="service" placeholder="Service">
-
-<input name="source" placeholder="Source">
-
-<input name="job_amount" placeholder="Job Amount">
-
-<input name="recording" placeholder="Recording URL">
-
-<textarea name="notes" placeholder="Notes"></textarea>
-
-<select name="provider_assigned">
-
-<option value="">Assign Provider</option>
-
-${Object.keys(providers).map(p => `
-<option value="${p}">${p}</option>
-`).join("")}
-
-</select>
-
-<button class="submit">
-Create Job
-</button>
-
-</form>
-
-</div>
-
-<div style="height:20px"></div>
-
-<div class="jobs">
-
-${leads.map(job => `
-
-<div class="job">
-
-<div class="job-title">
-${safe(job.service)}
-</div>
-
-<div class="sub">
-${safe(job.customer_name)} • ${safe(job.customer_phone)}
-</div>
-
-<div class="sub">
-Status: ${safe(job.lead_status)}
-</div>
-
-<div class="sub">
-Provider: ${safe(job.provider_assigned || "Not Assigned")}
-</div>
-
-<div class="sub">
-Amount: $${safe(job.job_amount)}
-</div>
-
-<div class="buttons">
-
-<a class="btn blue"
-href="tel:${safe(job.customer_phone)}">
-Call
-</a>
-
-<a class="btn purple"
-href="sms:${safe(job.customer_phone)}">
-Text
-</a>
-
-<a class="btn orange"
-href="${safe(job.recording || "#")}">
-Recording
-</a>
-
-</div>
-
-</div>
-
-`).join("")}
-
-</div>
-
-</div>
-
-</body>
-</html>
-`);
+await pool.query(`
+UPDATE leads
+SET provider_assigned=$1,
+lead_status='ASSIGNED'
+WHERE id=$2
+`, [
+req.body.provider_assigned,
+req.params.id
+]);
+
+res.redirect(`/admin?token=${ADMIN_TOKEN}`);
 
 });
 
@@ -532,6 +263,306 @@ res.redirect(`/admin?token=${ADMIN_TOKEN}`);
 });
 
 // =====================================================
+// ADMIN DASHBOARD
+// =====================================================
+
+app.get("/admin", async (req, res) => {
+
+if (req.query.token !== ADMIN_TOKEN) {
+return res.send("ADMIN LOCKED");
+}
+
+const r = await pool.query(`
+SELECT *
+FROM leads
+ORDER BY id DESC
+`);
+
+const leads = r.rows;
+
+res.send(`
+
+<html>
+
+<head>
+
+<title>NLN Admin</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+body{
+margin:0;
+background:#020817;
+color:white;
+font-family:Arial;
+}
+
+.wrap{
+max-width:1400px;
+margin:auto;
+padding:20px;
+}
+
+.title{
+font-size:42px;
+font-weight:900;
+margin-bottom:20px;
+}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:16px;
+margin-bottom:20px;
+}
+
+.card{
+background:#071226;
+border-radius:24px;
+padding:25px;
+border:1px solid #1e293b;
+}
+
+.big{
+font-size:42px;
+font-weight:900;
+}
+
+.jobs{
+display:flex;
+flex-direction:column;
+gap:20px;
+}
+
+.job{
+background:#071226;
+border-radius:24px;
+border:1px solid #1e293b;
+padding:20px;
+}
+
+.job-title{
+font-size:28px;
+font-weight:900;
+line-height:1.4;
+margin-bottom:10px;
+word-break:break-word;
+}
+
+.sub{
+color:#94a3b8;
+line-height:1.7;
+word-break:break-word;
+}
+
+.buttons{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+margin-top:18px;
+}
+
+.btn{
+border:none;
+padding:14px 18px;
+border-radius:14px;
+color:white;
+font-weight:900;
+text-decoration:none;
+cursor:pointer;
+}
+
+.blue{background:#2563eb}
+.purple{background:#9333ea}
+.green{background:#16a34a}
+.orange{background:#ea580c}
+
+form{
+margin-top:16px;
+}
+
+select,input,textarea{
+width:100%;
+padding:16px;
+margin-top:12px;
+border:none;
+border-radius:14px;
+background:#0f172a;
+color:white;
+box-sizing:border-box;
+}
+
+.submit{
+width:100%;
+padding:18px;
+margin-top:18px;
+border:none;
+border-radius:14px;
+background:linear-gradient(90deg,#2563eb,#7c3aed);
+color:white;
+font-size:18px;
+font-weight:900;
+}
+
+@media(max-width:700px){
+
+.job-title{
+font-size:22px;
+}
+
+.buttons{
+display:grid;
+grid-template-columns:1fr 1fr;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="title">
+Admin Dashboard
+</div>
+
+<div class="stats">
+
+<div class="card">
+<div class="big">${leads.length}</div>
+<div>Total Jobs</div>
+</div>
+
+<div class="card">
+<div class="big">${Object.keys(providers).length}</div>
+<div>Providers</div>
+</div>
+
+<div class="card">
+<div class="big">$0</div>
+<div>Payment Threshold</div>
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Add Job</h2>
+
+<form method="POST" action="/admin/add-job?token=${ADMIN_TOKEN}">
+
+<input name="customer_name" placeholder="Customer Name">
+
+<input name="customer_phone" placeholder="Customer Phone">
+
+<input name="service" placeholder="Service">
+
+<input name="source" placeholder="Source">
+
+<input name="job_amount" placeholder="Job Amount">
+
+<input name="recording" placeholder="Recording URL">
+
+<textarea name="notes" placeholder="Notes"></textarea>
+
+<button class="submit">
+Create Job
+</button>
+
+</form>
+
+</div>
+
+<div style="height:20px"></div>
+
+<div class="jobs">
+
+${leads.map(job => `
+
+<div class="job">
+
+<div class="job-title">
+${safe(job.service)}
+</div>
+
+<div class="sub">
+${safe(job.customer_name)} • ${safe(job.customer_phone)}
+</div>
+
+<div class="sub">
+Status: ${safe(job.lead_status)}
+</div>
+
+<div class="sub">
+Provider: ${safe(job.provider_assigned || "Not Assigned")}
+</div>
+
+<div class="sub">
+Amount: $${safe(job.job_amount)}
+</div>
+
+<div class="buttons">
+
+<a class="btn blue"
+href="tel:${safe(job.customer_phone)}">
+Call
+</a>
+
+<a class="btn purple"
+href="sms:${safe(job.customer_phone)}">
+Text
+</a>
+
+<a class="btn orange"
+href="${safe(job.recording || "#")}">
+Recording
+</a>
+
+</div>
+
+<form method="POST"
+action="/admin/assign/${job.id}?token=${ADMIN_TOKEN}">
+
+<select name="provider_assigned">
+
+<option value="">Send To Provider</option>
+
+${Object.keys(providers).map(p => `
+<option value="${p}">
+${p}
+</option>
+`).join("")}
+
+</select>
+
+<button class="submit">
+Assign Job
+</button>
+
+</form>
+
+</div>
+
+`).join("")}
+
+</div>
+
+</div>
+
+</body>
+
+</html>
+
+`);
+
+});
+
+// =====================================================
 // PROVIDER DASHBOARD
 // =====================================================
 
@@ -546,11 +577,8 @@ return res.send("Provider not found");
 if (req.query.code !== providerCode(name)) {
 
 return res.send(`
-
 <html>
-
 <head>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -609,7 +637,7 @@ font-size:18px;
 
 <h1>${name}</h1>
 
-<p>Enter your 4 digit provider code</p>
+<p>Enter 4 digit provider code</p>
 
 <input
 name="code"
@@ -625,7 +653,6 @@ Login
 </body>
 
 </html>
-
 `);
 
 }
@@ -641,7 +668,9 @@ ORDER BY id DESC
 const leads = r.rows;
 
 res.send(`
+
 <html>
+
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -664,13 +693,13 @@ padding:20px;
 .title{
 font-size:36px;
 font-weight:900;
+margin-bottom:20px;
 }
 
 .jobs{
 display:flex;
 flex-direction:column;
-gap:18px;
-margin-top:20px;
+gap:20px;
 }
 
 .job{
@@ -684,13 +713,13 @@ padding:20px;
 font-size:28px;
 font-weight:900;
 line-height:1.4;
+margin-bottom:10px;
 word-break:break-word;
 }
 
 .sub{
 color:#94a3b8;
-line-height:1.6;
-font-size:16px;
+line-height:1.7;
 word-break:break-word;
 }
 
@@ -708,7 +737,6 @@ border-radius:14px;
 color:white;
 font-weight:900;
 text-decoration:none;
-cursor:pointer;
 }
 
 .blue{background:#2563eb}
@@ -727,10 +755,6 @@ display:grid;
 grid-template-columns:1fr 1fr;
 }
 
-.btn{
-text-align:center;
-}
-
 }
 
 </style>
@@ -742,11 +766,7 @@ text-align:center;
 <div class="wrap">
 
 <div class="title">
-Welcome ${name}
-</div>
-
-<div style="color:#94a3b8">
-Provider Dashboard
+${name} Dashboard
 </div>
 
 <div class="jobs">
@@ -799,21 +819,21 @@ Recording
 </div>
 
 </body>
+
 </html>
+
 `);
 
 });
 
 // =====================================================
-// START
+// START SERVER
 // =====================================================
 
 initDB().then(() => {
 
 app.listen(PORT, () => {
-
 console.log("SERVER RUNNING");
-
 });
 
 });
