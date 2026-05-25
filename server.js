@@ -7,6 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "nln-admin-2026";
 
@@ -60,23 +61,33 @@ return phone.replace(/\D/g, "").slice(-4);
 }
 
 function requireAdmin(req, res, next) {
-if (req.query.token !== ADMIN_TOKEN) return res.send("ADMIN LOCKED");
+if (req.query.token !== ADMIN_TOKEN) {
+return res.send("ADMIN LOCKED");
+}
 next();
 }
 
 function cleanStatus(v) {
-const s = String(v || "").toUpperCase();
-if (["NEW", "ASSIGNED", "ENROUTE", "ARRIVED", "COMPLETED", "PAID", "DECLINED"].includes(s)) return s;
+const s = String(v || "").toUpperCase().trim();
+
+if (["NEW", "ASSIGNED", "ENROUTE", "ARRIVED", "COMPLETED", "PAID", "DECLINED"].includes(s)) {
+return s;
+}
 return "NEW";
 }
 
 async function getLeads() {
 const r = await pool.query("SELECT * FROM leads ORDER BY id DESC");
-return r.rows.map(x => ({ ...x, lead_status: cleanStatus(x.lead_status) }));
+return r.rows.map(x => ({
+...x,
+lead_status: cleanStatus(x.lead_status)
+}));
 }
 
 app.get("/", (req, res) => {
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
+res.redirect(`/admin?token=${
+ADMIN_TOKEN}`);
+
 });
 
 app.get("/health", (req, res) => {
@@ -89,46 +100,12 @@ INSERT INTO leads (
 customer_name, customer_phone, service, source,
 provider_assigned, lead_status, recording, notes, job_amount, lead_cost
 )
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-`, [
-"CallRail Test Lead",
-"+14430000000",
-"Incoming Phone Call",
-"CallRail Test",
-"",
-"NEW",
-"",
-"Manual test lead",
-"0",
-"35"
-]);
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$
+10)
+10)
+10)
+ADMIN_TOKEN}`);
 
-res.send("CallRail test lead added");
-});
-res.status(500).json({ success: false, error: err.message });
-}
-});
-app.post("/admin/add-job", requireAdmin, async (req, res) => {
-await pool.query(`
-INSERT INTO leads (
-customer_name, customer_phone, service, source,
-provider_assigned, lead_status, recording, notes, job_amount, lead_cost
-)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-`, [
-req.body.customer_name || "Unknown",
-req.body.customer_phone || "Unknown",
-req.body.service || "Locksmith Service",
-req.body.source || "Manual",
-req.body.provider_assigned || "",
-req.body.provider_assigned ? "ASSIGNED" : "NEW",
-req.body.recording || "",
-req.body.notes || "",
-req.body.job_amount || "0",
-req.body.lead_cost || "35"
-]);
-
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
 });
 
 app.post("/admin/assign/:id", requireAdmin, async (req, res) => {
@@ -136,35 +113,32 @@ await pool.query(`
 UPDATE leads
 SET provider_assigned=$1, lead_status='ASSIGNED'
 WHERE id=$2
-`, [req.body.provider_assigned || "", req.params.id]);
+`, [
+req.body.provider_assigned || "",
+req.params.id
+]);
 
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/admin/status/:id", requireAdmin, async (req, res) => {
-await pool.query(`
-UPDATE leads
-SET lead_status=$1
-WHERE id=$2
-`, [cleanStatus(req.body.status), req.params.id]);
-
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/admin/delete/:id", requireAdmin, async (req, res) => {
-await pool.query("DELETE FROM leads WHERE id=$1", [req.params.id]);
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
+res.redirect(`/admin?token=${
+ADMIN_TOKEN}`);
+ADMIN_TOKEN}`);
+ADMIN_TOKEN}`);
 });
 
 app.post("/provider/:name/status/:id", async (req, res) => {
 const name = req.params.name;
+
+if (!providers[name]) return res.send("Provider not found");
 if (req.query.code !== providerCode(name)) return res.send("LOCKED");
 
 await pool.query(`
 UPDATE leads
 SET provider_assigned=$1, lead_status=$2
 WHERE id=$3
-`, [name, cleanStatus(req.body.status), req.params.id]);
+`, [
+name,
+cleanStatus(req.body.status),
+req.params.id
+]);
 
 res.redirect(`/provider/${encodeURIComponent(name)}?code=${providerCode(name)}`);
 });
@@ -376,3 +350,11 @@ ${leads.map(job => renderJob(job, true, name)).join("") || "<div class='card'>No
 </html>
 `);
 });
+
+initDB().then(() => {
+app.listen(PORT, () => {
+console.log("SERVER RUNNING");
+});
+});
+
+
