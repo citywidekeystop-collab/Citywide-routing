@@ -1,6 +1,8 @@
-// NLN LUXURY EXACT MOBILE DASHBOARD
-// TOWBOOK STYLE
-// FULL IOS VERSION
+// ===============================
+// NLN LUXURY DISPATCH DASHBOARD
+// FULL NEW SERVER.JS
+// EXACT PREMIUM VERSION
+// ===============================
 
 const express = require("express");
 const cors = require("cors");
@@ -10,24 +12,28 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended:true }));
+app.use(express.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "nln-admin-2026";
 
 const pool = new Pool({
-connectionString:process.env.DATABASE_URL,
-ssl:{ rejectUnauthorized:false }
+connectionString: process.env.DATABASE_URL,
+ssl: { rejectUnauthorized: false }
 });
 
 const providers = {
-"Max":"+14436792242",
-"Dreh":"+12024125443",
-"Tee":"+14104199281",
-"Robyn":"+14435781686"
+Max: "+14436792242",
+Dreh: "+12024125443",
+Tee: "+14104199281",
+Robyn: "+14435781686"
 };
 
-async function initDB(){
+// ===============================
+// DATABASE
+// ===============================
+
+async function initDB() {
 
 await pool.query(`
 CREATE TABLE IF NOT EXISTS leads(
@@ -37,8 +43,8 @@ customer_phone TEXT,
 service TEXT,
 source TEXT,
 provider_assigned TEXT,
+lead_status TEXT DEFAULT 'NEW',
 recording TEXT,
-lead_status TEXT DEFAULT 'new',
 notes TEXT,
 job_amount TEXT DEFAULT '0',
 lead_cost TEXT DEFAULT '35',
@@ -48,12 +54,12 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 }
 
-function safe(v){
-return String(v || "");
-}
-
 function money(v){
 return "$" + Number(v || 0).toLocaleString();
+}
+
+function safe(v){
+return String(v || "");
 }
 
 async function getLeads(){
@@ -68,6 +74,10 @@ return r.rows;
 
 }
 
+// ===============================
+// AUTH
+// ===============================
+
 function requireAdmin(req,res,next){
 
 const token =
@@ -75,12 +85,16 @@ req.query.token ||
 req.headers["x-admin-token"];
 
 if(token !== ADMIN_TOKEN){
-return res.send("Admin Locked");
+return res.send("ADMIN LOCKED");
 }
 
 next();
 
 }
+
+// ===============================
+// ADD JOB
+// ===============================
 
 app.post("/admin/add-job", requireAdmin, async(req,res)=>{
 
@@ -113,7 +127,11 @@ res.redirect(`/admin?token=${ADMIN_TOKEN}`);
 
 });
 
-function renderJob(job){
+// ===============================
+// JOB CARD
+// ===============================
+
+function jobCard(job){
 
 return `
 
@@ -121,68 +139,52 @@ return `
 
 <div class="job-top">
 
-<span class="badge ${job.lead_status}">
-${safe(job.lead_status || "NEW")}
-</span>
+<div class="badge ${safe(job.lead_status).toLowerCase()}">
+${safe(job.lead_status)}
+</div>
 
-<span class="price">
+<div class="price">
 ${money(job.job_amount)}
-</span>
+</div>
 
 </div>
 
-<h3>
+<div class="job-service">
 ${safe(job.service)}
-</h3>
+</div>
 
-<p>
-${safe(job.customer_name)}
-</p>
+<div class="job-customer">
+${safe(job.customer_name)} • ${safe(job.customer_phone)}
+</div>
 
-<p>
-${safe(job.customer_phone)}
-</p>
+<div class="job-buttons">
 
-<div class="job-actions">
-
-<a
-class="btn blue"
-href="tel:${safe(job.customer_phone)}">
-
-Call
-
+<a class="btn blue" href="tel:${safe(job.customer_phone)}">
+📞 Call
 </a>
 
-<a
-class="btn purple"
-href="sms:${safe(job.customer_phone)}">
-
-Text
-
+<a class="btn purple" href="sms:${safe(job.customer_phone)}">
+💬 Text
 </a>
 
 ${
 job.recording
 ?
 `
-<a
-class="btn orange"
-href="${safe(job.recording)}">
-
-Recording
-
+<a class="btn orange" href="${safe(job.recording)}">
+🎧 Recording
 </a>
 `
 :
-""
+`
+<a class="btn orange" href="#">
+🎧 Recording
+</a>
+`
 }
 
-<a
-class="btn green"
-href="#">
-
-Complete
-
+<a class="btn green" href="#">
+✅ Complete
 </a>
 
 </div>
@@ -192,6 +194,10 @@ Complete
 `;
 
 }
+
+// ===============================
+// DASHBOARD
+// ===============================
 
 app.get("/admin", requireAdmin, async(req,res)=>{
 
@@ -211,61 +217,131 @@ res.send(`
 name="viewport"
 content="width=device-width, initial-scale=1.0">
 
+<title>
+NLN Admin Dashboard
+</title>
+
 <style>
 
 *{
+margin:0;
+padding:0;
 box-sizing:border-box;
 -webkit-tap-highlight-color:transparent;
 }
 
 body{
-margin:0;
 font-family:Inter,Arial;
 background:
 linear-gradient(
 180deg,
-#020817,
-#04152e
+#020617,
+#03142b
 );
 color:white;
+overflow-x:hidden;
 }
 
-.main{
-padding:18px;
-padding-bottom:120px;
+.app{
+display:flex;
+min-height:100vh;
 }
+
+/* ===============================
+SIDEBAR
+=============================== */
+
+.sidebar{
+width:250px;
+background:
+rgba(4,12,25,.98);
+border-right:
+1px solid rgba(255,255,255,.05);
+padding:24px;
+position:fixed;
+left:0;
+top:0;
+bottom:0;
+overflow:auto;
+}
+
+.logo{
+font-size:42px;
+font-weight:900;
+margin-bottom:40px;
+}
+
+.logo small{
+display:block;
+font-size:12px;
+opacity:.7;
+margin-top:4px;
+}
+
+.nav-title{
+font-size:12px;
+opacity:.5;
+margin-top:22px;
+margin-bottom:12px;
+letter-spacing:1px;
+}
+
+.nav a{
+display:flex;
+align-items:center;
+gap:12px;
+padding:14px;
+margin-bottom:8px;
+border-radius:14px;
+text-decoration:none;
+color:white;
+font-weight:700;
+}
+
+.nav a.active{
+background:
+linear-gradient(
+90deg,
+#2563eb,
+#3b82f6
+);
+}
+
+/* ===============================
+MAIN
+=============================== */
+
+.main{
+margin-left:250px;
+width:calc(100% - 250px);
+padding:24px;
+}
+
+/* ===============================
+TOPBAR
+=============================== */
 
 .topbar{
 display:flex;
-align-items:center;
 justify-content:space-between;
-margin-bottom:18px;
-}
-
-.top-left{
-display:flex;
 align-items:center;
-gap:14px;
+margin-bottom:24px;
 }
 
-.menu{
-font-size:34px;
-}
-
-.title{
+.topbar h1{
 font-size:34px;
 font-weight:900;
 }
 
-.top-right{
+.top-icons{
 display:flex;
 align-items:center;
-gap:14px;
+gap:18px;
 }
 
 .avatar{
-width:54px;
-height:54px;
+width:48px;
+height:48px;
 border-radius:50%;
 background:
 linear-gradient(
@@ -277,70 +353,85 @@ display:flex;
 align-items:center;
 justify-content:center;
 font-weight:900;
-font-size:24px;
 }
 
-.cards{
+/* ===============================
+STATS
+=============================== */
+
+.stats{
 display:grid;
-grid-template-columns:1fr 1fr;
-gap:14px;
-margin-top:18px;
+grid-template-columns:
+repeat(4,1fr);
+gap:16px;
+margin-bottom:20px;
 }
 
-.card{
+.stat-card{
 background:
-rgba(7,20,39,.95);
-border-radius:26px;
-padding:22px;
+rgba(6,18,38,.92);
 border:
 1px solid rgba(255,255,255,.06);
-box-shadow:
-0 0 25px rgba(0,0,0,.25);
+border-radius:22px;
+padding:24px;
 }
 
-.card h1{
-font-size:52px;
-margin:0;
+.stat-card h2{
+font-size:38px;
+margin-bottom:8px;
 }
 
-.card p{
+.stat-card p{
 opacity:.75;
-font-size:18px;
-margin-top:12px;
 }
 
-.icon-grid{
+/* ===============================
+TOOLS GRID
+=============================== */
+
+.tools-grid{
 display:grid;
-grid-template-columns:1fr 1fr;
-gap:14px;
-margin-top:18px;
+grid-template-columns:
+repeat(4,1fr);
+gap:16px;
+margin-bottom:20px;
 }
 
-.icon-card{
-height:150px;
+.tool-card{
 background:
-rgba(7,20,39,.95);
-border-radius:26px;
+rgba(6,18,38,.92);
+border-radius:22px;
+height:130px;
 display:flex;
 flex-direction:column;
 align-items:center;
 justify-content:center;
-font-size:22px;
 font-weight:800;
+font-size:20px;
 border:
 1px solid rgba(255,255,255,.06);
 }
 
-.icon-card span{
-font-size:44px;
-margin-bottom:12px;
+.tool-card span{
+font-size:40px;
+margin-bottom:10px;
+}
+
+/* ===============================
+PANELS
+=============================== */
+
+.two-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+margin-bottom:20px;
 }
 
 .panel{
-margin-top:20px;
 background:
-rgba(7,20,39,.95);
-border-radius:28px;
+rgba(6,18,38,.92);
+border-radius:24px;
 padding:22px;
 border:
 1px solid rgba(255,255,255,.06);
@@ -354,30 +445,33 @@ margin-bottom:18px;
 }
 
 .panel-title h2{
-margin:0;
-font-size:32px;
+font-size:28px;
 }
 
-.chart{
-height:220px;
-border-radius:22px;
+/* ===============================
+GRAPH
+=============================== */
+
+.graph{
+height:240px;
+border-radius:20px;
 background:
 linear-gradient(
 180deg,
-rgba(124,58,237,.15),
-rgba(37,99,235,.4)
+rgba(124,58,237,.1),
+rgba(37,99,235,.35)
 );
 position:relative;
 overflow:hidden;
 }
 
-.chart::after{
+.graph::after{
 content:"";
 position:absolute;
 left:0;
 right:0;
 bottom:0;
-height:70%;
+height:75%;
 background:
 linear-gradient(
 135deg,
@@ -387,35 +481,40 @@ linear-gradient(
 clip-path:
 polygon(
 0 100%,
-0 70%,
-18% 50%,
-34% 56%,
-48% 34%,
-62% 38%,
-78% 18%,
+0 80%,
+12% 65%,
+25% 70%,
+38% 50%,
+52% 55%,
+70% 25%,
+85% 28%,
 100% 0,
 100% 100%
 );
 }
 
-.payment-amount{
-font-size:62px;
+/* ===============================
+PAYMENT
+=============================== */
+
+.payment{
+font-size:54px;
 font-weight:900;
 color:#22c55e;
-margin-top:10px;
+margin-top:12px;
 }
 
-.bar{
-height:16px;
+.progress{
+height:14px;
 border-radius:999px;
 background:#102544;
+margin-top:20px;
 overflow:hidden;
-margin-top:18px;
 }
 
-.fill{
+.progress-fill{
 height:100%;
-width:82%;
+width:80%;
 background:
 linear-gradient(
 90deg,
@@ -424,11 +523,12 @@ linear-gradient(
 );
 }
 
-.payment-btn{
+.pay-btn{
 margin-top:24px;
-height:68px;
+width:100%;
+height:62px;
 border:none;
-border-radius:22px;
+border-radius:18px;
 background:
 linear-gradient(
 90deg,
@@ -436,16 +536,28 @@ linear-gradient(
 #3b82f6
 );
 color:white;
-font-size:24px;
+font-size:22px;
 font-weight:900;
-width:100%;
+}
+
+/* ===============================
+JOBS
+=============================== */
+
+.jobs-panel{
+background:
+rgba(6,18,38,.92);
+border-radius:24px;
+padding:22px;
+border:
+1px solid rgba(255,255,255,.06);
 }
 
 .job-card{
 background:#07111f;
-border-radius:24px;
+border-radius:20px;
 padding:18px;
-margin-top:18px;
+margin-top:16px;
 border:
 1px solid rgba(255,255,255,.05);
 }
@@ -454,14 +566,14 @@ border:
 display:flex;
 justify-content:space-between;
 align-items:center;
+margin-bottom:14px;
 }
 
 .badge{
-padding:10px 18px;
-border-radius:14px;
-font-size:14px;
+padding:8px 14px;
+border-radius:12px;
+font-size:12px;
 font-weight:900;
-text-transform:uppercase;
 }
 
 .badge.new{
@@ -481,35 +593,34 @@ font-size:22px;
 font-weight:900;
 }
 
-.job-card h3{
-font-size:34px;
-margin-top:16px;
-margin-bottom:10px;
+.job-service{
+font-size:28px;
+font-weight:800;
+margin-bottom:8px;
 }
 
-.job-card p{
-opacity:.8;
-font-size:18px;
-line-height:1.4;
+.job-customer{
+opacity:.75;
+font-size:17px;
+margin-bottom:18px;
 }
 
-.job-actions{
+.job-buttons{
 display:grid;
 grid-template-columns:1fr 1fr;
 gap:12px;
-margin-top:18px;
 }
 
 .btn{
-height:58px;
-border-radius:18px;
+height:54px;
+border-radius:16px;
 display:flex;
 align-items:center;
 justify-content:center;
-text-decoration:none;
 font-weight:900;
-font-size:20px;
+text-decoration:none;
 color:white;
+font-size:18px;
 }
 
 .blue{
@@ -530,15 +641,6 @@ linear-gradient(
 );
 }
 
-.green{
-background:
-linear-gradient(
-90deg,
-#16a34a,
-#22c55e
-);
-}
-
 .orange{
 background:
 linear-gradient(
@@ -548,61 +650,145 @@ linear-gradient(
 );
 }
 
-.bottom-nav{
-position:fixed;
-left:14px;
-right:14px;
-bottom:12px;
-height:92px;
+.green{
 background:
-rgba(7,20,39,.97);
-border-radius:30px;
+linear-gradient(
+90deg,
+#16a34a,
+#22c55e
+);
+}
+
+/* ===============================
+BOTTOM NAV MOBILE
+=============================== */
+
+.mobile-nav{
+display:none;
+}
+
+/* ===============================
+MOBILE
+=============================== */
+
+@media(max-width:900px){
+
+.sidebar{
+display:none;
+}
+
+.main{
+margin-left:0;
+width:100%;
+padding:14px;
+padding-bottom:120px;
+}
+
+.topbar h1{
+font-size:22px;
+}
+
+.stats{
+grid-template-columns:1fr 1fr;
+gap:12px;
+}
+
+.stat-card{
+padding:18px;
+border-radius:18px;
+}
+
+.stat-card h2{
+font-size:32px;
+}
+
+.tools-grid{
+grid-template-columns:1fr 1fr;
+gap:12px;
+}
+
+.tool-card{
+height:110px;
+font-size:16px;
+border-radius:18px;
+}
+
+.tool-card span{
+font-size:30px;
+}
+
+.two-grid{
+grid-template-columns:1fr;
+gap:14px;
+}
+
+.panel{
+border-radius:18px;
+padding:18px;
+}
+
+.panel-title h2{
+font-size:22px;
+}
+
+.graph{
+height:180px;
+}
+
+.payment{
+font-size:42px;
+}
+
+.jobs-panel{
+padding:16px;
+border-radius:18px;
+}
+
+.job-service{
+font-size:22px;
+}
+
+.job-buttons{
+grid-template-columns:1fr 1fr;
+}
+
+.btn{
+height:48px;
+font-size:15px;
+}
+
+.mobile-nav{
+position:fixed;
+left:12px;
+right:12px;
+bottom:12px;
+height:82px;
+background:
+rgba(6,18,38,.96);
+border-radius:26px;
 display:flex;
 align-items:center;
 justify-content:space-around;
 backdrop-filter:blur(18px);
 border:
-1px solid rgba(255,255,255,.08);
+1px solid rgba(255,255,255,.06);
 z-index:999;
 }
 
-.bottom-nav a{
+.mobile-nav a{
 display:flex;
 flex-direction:column;
 align-items:center;
 justify-content:center;
 text-decoration:none;
 color:white;
-font-size:18px;
+font-size:13px;
 font-weight:700;
 gap:6px;
 }
 
-.bottom-nav span{
-font-size:28px;
-}
-
-@media(min-width:900px){
-
-.main{
-max-width:1600px;
-margin:auto;
-}
-
-.cards{
-grid-template-columns:
-repeat(4,1fr);
-}
-
-.icon-grid{
-grid-template-columns:
-repeat(4,1fr);
-}
-
-.desktop-two{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:20px;
+.mobile-nav span{
+font-size:24px;
 }
 
 }
@@ -613,29 +799,89 @@ gap:20px;
 
 <body>
 
+<div class="app">
+
+<!-- SIDEBAR -->
+
+<div class="sidebar">
+
+<div class="logo">
+
+NLN
+
+<small>
+CITYWIDE ROUTING
+</small>
+
+</div>
+
+<div class="nav-title">
+DASHBOARD
+</div>
+
+<div class="nav">
+
+<a class="active" href="#">
+📊 Overview
+</a>
+
+<a href="#">
+💼 All Jobs
+</a>
+
+<a href="#">
+👥 Providers
+</a>
+
+<a href="#">
+📍 Route Map
+</a>
+
+<a href="#">
+🔔 Notifications
+</a>
+
+</div>
+
+<div class="nav-title">
+SYSTEM
+</div>
+
+<div class="nav">
+
+<a href="#">
+⚙️ Settings
+</a>
+
+<a href="#">
+📈 Reports
+</a>
+
+<a href="#">
+🤖 AI Dispatcher
+</a>
+
+</div>
+
+</div>
+
+<!-- MAIN -->
+
 <div class="main">
 
 <div class="topbar">
 
-<div class="top-left">
+<h1>
+Welcome back, Admin!
+</h1>
 
-<div class="menu">
-☰
-</div>
+<div class="top-icons">
 
-<div class="title">
-Admin Dashboard
-</div>
-
-</div>
-
-<div class="top-right">
-
-<div style="font-size:28px">
+<div>
 💬
 </div>
 
-<div style="font-size:28px">
+<div>
 🔔
 </div>
 
@@ -647,75 +893,81 @@ A
 
 </div>
 
-<div class="cards">
+<!-- STATS -->
 
-<div class="card">
-<h1>${leads.length}</h1>
+<div class="stats">
+
+<div class="stat-card">
+<h2>${leads.length}</h2>
 <p>Total Jobs</p>
 </div>
 
-<div class="card">
-<h1>${money(revenue)}</h1>
+<div class="stat-card">
+<h2>${money(revenue)}</h2>
 <p>Total Revenue</p>
 </div>
 
-<div class="card">
-<h1>${Object.keys(providers).length}</h1>
+<div class="stat-card">
+<h2>${Object.keys(providers).length}</h2>
 <p>Providers</p>
 </div>
 
-<div class="card">
-<h1>4.9⭐</h1>
+<div class="stat-card">
+<h2>4.9⭐</h2>
 <p>Rating</p>
 </div>
 
 </div>
 
-<div class="icon-grid">
+<!-- TOOLS -->
 
-<div class="icon-card">
+<div class="tools-grid">
+
+<div class="tool-card">
 <span>➕</span>
 Add Job
 </div>
 
-<div class="icon-card">
+<div class="tool-card">
 <span>👥</span>
 Providers
 </div>
 
-<div class="icon-card">
+<div class="tool-card">
 <span>💼</span>
 Jobs
 </div>
 
-<div class="icon-card">
+<div class="tool-card">
 <span>🤖</span>
 AI Dispatcher
 </div>
 
-<div class="icon-card">
-<span>📊</span>
+<div class="tool-card">
+<span>📈</span>
 Reports
 </div>
 
-<div class="icon-card">
+<div class="tool-card">
 <span>⚙️</span>
 Settings
 </div>
 
-<div class="icon-card">
+<div class="tool-card">
 <span>🎧</span>
 Support
 </div>
 
-<div class="icon-card">
+<div class="tool-card">
 <span>💳</span>
 Payments
 </div>
 
 </div>
 
-<div class="desktop-two">
+<!-- GRAPH + PAYMENT -->
+
+<div class="two-grid">
 
 <div class="panel">
 
@@ -731,7 +983,7 @@ This Week
 
 </div>
 
-<div class="chart"></div>
+<div class="graph"></div>
 
 </div>
 
@@ -741,35 +993,33 @@ This Week
 Payment Threshold
 </h2>
 
-<div class="payment-amount">
+<div class="payment">
 $0.00
 </div>
 
-<p>
+<p style="margin-top:8px">
 No balance due
 </p>
 
-<div class="bar">
-<div class="fill"></div>
+<div class="progress">
+<div class="progress-fill"></div>
 </div>
 
-<p style="margin-top:18px;font-size:18px;line-height:1.5">
-
+<p style="margin-top:20px;line-height:1.5">
 Your entire $10,000 payment threshold is available.
-
 </p>
 
-<button class="payment-btn">
-
+<button class="pay-btn">
 MAKE A PAYMENT
-
 </button>
 
 </div>
 
 </div>
 
-<div class="panel">
+<!-- JOBS -->
+
+<div class="jobs-panel">
 
 <div class="panel-title">
 
@@ -783,25 +1033,29 @@ View All
 
 </div>
 
-${leads.map(renderJob).join("")}
+${leads.map(jobCard).join("")}
 
 </div>
 
 </div>
 
-<div class="bottom-nav">
+</div>
 
-<a href="/admin?token=${ADMIN_TOKEN}">
+<!-- MOBILE NAV -->
+
+<div class="mobile-nav">
+
+<a href="#">
 <span>💼</span>
 Jobs
 </a>
 
-<a href="#tools">
+<a href="#">
 <span>⬜</span>
 Tools
 </a>
 
-<a href="#payments">
+<a href="#">
 <span>💲</span>
 Pay
 </a>
@@ -820,6 +1074,10 @@ Refresh
 `);
 
 });
+
+// ===============================
+// START
+// ===============================
 
 initDB().then(()=>{
 
