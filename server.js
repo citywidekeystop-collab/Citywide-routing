@@ -115,7 +115,10 @@ a{text-decoration:none;color:white}
 .action{background:#071226;border:1px solid #1e293b;border-radius:18px;min-height:105px;display:grid;place-items:center;text-align:center;font-weight:900}
 .action span{display:block;font-size:32px;margin-bottom:8px}
 .grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:18px}
-.chart{height:210px;border-radius:18px;background:linear-gradient(180deg,#7c3aed,#2563eb);opacity:.85;margin-top:14px}
+.mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.mini-card{background:#020817;border-radius:18px;padding:20px;border:1px solid #1e293b}
+.mini-label{font-size:13px;color:#94a3b8}
+.mini-number{font-size:34px;font-weight:900;margin-top:8px}
 .pay{font-size:44px;color:#22c55e;font-weight:900;text-align:center}
 .bar{height:13px;border-radius:99px;background:#102544;overflow:hidden;margin:18px 0}
 .bar div{height:100%;width:86%;background:#2563eb}
@@ -146,6 +149,7 @@ form.inline{display:inline}
 .stats{grid-template-columns:1fr 1fr}
 .actions{grid-template-columns:1fr 1fr}
 .grid2{grid-template-columns:1fr}
+.mini-stats{grid-template-columns:1fr 1fr}
 .formgrid{grid-template-columns:1fr}
 .job-title{font-size:22px}
 .buttons{display:grid;grid-template-columns:1fr 1fr}
@@ -476,8 +480,24 @@ res.send(`
 </div>
 
 <div class="grid2">
-<section class="panel"><h2>Jobs Overview</h2><div class="chart"></div></section>
-<section class="panel" id="payments"><h2>Payment Threshold</h2><div class="pay">$0.00</div><div class="muted center">No balance due</div><div class="bar"><div></div></div><p class="muted">Your entire $10,000 payment threshold is available.</p><button class="submit">MAKE A PAYMENT</button></section>
+<section class="panel">
+<h2>Jobs Overview</h2>
+<div class="mini-stats">
+<div class="mini-card"><div class="mini-label">Today Leads</div><div class="mini-number">${activeLeads.length}</div></div>
+<div class="mini-card"><div class="mini-label">Closed Jobs</div><div class="mini-number" style="color:#22c55e">${closedLeads.length}</div></div>
+<div class="mini-card"><div class="mini-label">Revenue</div><div class="mini-number" style="font-size:28px;color:#3b82f6">${money(revenue)}</div></div>
+<div class="mini-card"><div class="mini-label">Providers</div><div class="mini-number" style="color:#a855f7">${Object.keys(providers).length}</div></div>
+</div>
+</section>
+
+<section class="panel" id="payments">
+<h2>Payment Threshold</h2>
+<div class="pay">$0.00</div>
+<div class="muted center">No balance due</div>
+<div class="bar"><div></div></div>
+<p class="muted">Your entire $10,000 payment threshold is available.</p>
+<button class="submit">MAKE A PAYMENT</button>
+</section>
 </div>
 
 <section class="panel" id="providers">
