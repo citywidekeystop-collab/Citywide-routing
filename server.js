@@ -56,7 +56,9 @@ return String(v || "")
 }
 
 function money(v) {
-return "$" + Number(v || 0).toLocaleString();
+const n = Number(v || 0);
+if (Number.isNaN(n)) return "$0";
+return "$" + n.toLocaleString();
 }
 
 function providerCode(name) {
@@ -65,7 +67,16 @@ return (providers[name] || "").replace(/\D/g, "").slice(-4);
 
 function cleanStatus(v) {
 const s = String(v || "").toUpperCase().trim();
-const ok = ["NEW", "ASSIGNED", "ENROUTE", "ARRIVED", "COMPLETED", "PAID", "DECLINED"];
+const ok = [
+"NEW",
+"ASSIGNED",
+"ENROUTE",
+"ARRIVED",
+"COMPLETED",
+"PAID",
+"DECLINED",
+"CANCELLED"
+];
 return ok.includes(s) ? s : "NEW";
 }
 
@@ -84,11 +95,37 @@ function css() {
 return `
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:#020817;color:white;font-family:Arial,Helvetica,sans-serif}
+body{
+margin:0;
+color:white;
+font-family:Arial,Helvetica,sans-serif;
+background:
+radial-gradient(circle at 15% 0%,rgba(37,99,235,.24),transparent 28%),
+radial-gradient(circle at 90% 20%,rgba(168,85,247,.18),transparent 30%),
+linear-gradient(180deg,#030817 0%,#020617 45%,#020817 100%);
+min-height:100vh;
+}
+body:before{
+content:"";
+position:fixed;
+inset:0;
+pointer-events:none;
+background-image:
+linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+background-size:34px 34px;
+mask-image:linear-gradient(to bottom,rgba(0,0,0,.85),transparent 80%);
+}
 a{text-decoration:none;color:white}
-.landing{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top left,#2563eb55,transparent 35%),radial-gradient(circle at bottom right,#9333ea55,transparent 35%),#020817}
-.home-card{width:100%;max-width:430px;background:#071226;border:1px solid #1e3a8a;border-radius:30px;padding:30px;box-shadow:0 0 50px #0008}
-.logo-img{width:180px;max-width:80%;display:block;margin:0 auto 14px}
+.landing{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.home-card,.login-box,.card,.panel,.job,.action{
+background:linear-gradient(180deg,rgba(10,22,44,.88),rgba(5,13,30,.94));
+border:1px solid rgba(95,132,190,.26);
+box-shadow:0 18px 55px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.03);
+backdrop-filter:blur(18px);
+}
+.home-card{width:100%;max-width:430px;border-radius:30px;padding:30px}
+.logo-img{width:190px;max-width:82%;display:block;margin:0 auto 14px}
 .brand{text-align:center;font-size:34px;font-weight:900;background:linear-gradient(90deg,#3b82f6,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .muted{color:#94a3b8}
 .center{text-align:center}
@@ -96,23 +133,34 @@ a{text-decoration:none;color:white}
 .admin-btn{background:linear-gradient(90deg,#2563eb,#7c3aed)}
 .provider-btn{background:linear-gradient(90deg,#059669,#22c55e)}
 .support-btn{background:#111827;border:1px solid #374151}
+
 .layout{display:flex;min-height:100vh}
-.side{width:250px;background:#030b1a;border-right:1px solid #162033;padding:22px;position:fixed;top:0;bottom:0;left:0;overflow:auto}
+.side{
+width:250px;
+background:rgba(3,11,26,.85);
+border-right:1px solid rgba(95,132,190,.16);
+padding:22px;
+position:fixed;
+top:0;bottom:0;left:0;
+overflow:auto;
+}
 .side-logo{font-size:42px;font-weight:900;font-style:italic;line-height:.85}
 .side-logo small{display:block;font-size:12px;margin-top:8px;color:#94a3b8}
 .nav-title{font-size:12px;color:#64748b;margin:28px 0 10px;text-transform:uppercase}
 .nav a{display:block;padding:13px 14px;border-radius:13px;margin:7px 0;color:#dbeafe;font-weight:800}
 .nav a.active,.nav a:hover{background:linear-gradient(90deg,#0867ff,#7c3aed)}
-.main{margin-left:250px;width:calc(100% - 250px);padding:22px}
+
+.main{margin-left:250px;width:calc(100% - 250px);padding:22px;position:relative;z-index:2}
 .top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}
 .top h1{margin:0;font-size:32px;line-height:1.05}
 .avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#22c55e);display:grid;place-items:center;font-weight:900}
 .top-icons{display:flex;gap:16px;align-items:center}
+
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
-.card,.panel,.job{background:#071226;border:1px solid #1e293b;border-radius:22px;padding:20px;box-shadow:0 18px 50px #0005}
+.card,.panel,.job{border-radius:22px;padding:20px}
 .big{font-size:36px;font-weight:900}
 .actions{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:18px}
-.action{background:#071226;border:1px solid #1e293b;border-radius:18px;min-height:105px;display:grid;place-items:center;text-align:center;font-weight:900}
+.action{border-radius:18px;min-height:105px;display:grid;place-items:center;text-align:center;font-weight:900}
 .action span{display:block;font-size:32px;margin-bottom:8px}
 .grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:18px}
 .mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
@@ -122,11 +170,12 @@ a{text-decoration:none;color:white}
 .pay{font-size:44px;color:#22c55e;font-weight:900;text-align:center}
 .bar{height:13px;border-radius:99px;background:#102544;overflow:hidden;margin:18px 0}
 .bar div{height:100%;width:86%;background:#2563eb}
+
 .jobs{display:flex;flex-direction:column;gap:16px}
 .job-head{display:flex;justify-content:space-between;gap:14px;align-items:start}
 .job-title{font-size:24px;font-weight:900;line-height:1.3;word-break:break-word}
 .status{padding:9px 13px;border-radius:12px;font-size:12px;font-weight:900}
-.NEW{background:#2563eb}.ASSIGNED{background:#d97706}.ENROUTE{background:#7c3aed}.ARRIVED{background:#0ea5e9}.COMPLETED{background:#16a34a}.PAID{background:#475569}.DECLINED{background:#991b1b}
+.NEW{background:#2563eb}.ASSIGNED{background:#d97706}.ENROUTE{background:#7c3aed}.ARRIVED{background:#0ea5e9}.COMPLETED{background:#16a34a}.PAID{background:#475569}.DECLINED,.CANCELLED{background:#991b1b}
 .sub{color:#cbd5e1;line-height:1.55;margin-top:7px;word-break:break-word}
 .note{background:#020817;border-radius:16px;padding:14px;margin-top:12px;color:#dbeafe;line-height:1.55;max-height:95px;overflow:auto}
 .buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
@@ -136,10 +185,16 @@ input,select,textarea{width:100%;padding:14px;border:0;border-radius:13px;backgr
 .formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .submit{width:100%;margin-top:12px;padding:15px;border:0;border-radius:13px;background:linear-gradient(90deg,#2563eb,#7c3aed);color:white;font-weight:900;font-size:16px}
 form.inline{display:inline}
+
+.tabs{display:flex;gap:10px;margin:0 0 18px}
+.tab{flex:1;text-align:center;padding:14px;border-radius:16px;background:#101a35;color:white;font-weight:900;border:1px solid #1e293b}
+.tab.active{background:linear-gradient(90deg,#2563eb,#7c3aed)}
+
 .mobile-nav{display:none}
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(circle at top left,#2563eb55,transparent 35%),#020817}
-.login-box{width:100%;max-width:430px;background:#071226;border:1px solid #1e293b;border-radius:28px;padding:28px;box-shadow:0 18px 50px #0007}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{width:100%;max-width:430px;border-radius:28px;padding:28px}
 .login-box h1{margin:0 0 8px;font-size:34px}
+
 @media(max-width:900px){
 .side{display:none}
 .main{margin-left:0;width:100%;padding:18px 14px 115px}
@@ -208,8 +263,10 @@ return `
 <div class="buttons">
 <a class="btn blue" href="tel:${safe(job.customer_phone)}">📞 Call</a>
 <a class="btn purple" href="sms:${safe(job.customer_phone)}">💬 Text</a>
-<a class="btn orange" href="${safe(job.recording || "#")}">🎧 Recording</a>
-${providerPhone ? `<a class="btn green" href="sms:${providerPhone}?body=${smsBody}">📲 Text Provider</a>` : ""}
+
+${!providerMode ? `<a class="btn orange" href="${safe(job.recording || "#")}">🎧 Recording</a>` : ""}
+
+${!providerMode && providerPhone ? `<a class="btn green" href="sms:${providerPhone}?body=${smsBody}">📲 Text Provider</a>` : ""}
 
 ${
 providerMode
@@ -222,6 +279,10 @@ providerMode
 <input type="hidden" name="status" value="COMPLETED">
 <button class="btn green" type="submit">✅ Complete</button>
 </form>
+<form class="inline" method="POST" action="/provider/${encodeURIComponent(providerName)}/status/${job.id}?code=${providerCode(providerName)}">
+<input type="hidden" name="status" value="CANCELLED">
+<button class="btn red" type="submit">❌ Cancel</button>
+</form>
 `
 : `
 <form class="inline" method="POST" action="/admin/status/${job.id}?token=${ADMIN_TOKEN}">
@@ -231,6 +292,10 @@ providerMode
 <form class="inline" method="POST" action="/admin/status/${job.id}?token=${ADMIN_TOKEN}">
 <input type="hidden" name="status" value="PAID">
 <button class="btn dark" type="submit">💰 Paid</button>
+</form>
+<form class="inline" method="POST" action="/admin/status/${job.id}?token=${ADMIN_TOKEN}">
+<input type="hidden" name="status" value="CANCELLED">
+<button class="btn red" type="submit">❌ Cancel</button>
 </form>
 <form class="inline" method="POST" action="/admin/delete/${job.id}?token=${ADMIN_TOKEN}">
 <button class="btn red" type="submit">🗑 Delete</button>
@@ -397,6 +462,24 @@ res.status(500).json({ success: false, error: err.message });
 }
 });
 
+app.post("/sms/webhook", async (req, res) => {
+try {
+const b = req.body || {};
+const from = b.From || b.from || b.customer_phone_number || b.customer_phone || b.formatted_customer_phone_number || "Unknown";
+const message = b.Body || b.body || b.message || b.text || b.content || "Incoming SMS lead";
+
+await pool.query(
+`INSERT INTO leads (customer_name, customer_phone, service, source, provider_assigned, lead_status, recording, notes, job_amount, lead_cost)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+["SMS Lead", from, "Text Message Lead", "CallRail SMS", "", "NEW", "", message, "0", "35"]
+);
+
+res.status(200).send("OK");
+} catch (err) {
+res.status(500).send("ERROR");
+}
+});
+
 app.post("/admin/add-job", requireAdmin, async (req, res) => {
 await pool.query(
 `INSERT INTO leads (customer_name, customer_phone, service, source, provider_assigned, lead_status, recording, notes, job_amount, lead_cost)
@@ -432,9 +515,9 @@ res.redirect(`/provider/${encodeURIComponent(name)}?code=${providerCode(name)}`)
 
 app.get("/admin", requireAdmin, async (req, res) => {
 const allLeads = await getLeads();
-const activeLeads = allLeads.filter(l => !["COMPLETED", "PAID", "DECLINED"].includes(l.lead_status));
-const closedLeads = allLeads.filter(l => ["COMPLETED", "PAID", "DECLINED"].includes(l.lead_status));
-const revenue = allLeads.reduce((s, l) => s + Number(l.job_amount || 0), 0);
+const activeLeads = allLeads.filter(l => !["COMPLETED", "PAID", "DECLINED", "CANCELLED"].includes(l.lead_status));
+const closedLeads = allLeads.filter(l => ["COMPLETED", "PAID", "DECLINED", "CANCELLED"].includes(l.lead_status));
+const revenue = allLeads.reduce((s, l) => s + (Number(l.job_amount) || 0), 0);
 
 res.send(`
 <html>
@@ -464,14 +547,14 @@ res.send(`
 </div>
 
 <div class="stats">
-<div class="card"><div class="big">${activeLeads.length}</div><div class="muted">Active Jobs</div></div>
-<div class="card"><div class="big">${money(revenue)}</div><div class="muted">Revenue</div></div>
-<div class="card"><div class="big">${closedLeads.length}</div><div class="muted">Closed</div></div>
-<div class="card"><div class="big">${Object.keys(providers).length}</div><div class="muted">Providers</div></div>
+<div class="card"><div class="big">${activeLeads.length}</div><div class="muted">Active Jobs</div><div class="muted" style="color:#3b82f6">+ live</div></div>
+<div class="card"><div class="big">${money(revenue)}</div><div class="muted">Revenue</div><div class="muted" style="color:#22c55e">+ tracking</div></div>
+<div class="card"><div class="big">${closedLeads.length}</div><div class="muted">Closed Jobs</div><div class="muted" style="color:#a855f7">history</div></div>
+<div class="card"><div class="big">${Object.keys(providers).length}</div><div class="muted">Providers</div><div class="muted" style="color:#22c55e">Online</div></div>
 </div>
 
 <div class="actions">
-<a class="action" href="#addJob"><div><span>➕</span>Add Job</div></a>
+<a class="action" href="#addJob"><div><span>➕</span>Add New Job</div></a>
 <a class="action" href="#providers"><div><span>👥</span>Providers</div></a>
 <a class="action" href="#jobs"><div><span>💼</span>Jobs</div></a>
 <a class="action" href="#payments"><div><span>💳</span>Payments</div></a>
@@ -535,7 +618,7 @@ ${Object.entries(providers).map(([n,p]) => `
 </section>
 
 <section class="panel" id="jobs" style="margin-top:18px"><h2>Active Jobs</h2><div class="jobs">${activeLeads.map(j => renderJob(j)).join("") || "<div class='card'>No active jobs.</div>"}</div></section>
-<section class="panel" id="closed" style="margin-top:18px"><h2>Closed Jobs</h2><div class="jobs">${closedLeads.slice(0,20).map(j => renderJob(j)).join("") || "<div class='card'>No closed jobs.</div>"}</div></section>
+<section class="panel" id="closed" style="margin-top:18px"><h2>Closed / Cancelled Jobs</h2><div class="jobs">${closedLeads.slice(0,20).map(j => renderJob(j)).join("") || "<div class='card'>No closed jobs.</div>"}</div></section>
 </main>
 </div>
 
@@ -555,24 +638,52 @@ const name = req.params.name;
 if (!providers[name]) return res.send("Provider not found");
 if (req.query.code !== providerCode(name)) return res.redirect(`/provider-login/${encodeURIComponent(name)}`);
 
+const view = String(req.query.view || "active").toLowerCase();
 const allLeads = await getLeads();
-const leads = allLeads.filter(l => l.provider_assigned === name && !["COMPLETED", "PAID", "DECLINED"].includes(l.lead_status));
+const mine = allLeads.filter(l => l.provider_assigned === name);
+
+const active = mine.filter(l => !["COMPLETED", "PAID", "DECLINED", "CANCELLED"].includes(l.lead_status));
+const completed = mine.filter(l => ["COMPLETED", "PAID"].includes(l.lead_status));
+const cancelled = mine.filter(l => ["DECLINED", "CANCELLED"].includes(l.lead_status));
+
+let leads = active;
+if (view === "completed") leads = completed;
+if (view === "cancelled") leads = cancelled;
+
+const base = `/provider/${encodeURIComponent(name)}?code=${providerCode(name)}`;
 
 res.send(`
 <html>
 <head><title>${safe(name)} Provider App</title><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="manifest" href="/manifest.json"><style>${css()}</style></head>
 <body>
 <main class="main" style="margin:0;width:100%">
-<div class="top"><div><h1>${safe(name)} Dashboard</h1><div class="muted">Provider Dispatch App</div></div><div class="avatar">${safe(name[0])}</div></div>
-<div class="stats"><div class="card"><div class="big">${leads.length}</div><div class="muted">Assigned Jobs</div></div><div class="card"><div class="big">Online</div><div class="muted">Status</div></div></div>
-<section class="panel" id="jobs"><h2>My Jobs</h2><div class="jobs">${leads.map(j => renderJob(j, true, name)).join("") || "<div class='card'>No jobs assigned.</div>"}</div></section>
+<div class="top">
+<div><h1>${safe(name)} Dashboard</h1><div class="muted">Provider Dispatch App</div></div>
+<div class="avatar">${safe(name[0])}</div>
+</div>
+
+<div class="stats">
+<div class="card"><div class="big">${active.length}</div><div class="muted">Active</div></div>
+<div class="card"><div class="big">${completed.length}</div><div class="muted">Completed</div></div>
+</div>
+
+<div class="tabs">
+<a class="tab ${view === "active" ? "active" : ""}" href="${base}&view=active">Active</a>
+<a class="tab ${view === "completed" ? "active" : ""}" href="${base}&view=completed">Completed</a>
+<a class="tab ${view === "cancelled" ? "active" : ""}" href="${base}&view=cancelled">Cancelled</a>
+</div>
+
+<section class="panel" id="jobs">
+<h2>${view === "active" ? "My Active Jobs" : view === "completed" ? "Completed Jobs" : "Cancelled Jobs"}</h2>
+<div class="jobs">${leads.map(j => renderJob(j, true, name)).join("") || "<div class='card'>No jobs in this section.</div>"}</div>
+</section>
 </main>
 
 <audio id="notifySound" src="/notify.mp3"></audio>
 
 <div class="mobile-nav">
-<a href="#"><span>🏠</span>Home</a>
-<a href="#jobs"><span>💼</span>Jobs</a>
+<a href="${base}&view=active"><span>🏠</span>Active</a>
+<a href="${base}&view=completed"><span>✅</span>Done</a>
 <a href="tel:${ADMIN_PHONE}"><span>📞</span>Dispatch</a>
 <a href="javascript:location.reload()"><span>🔄</span>Refresh</a>
 </div>
