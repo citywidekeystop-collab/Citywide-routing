@@ -57,8 +57,7 @@ return String(v || "")
 
 function money(v) {
 const n = Number(v || 0);
-if (Number.isNaN(n)) return "$0";
-return "$" + n.toLocaleString();
+return "$" + (Number.isNaN(n) ? 0 : n).toLocaleString();
 }
 
 function providerCode(name) {
@@ -67,16 +66,7 @@ return (providers[name] || "").replace(/\D/g, "").slice(-4);
 
 function cleanStatus(v) {
 const s = String(v || "").toUpperCase().trim();
-const ok = [
-"NEW",
-"ASSIGNED",
-"ENROUTE",
-"ARRIVED",
-"COMPLETED",
-"PAID",
-"DECLINED",
-"CANCELLED"
-];
+const ok = ["NEW", "ASSIGNED", "ENROUTE", "ARRIVED", "COMPLETED", "PAID", "DECLINED", "CANCELLED"];
 return ok.includes(s) ? s : "NEW";
 }
 
@@ -100,8 +90,8 @@ margin:0;
 color:white;
 font-family:Arial,Helvetica,sans-serif;
 background:
-radial-gradient(circle at 15% 0%,rgba(37,99,235,.24),transparent 28%),
-radial-gradient(circle at 90% 20%,rgba(168,85,247,.18),transparent 30%),
+radial-gradient(circle at 15% 0%,rgba(37,99,235,.28),transparent 30%),
+radial-gradient(circle at 88% 18%,rgba(168,85,247,.20),transparent 32%),
 linear-gradient(180deg,#030817 0%,#020617 45%,#020817 100%);
 min-height:100vh;
 }
@@ -265,7 +255,6 @@ return `
 <a class="btn purple" href="sms:${safe(job.customer_phone)}">💬 Text</a>
 
 ${!providerMode ? `<a class="btn orange" href="${safe(job.recording || "#")}">🎧 Recording</a>` : ""}
-
 ${!providerMode && providerPhone ? `<a class="btn green" href="sms:${providerPhone}?body=${smsBody}">📲 Text Provider</a>` : ""}
 
 ${
@@ -484,7 +473,18 @@ app.post("/admin/add-job", requireAdmin, async (req, res) => {
 await pool.query(
 `INSERT INTO leads (customer_name, customer_phone, service, source, provider_assigned, lead_status, recording, notes, job_amount, lead_cost)
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-[req.body.customer_name || "Unknown", req.body.customer_phone || "Unknown", req.body.service || "Locksmith Service", req.body.source || "Manual", req.body.provider_assigned || "", req.body.provider_assigned ? "ASSIGNED" : "NEW", req.body.recording || "", req.body.notes || "", req.body.job_amount || "0", req.body.lead_cost || "35"]
+[
+req.body.customer_name || "Unknown",
+req.body.customer_phone || "Unknown",
+req.body.service || "Locksmith Service",
+req.body.source || "Manual",
+req.body.provider_assigned || "",
+req.body.provider_assigned ? "ASSIGNED" : "NEW",
+req.body.recording || "",
+req.body.notes || "",
+req.body.job_amount || "0",
+req.body.lead_cost || "35"
+]
 );
 res.redirect(`/admin?token=${ADMIN_TOKEN}`);
 });
