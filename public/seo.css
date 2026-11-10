@@ -1,0 +1,28 @@
+/* Dedicated SEO service pages */
+.seo-hero {background:linear-gradient(120deg,#10263f,#214567);color:#fff;padding:76px 0 72px}
+.seo-hero .section-kicker {color:#d3e5fc}
+.seo-hero h1 {font-size:clamp(2.25rem,5vw,4rem);line-height:1.12;letter-spacing:-.03em;max-width:900px;margin:12px 0 18px}
+.seo-hero p {font-size:1.13rem;line-height:1.65;max-width:740px;color:#e7effa}
+.seo-actions {display:flex;gap:14px;flex-wrap:wrap;margin-top:26px}
+.seo-actions a {display:inline-block;padding:13px 23px;border-radius:9px;background:#ebbc57;color:#10263f;font-weight:750;text-decoration:none}
+.seo-actions a.secondary {background:transparent;border:1px solid #d4e2f3;color:#fff}
+.seo-content {padding:55px 0 65px;background:#f8fafc}
+.seo-content h2 {font-size:clamp(1.65rem,3.2vw,2.4rem);line-height:1.2;margin-bottom:22px}
+.seo-three {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:52px}
+.seo-panel {background:#fff;border-radius:14px;padding:24px;box-shadow:0 4px 18px #0d28410d}
+.seo-panel h3 {font-size:1.08rem;margin:0 0 10px}
+.seo-panel p,.seo-intro,.seo-list li,.seo-faq p {line-height:1.7;color:#394958}
+.seo-panel p {margin:0}
+.seo-list {padding-left:22px;margin:0 0 42px}
+.seo-list li {padding:4px 0}
+.seo-faq {max-width:880px;margin-bottom:45px}
+.seo-faq details {padding:18px 0;border-bottom:1px solid #dae3ed}
+.seo-faq summary {font-weight:700;cursor:pointer}
+.seo-faq p {margin:10px 0 0}
+.seo-breadcrumb {font-size:.9rem;margin-bottom:12px;color:#deebf9}
+.seo-breadcrumb a {color:inherit}
+.seo-note {font-size:.92rem;line-height:1.5;margin-top:20px;color:#495c6a}
+.seo-link-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:950px}
+.seo-link-grid a {display:block;padding:13px 16px;border:1px solid #dbe4ec;border-radius:10px;text-decoration:none;color:#10263f;background:#fff;font-weight:600}
+.seo-link-grid a:hover {border-color:#38639b}
+@media(max-width:720px) {.seo-hero{padding:50px 0}.seo-three,.seo-link-grid{grid-template-columns:1fr}}

@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: find-me-a-locksmith
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ENABLE_LIVE_SUBMISSIONS
+        value: 'false'
+      - key: DATABASE_URL
+        sync: false
+      - key: LICENSE_NUMBER
+        sync: false
+      - key: ADMIN_USERNAME
+        value: dispatch
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CONTACT_PHONE
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: SITE_URL
+        sync: false
+      - key: LEAD_WEBHOOK_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      - key: DISPATCH_EMAIL
+        sync: false

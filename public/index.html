@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10263f">
+  <meta name="description" content="Find a local locksmith near you in Maryland. Request help with emergency lockouts, car keys, house rekeying, new locks and commercial locksmith services around Harford County and Baltimore.">
+  <title>Find a Locksmith Near Me | Local Car, Home & Business Locksmith</title>
+  <meta property="og:title" content="Find a Locksmith Near Me | Find Me a Locksmith"><meta property="og:description" content="Get help finding a local locksmith for cars, homes, and businesses in the Baltimore region.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/seo.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <div class="demo-ribbon" id="demoRibbon" hidden>Preview mode — requests are not being submitted yet. Configure the backend before launch.</div>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="/" class="brand" aria-label="Find Me a Locksmith home">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 40 40" width="30" height="30" fill="none"><rect x="9" y="18" width="22" height="17" rx="4" stroke="currentColor" stroke-width="3"/><path d="M14 18v-6a6 6 0 0 1 12 0v6" stroke="currentColor" stroke-width="3"/><circle cx="20" cy="26" r="2" fill="currentColor"/></svg>
+        </span>
+        <span class="brand-words"><strong>Find Me a Locksmith</strong><small>LOCAL LOCKSMITH HELP</small></span>
+      </a>
+      <nav aria-label="Main navigation" class="main-nav"><a href="#services">Services</a><a href="#how-it-works">How it works</a><a href="#areas">Locations</a></nav>
+      <a href="#request" class="nav-cta">Get help <span aria-hidden="true">→</span></a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-sheen" aria-hidden="true"></div>
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="green-dot"></span> LOCAL LOCKSMITH SERVICE REQUESTS</div>
+          <h1>Find a <em>locksmith near you.</em><br>Start here.</h1>
+          <p class="hero-sub">Locked out? Lost your car keys? Need locks changed? Tell us what happened and where you need help. Our team will review your request and contact you about locksmith service.</p>
+          <div class="hero-chips"><span>🚗 Car & home lockouts</span><span>🔑 Rekey & lock changes</span><span>🏢 Business locksmiths</span></div>
+          <div class="hero-trust"><span class="trust-icon">✓</span><span>One simple request. Clear follow-up.<small>No obligation to book.</small></span></div>
+        </div>
+
+        <section class="form-card" id="request" aria-labelledby="requestTitle">
+          <div class="form-card-top"><div><span class="form-kicker">REQUEST LOCAL HELP</span><h2 id="requestTitle">What do you need fixed?</h2></div><span class="sparkle">✦</span></div>
+          <div class="steps-head"><span id="stepLabel">Step 1 of 3</span><span id="stepTitle">Select a locksmith job</span></div>
+          <div class="progress-rail" aria-hidden="true"><span id="progressFill"></span></div>
+          <form id="leadForm" novalidate>
+            <div class="form-step active" data-form-step="1">
+              <label class="input-label">What locksmith service do you need?</label>
+              <div id="jobChoices" class="job-choices" role="group" aria-label="Type of job"></div>
+              <div class="field"><label for="details">Tell us a little more <span class="optional">(optional)</span></label><textarea id="details" name="projectDetails" maxlength="1200" rows="2" placeholder="Example: Front deadbolt is jammed, can't open the door"></textarea></div>
+              <div class="inline-error" id="error1" role="alert"></div>
+              <button class="primary-button full" type="button" data-next="2">Continue <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="form-step" data-form-step="2" aria-hidden="true">
+              <label class="input-label">How soon do you need help?</label>
+              <div class="urgency-row" role="group" aria-label="Urgency"><button type="button" class="urgency-choice selected" data-urgency="Emergency / ASAP" aria-pressed="true">⚡ ASAP</button><button type="button" class="urgency-choice" data-urgency="Today" aria-pressed="false">Today</button><button type="button" class="urgency-choice" data-urgency="Schedule later" aria-pressed="false">Later</button></div>
+              <div class="field-grid">
+                <div class="field"><label for="zip">ZIP code <span class="required">*</span></label><input id="zip" name="zipCode" type="text" inputmode="numeric" pattern="[0-9]{5}" autocomplete="postal-code" maxlength="5" placeholder="21014" required></div>
+                <div class="field"><label for="property">Property type</label><select id="property" name="propertyType"><option>Home</option><option>Vehicle</option><option>Office</option><option>Storefront</option><option>Other</option></select></div>
+              </div>
+              <div class="field"><label for="street">Street address <span class="optional">(optional for initial request)</span></label><input id="street" name="streetAddress" autocomplete="street-address" maxlength="180" placeholder="Street address or nearest intersection"></div>
+              <div class="field"><label for="city">City or town <span class="optional">(optional)</span></label><input id="city" name="city" autocomplete="address-level2" maxlength="80" placeholder="Bel Air, Aberdeen, Baltimore…"></div>
+              <div class="inline-error" id="error2" role="alert"></div>
+              <div class="form-actions"><button class="back-button" type="button" data-back="1">← Back</button><button class="primary-button" type="button" data-next="3">Continue →</button></div>
+            </div>
+            <div class="form-step" data-form-step="3" aria-hidden="true">
+              <div class="field"><label for="fullName">Your name <span class="required">*</span></label><input id="fullName" name="fullName" autocomplete="name" maxlength="100" placeholder="Full name" required></div>
+              <div class="field"><label for="phone">Phone number <span class="required">*</span></label><input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="35" placeholder="(410) 555-0123" required></div>
+              <div class="field"><label for="email">Email <span class="optional">(optional)</span></label><input id="email" name="email" type="email" autocomplete="email" maxlength="140" placeholder="you@example.com"></div>
+              <label class="check-label"><input type="checkbox" id="contactConsent" name="contactConsent" required><span>I agree to be contacted about this service request by call or text. My request may be handled by Citywide Roadside Lock & Key or shared with a participating provider for this job. <a href="/privacy.html" target="_blank" rel="noopener">Privacy policy</a>. <span class="required">*</span></span></label>
+              <label class="check-label small-check"><input type="checkbox" id="marketingOptIn" name="marketingOptIn"><span>Optional: Send me occasional service offers by text or email.</span></label>
+              <div class="honeypot" aria-hidden="true"><label for="companyWebsite">Company website</label><input id="companyWebsite" name="companyWebsite" tabindex="-1" autocomplete="off"></div>
+              <div class="inline-error" id="error3" role="alert"></div>
+              <div class="form-actions"><button class="back-button" type="button" data-back="2">← Back</button><button class="primary-button" type="submit" id="submitBtn">Send request →</button></div>
+              <p class="microcopy">Submitting does not guarantee immediate availability or a fixed price. Pricing is confirmed before work begins.</p>
+            </div>
+          </form>
+          <div class="result-panel" id="resultPanel" hidden aria-live="polite"><div class="result-icon">✓</div><h3 id="resultTitle">Request received</h3><p id="resultMessage"></p><button type="button" class="secondary-button" id="newRequest">Start another request</button></div>
+          <div class="form-footer">🔒 Your request details are shared only for responding to your service inquiry.</div>
+        </section>
+      </div>
+    </section>
+
+    <section class="benefit-strip"><div class="container benefits"><div><span>01</span><strong>Tell us the problem</strong><small>Just a few quick details</small></div><div><span>02</span><strong>We review your request</strong><small>Find the appropriate service option</small></div><div><span>03</span><strong>Get contacted</strong><small>Discuss availability & pricing</small></div></div></section>
+
+    <section class="section services-section" id="services"><div class="container"><div class="section-intro"><span class="section-kicker">WHAT CAN WE HELP WITH?</span><h2>Find locksmith services for cars, homes & businesses.</h2><p>Get help with home, auto and business lockouts, keys, lock installation and security hardware.</p></div>
+      <div class="service-grid">
+        <button class="service-card" data-prefill="Car lockout" data-service="locksmith"><span class="service-icon">🚗</span><h3>Vehicle lockouts</h3><p>Locked keys inside your car? Submit a vehicle access request.</p><span class="service-link">Request service →</span></button>
+        <button class="service-card" data-prefill="Home lockout" data-service="locksmith"><span class="service-icon">🏠</span><h3>Home lockouts</h3><p>Get help with a locked door or a key that won't turn.</p><span class="service-link">Request service →</span></button>
+        <button class="service-card" data-prefill="Rekey locks" data-service="locksmith"><span class="service-icon">🔑</span><h3>Rekey & lock changes</h3><p>New keys, replacement deadbolts and security upgrades.</p><span class="service-link">Request service →</span></button>
+        <button class="service-card" data-prefill="Car key replacement" data-service="locksmith"><span class="service-icon">🔑</span><h3>Car key replacement</h3><p>Lost car keys, replacement keys and key programming requests.</p><span class="service-link">Request service →</span></button>
+        <button class="service-card" data-prefill="Business lockout" data-service="locksmith"><span class="service-icon">🏢</span><h3>Business locksmith</h3><p>Office and storefront lockouts, lock changes and commercial locks.</p><span class="service-link">Request service →</span></button>
+        <button class="service-card" data-prefill="Smart / keypad lock" data-service="locksmith"><span class="service-icon">🔐</span><h3>Smart & keypad locks</h3><p>Request keypad, electronic deadbolt or access control lock service.</p><span class="service-link">Request service →</span></button>
+      </div>
+    </div></section>
+
+    <section class="section" id="explore-locksmith-services" style="background:#f7f9fc"><div class="container"><div class="section-intro"><span class="section-kicker">POPULAR LOCKSMITH SEARCHES</span><h2>Explore locksmith help by job type</h2><p>Whether you need a mobile locksmith for a car lockout or someone to rekey your home, learn what information to include in your request.</p></div><div class="seo-link-grid"><a href="/services/locksmith-near-me">Local &amp; Mobile Locksmith</a><a href="/services/emergency-locksmith">Emergency Locksmith</a><a href="/services/car-lockout">Car Lockout Service</a><a href="/services/house-lockout">House Lockout Service</a><a href="/services/lock-rekeying">Lock Rekeying</a><a href="/services/lock-installation">Lock Installation &amp; Replacement</a><a href="/services/car-key-replacement">Car Key Replacement</a><a href="/services/commercial-locksmith">Commercial Locksmith</a></div></div></section>
+
+    <section class="section how-section" id="how-it-works"><div class="container how-grid"><div><span class="section-kicker">A SIMPLER WAY TO START</span><h2>Less searching.<br>More getting things done.</h2><p>Skip repeating your problem to multiple websites. Submit one request and a service representative can follow up to discuss the job.</p><a href="#request" class="dark-button">Describe your job →</a></div><div class="how-list"><div><span class="how-number">1</span><div><h3>Choose your service</h3><p>Choose the locksmith job you need help with.</p></div></div><div><span class="how-number">2</span><div><h3>Enter your ZIP and details</h3><p>Tell us where and how urgently you need help.</p></div></div><div><span class="how-number">3</span><div><h3>Connect with available help</h3><p>Our dispatch reviews the request. We may handle it directly or arrange a participating professional.</p></div></div></div></div></section>
+
+    <section class="section areas-section" id="areas"><div class="container areas-inner"><div><span class="section-kicker">STARTING IN MARYLAND</span><h2>Local service, local knowledge.</h2><p>Initial service-request coverage is focused on Harford County, Baltimore County and Baltimore City. Availability varies by job type and ZIP code.</p><div class="areas-list"><span>Bel Air</span><span>Aberdeen</span><span>Havre de Grace</span><span>Abingdon</span><span>Perry Hall</span><span>Parkville</span><span>White Marsh</span><span>Towson</span><span>Essex</span><span>Baltimore</span></div></div><div class="areas-panel"><div class="pin">⌖</div><strong>Have a job in your area?</strong><p>Tell us your ZIP code and what needs attention.</p><a href="#request">Check service options →</a></div></div></section>
+
+    <section class="section faq-section"><div class="container faq-inner"><div><span class="section-kicker">COMMON QUESTIONS</span><h2>Before you request help.</h2></div><div class="faq-list"><details><summary>Will I get quotes from several locksmiths?</summary><p>Not necessarily. Your request is reviewed by our service team and may be handled by Citywide Roadside Lock & Key or a participating provider. This is a service-request platform, not a guaranteed multi-quote comparison service.</p></details><details><summary>Is there a charge to submit a request?</summary><p>Submitting a service request through this website is free. A professional will discuss service fees, availability and pricing before any work is authorized.</p></details><details><summary>Can I request a commercial locksmith?</summary><p>Yes. You can request commercial lockouts, lock changes, panic bar hardware and electronic locks. We will confirm which services are available for your job.</p></details><details><summary>Can you guarantee an emergency arrival time?</summary><p>No. Submit the details so the team can check availability. Do not rely on this website for a life-threatening emergency. Call 911 if you are in immediate danger.</p></details></div></div></section>
+
+    <section class="cta-section"><div class="container cta-box"><div><span class="section-kicker">READY WHEN YOU ARE</span><h2>Tell us what locksmith help you need.</h2><p>A few details is all it takes to get started.</p></div><a href="#request" class="white-button">Start a service request →</a></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-grid"><div><div class="footer-brand">🔐 Find Me a Locksmith</div><p>A local job-request platform focused exclusively on locksmith services.</p><p class="licensed-provider" id="licenseText">Demo website — Maryland locksmith license details required before launch.</p></div><div><h4>Services</h4><a href="#services">Auto locksmith</a><a href="#services">Residential locksmith</a><a href="#services">Commercial locksmith</a></div><div><h4>Information</h4><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a id="phoneLink" href="#request" hidden>Call dispatch</a></div></div><div class="container footer-bottom"><span>© <span id="year"></span> Find Me a Locksmith. All rights reserved.</span><span>Requests may be fulfilled by Citywide Roadside Lock & Key or an assigned service provider.</span></div></footer>
+</body>
+</html>

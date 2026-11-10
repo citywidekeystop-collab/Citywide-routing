@@ -1,0 +1,123 @@
+keyword,cluster,intent,landing_page,market
+locksmith near me,Local locksmith,High - request service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+local locksmith near me,Local locksmith,High - request service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+mobile locksmith near me,Local locksmith,High - request service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+find a locksmith,Local locksmith,High - request service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+local locksmith,Local locksmith,High - request service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+locksmith service near me,Local locksmith,High - request service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+locksmith in my area,Local locksmith,Medium - research/service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+locksmith near my location,Local locksmith,Medium - research/service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+hire a locksmith,Local locksmith,Medium - research/service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+lock and key locksmith,Local locksmith,Medium - research/service,/services/locksmith-near-me,Maryland (verify actual serviceability)
+emergency locksmith,Emergency locksmith,High - request service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+24 hour locksmith near me,Emergency locksmith,High - request service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+locksmith open now,Emergency locksmith,High - request service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+urgent locksmith,Emergency locksmith,High - request service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+emergency lockout service,Emergency locksmith,High - request service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+locked out locksmith,Emergency locksmith,High - request service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+same day locksmith,Emergency locksmith,Medium - research/service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+after hours locksmith,Emergency locksmith,Medium - research/service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+locksmith asap,Emergency locksmith,Medium - research/service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+emergency locksmith near me,Emergency locksmith,Medium - research/service,/services/emergency-locksmith,Maryland (verify actual serviceability)
+car lockout,Automotive locksmith,High - request service,/services/car-lockout,Maryland (verify actual serviceability)
+car lockout service near me,Automotive locksmith,High - request service,/services/car-lockout,Maryland (verify actual serviceability)
+locked keys in car,Automotive locksmith,High - request service,/services/car-lockout,Maryland (verify actual serviceability)
+car locksmith near me,Automotive locksmith,High - request service,/services/car-lockout,Maryland (verify actual serviceability)
+auto lockout locksmith,Automotive locksmith,High - request service,/services/car-lockout,Maryland (verify actual serviceability)
+unlock my car,Automotive locksmith,High - request service,/services/car-lockout,Maryland (verify actual serviceability)
+vehicle locksmith,Automotive locksmith,Medium - research/service,/services/car-lockout,Maryland (verify actual serviceability)
+car door unlocking,Automotive locksmith,Medium - research/service,/services/car-lockout,Maryland (verify actual serviceability)
+locked out of my car,Automotive locksmith,Medium - research/service,/services/car-lockout,Maryland (verify actual serviceability)
+car lockout Baltimore,Automotive locksmith,Medium - research/service,/services/car-lockout,Maryland (verify actual serviceability)
+house lockout,Residential locksmith,High - request service,/services/house-lockout,Maryland (verify actual serviceability)
+locked out of house locksmith,Residential locksmith,High - request service,/services/house-lockout,Maryland (verify actual serviceability)
+house locksmith near me,Residential locksmith,High - request service,/services/house-lockout,Maryland (verify actual serviceability)
+residential locksmith,Residential locksmith,High - request service,/services/house-lockout,Maryland (verify actual serviceability)
+home lockout service,Residential locksmith,High - request service,/services/house-lockout,Maryland (verify actual serviceability)
+apartment lockout locksmith,Residential locksmith,High - request service,/services/house-lockout,Maryland (verify actual serviceability)
+unlock house door locksmith,Residential locksmith,Medium - research/service,/services/house-lockout,Maryland (verify actual serviceability)
+lost house key locksmith,Residential locksmith,Medium - research/service,/services/house-lockout,Maryland (verify actual serviceability)
+deadbolt locked out,Residential locksmith,Medium - research/service,/services/house-lockout,Maryland (verify actual serviceability)
+front door lockout,Residential locksmith,Medium - research/service,/services/house-lockout,Maryland (verify actual serviceability)
+rekey locks,Lock rekeying,High - request service,/services/lock-rekeying,Maryland (verify actual serviceability)
+lock rekeying near me,Lock rekeying,High - request service,/services/lock-rekeying,Maryland (verify actual serviceability)
+rekey house locks,Lock rekeying,High - request service,/services/lock-rekeying,Maryland (verify actual serviceability)
+rekey locksmith,Lock rekeying,High - request service,/services/lock-rekeying,Maryland (verify actual serviceability)
+change locks new house,Lock rekeying,High - request service,/services/lock-rekeying,Maryland (verify actual serviceability)
+rekey deadbolt,Lock rekeying,High - request service,/services/lock-rekeying,Maryland (verify actual serviceability)
+rekey locks after moving,Lock rekeying,Medium - research/service,/services/lock-rekeying,Maryland (verify actual serviceability)
+lock rekeying service,Lock rekeying,Medium - research/service,/services/lock-rekeying,Maryland (verify actual serviceability)
+rekey rental property locks,Lock rekeying,Medium - research/service,/services/lock-rekeying,Maryland (verify actual serviceability)
+rekey business locks,Lock rekeying,Medium - research/service,/services/lock-rekeying,Maryland (verify actual serviceability)
+lock installation near me,Lock installation,High - request service,/services/lock-installation,Maryland (verify actual serviceability)
+lock replacement,Lock installation,High - request service,/services/lock-installation,Maryland (verify actual serviceability)
+deadbolt installation,Lock installation,High - request service,/services/lock-installation,Maryland (verify actual serviceability)
+change door locks,Lock installation,High - request service,/services/lock-installation,Maryland (verify actual serviceability)
+install new locks,Lock installation,High - request service,/services/lock-installation,Maryland (verify actual serviceability)
+front door lock replacement,Lock installation,High - request service,/services/lock-installation,Maryland (verify actual serviceability)
+keypad lock installation,Lock installation,Medium - research/service,/services/lock-installation,Maryland (verify actual serviceability)
+smart lock installation,Lock installation,Medium - research/service,/services/lock-installation,Maryland (verify actual serviceability)
+door lock repair locksmith,Lock installation,Medium - research/service,/services/lock-installation,Maryland (verify actual serviceability)
+deadbolt locksmith,Lock installation,Medium - research/service,/services/lock-installation,Maryland (verify actual serviceability)
+car key replacement near me,Automotive locksmith,High - request service,/services/car-key-replacement,Maryland (verify actual serviceability)
+lost car keys,Automotive locksmith,High - request service,/services/car-key-replacement,Maryland (verify actual serviceability)
+car locksmith key replacement,Automotive locksmith,High - request service,/services/car-key-replacement,Maryland (verify actual serviceability)
+car key programming near me,Automotive locksmith,High - request service,/services/car-key-replacement,Maryland (verify actual serviceability)
+key fob replacement,Automotive locksmith,High - request service,/services/car-key-replacement,Maryland (verify actual serviceability)
+transponder key programming,Automotive locksmith,High - request service,/services/car-key-replacement,Maryland (verify actual serviceability)
+replacement auto key,Automotive locksmith,Medium - research/service,/services/car-key-replacement,Maryland (verify actual serviceability)
+lost all car keys locksmith,Automotive locksmith,Medium - research/service,/services/car-key-replacement,Maryland (verify actual serviceability)
+mobile car key maker,Automotive locksmith,Medium - research/service,/services/car-key-replacement,Maryland (verify actual serviceability)
+car key cutting,Automotive locksmith,Medium - research/service,/services/car-key-replacement,Maryland (verify actual serviceability)
+commercial locksmith near me,Commercial locksmith,High - request service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+business locksmith,Commercial locksmith,High - request service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+office locksmith,Commercial locksmith,High - request service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+commercial lock replacement,Commercial locksmith,High - request service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+business lockout,Commercial locksmith,High - request service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+storefront locksmith,Commercial locksmith,High - request service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+office rekey service,Commercial locksmith,Medium - research/service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+panic bar locksmith,Commercial locksmith,Medium - research/service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+commercial deadbolt,Commercial locksmith,Medium - research/service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+access control locksmith,Commercial locksmith,Medium - research/service,/services/commercial-locksmith,Maryland (verify actual serviceability)
+locksmith Bel Air MD,Local intent,High - localized,/services/locksmith-near-me,Bel Air MD
+car locksmith Bel Air MD,Local intent,High - localized,/services/car-lockout,Bel Air MD
+rekey locks Bel Air MD,Local intent,High - localized,/services/lock-rekeying,Bel Air MD
+locksmith Aberdeen MD,Local intent,High - localized,/services/locksmith-near-me,Aberdeen MD
+car locksmith Aberdeen MD,Local intent,High - localized,/services/car-lockout,Aberdeen MD
+rekey locks Aberdeen MD,Local intent,High - localized,/services/lock-rekeying,Aberdeen MD
+locksmith Edgewood MD,Local intent,High - localized,/services/locksmith-near-me,Edgewood MD
+car locksmith Edgewood MD,Local intent,High - localized,/services/car-lockout,Edgewood MD
+rekey locks Edgewood MD,Local intent,High - localized,/services/lock-rekeying,Edgewood MD
+locksmith Abingdon MD,Local intent,High - localized,/services/locksmith-near-me,Abingdon MD
+car locksmith Abingdon MD,Local intent,High - localized,/services/car-lockout,Abingdon MD
+rekey locks Abingdon MD,Local intent,High - localized,/services/lock-rekeying,Abingdon MD
+locksmith Havre de Grace MD,Local intent,High - localized,/services/locksmith-near-me,Havre de Grace MD
+car locksmith Havre de Grace MD,Local intent,High - localized,/services/car-lockout,Havre de Grace MD
+rekey locks Havre de Grace MD,Local intent,High - localized,/services/lock-rekeying,Havre de Grace MD
+locksmith Fallston MD,Local intent,High - localized,/services/locksmith-near-me,Fallston MD
+car locksmith Fallston MD,Local intent,High - localized,/services/car-lockout,Fallston MD
+rekey locks Fallston MD,Local intent,High - localized,/services/lock-rekeying,Fallston MD
+locksmith Parkville MD,Local intent,High - localized,/services/locksmith-near-me,Parkville MD
+car locksmith Parkville MD,Local intent,High - localized,/services/car-lockout,Parkville MD
+rekey locks Parkville MD,Local intent,High - localized,/services/lock-rekeying,Parkville MD
+locksmith Perry Hall MD,Local intent,High - localized,/services/locksmith-near-me,Perry Hall MD
+car locksmith Perry Hall MD,Local intent,High - localized,/services/car-lockout,Perry Hall MD
+rekey locks Perry Hall MD,Local intent,High - localized,/services/lock-rekeying,Perry Hall MD
+locksmith White Marsh MD,Local intent,High - localized,/services/locksmith-near-me,White Marsh MD
+car locksmith White Marsh MD,Local intent,High - localized,/services/car-lockout,White Marsh MD
+rekey locks White Marsh MD,Local intent,High - localized,/services/lock-rekeying,White Marsh MD
+locksmith Towson MD,Local intent,High - localized,/services/locksmith-near-me,Towson MD
+car locksmith Towson MD,Local intent,High - localized,/services/car-lockout,Towson MD
+rekey locks Towson MD,Local intent,High - localized,/services/lock-rekeying,Towson MD
+locksmith Essex MD,Local intent,High - localized,/services/locksmith-near-me,Essex MD
+car locksmith Essex MD,Local intent,High - localized,/services/car-lockout,Essex MD
+rekey locks Essex MD,Local intent,High - localized,/services/lock-rekeying,Essex MD
+locksmith Baltimore MD,Local intent,High - localized,/services/locksmith-near-me,Baltimore MD
+car locksmith Baltimore MD,Local intent,High - localized,/services/car-lockout,Baltimore MD
+rekey locks Baltimore MD,Local intent,High - localized,/services/lock-rekeying,Baltimore MD
+locksmith Harford County MD,Local intent,High - localized,/services/locksmith-near-me,Harford County MD
+car locksmith Harford County MD,Local intent,High - localized,/services/car-lockout,Harford County MD
+rekey locks Harford County MD,Local intent,High - localized,/services/lock-rekeying,Harford County MD
+locksmith Baltimore County MD,Local intent,High - localized,/services/locksmith-near-me,Baltimore County MD
+car locksmith Baltimore County MD,Local intent,High - localized,/services/car-lockout,Baltimore County MD
+rekey locks Baltimore County MD,Local intent,High - localized,/services/lock-rekeying,Baltimore County MD

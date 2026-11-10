@@ -1,699 +1,240 @@
-const express = require("express");
-const cors = require("cors");
-const { Pool } = require("pg");
+'use strict';
+require('dotenv').config();
+const express = require('express');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { Pool } = require('pg');
+const { randomUUID, createHmac, timingSafeEqual } = require('crypto');
+const path = require('path');
 
 const app = express();
-
-app.use(cors());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(express.static("public"));
-
-const PORT = process.env.PORT || 10000;
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "nln-admin-2026";
-const ADMIN_USER = process.env.ADMIN_USER || "admin";
-const ADMIN_PASS = process.env.ADMIN_PASS || "Citywide2026!";
-const ADMIN_PHONE = process.env.ADMIN_PHONE || "4435781686";
-
-const pool = new Pool({
-connectionString: process.env.DATABASE_URL,
-ssl: { rejectUnauthorized: false }
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:'],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+    }
+  }
+}));
+app.use(express.json({ limit: '20kb' }));
+// Keep the incomplete preview out of search results until real requests can be received.
+app.use((req, res, next) => {
+  if (!requiredLive()) res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  next();
 });
 
-const providers = {
-Max: "+14436792242",
-Dreh: "+12024125443",
-Tee: "+14104199281",
-Robyn: "+14435781686",
-"Car Key Chris": "+12232630824"
-};
+const requiredLive = () => process.env.ENABLE_LIVE_SUBMISSIONS === 'true'
+  && !!process.env.DATABASE_URL
+  && !!process.env.LICENSE_NUMBER
+  && !!process.env.ADMIN_PASSWORD;
+const config = () => ({
+  contactPhone: process.env.CONTACT_PHONE || '',
+  contactEmail: process.env.CONTACT_EMAIL || '',
+  providerName: process.env.LEGAL_LOCKSMITH_NAME || 'Citywide Roadside Lock & Key',
+  licenseNumber: process.env.LICENSE_NUMBER || '',
+  serviceRegion: process.env.SERVICE_REGION || 'Harford County, Baltimore County & Baltimore City, Maryland',
+  live: requiredLive(),
+  siteUrl: process.env.SITE_URL || ''
+});
+const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
-async function initDB() {
-await pool.query(`
-CREATE TABLE IF NOT EXISTS leads (
-id SERIAL PRIMARY KEY,
-customer_name TEXT,
-customer_phone TEXT,
-service TEXT,
-source TEXT,
-provider_assigned TEXT,
-lead_status TEXT DEFAULT 'NEW',
-recording TEXT,
-notes TEXT,
-job_amount TEXT DEFAULT '0',
-lead_cost TEXT DEFAULT '35',
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-`);
+async function initializeDb() {
+  if (!pool) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS service_leads (
+      id uuid PRIMARY KEY,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      service_category text NOT NULL,
+      job_type text NOT NULL,
+      property_type text NOT NULL,
+      urgency text NOT NULL,
+      zip_code varchar(5) NOT NULL,
+      street_address text,
+      city text,
+      full_name text NOT NULL,
+      phone text NOT NULL,
+      email text,
+      project_details text,
+      consent_at timestamptz NOT NULL,
+      marketing_opt_in boolean NOT NULL DEFAULT false,
+      source text,
+      status text NOT NULL DEFAULT 'new',
+      assigned_to text NOT NULL DEFAULT 'unassigned',
+      notification_status text NOT NULL DEFAULT 'not_configured'
+    )
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS service_leads_created_idx ON service_leads (created_at DESC)');
 }
 
-function safe(v) {
-return String(v || "")
-.replaceAll("&", "&amp;")
-.replaceAll("<", "&lt;")
-.replaceAll(">", "&gt;")
-.replaceAll('"', "&quot;");
+// SEO discovery: no invented canonical domain in preview mode.
+const indexablePaths = ["/", "/services/locksmith-near-me", "/services/emergency-locksmith", "/services/car-lockout", "/services/house-lockout", "/services/lock-rekeying", "/services/lock-installation", "/services/car-key-replacement", "/services/commercial-locksmith"];
+function publicSiteUrl() {
+  const value = process.env.SITE_URL || '';
+  try {
+    const candidate = new URL(value);
+    if (candidate.protocol !== 'https:' || !candidate.hostname || candidate.username || candidate.password) return '';
+    return candidate.origin;
+  } catch { return ''; }
 }
-
-function money(v) {
-const n = Number(v || 0);
-return "$" + (Number.isNaN(n) ? 0 : n).toLocaleString();
-}
-
-function providerCode(name) {
-return (providers[name] || "").replace(/\D/g, "").slice(-4);
-}
-
-function cleanStatus(v) {
-const s = String(v || "").toUpperCase().trim();
-const ok = ["NEW", "ASSIGNED", "ENROUTE", "ARRIVED", "COMPLETED", "PAID", "DECLINED", "CANCELLED"];
-return ok.includes(s) ? s : "NEW";
-}
-
-function requireAdmin(req, res, next) {
-const token = req.query.token || req.headers["x-admin-token"];
-if (token !== ADMIN_TOKEN) return res.redirect("/admin-login");
-next();
-}
-
-async function getLeads() {
-const r = await pool.query("SELECT * FROM leads ORDER BY id DESC");
-return r.rows.map(x => ({ ...x, lead_status: cleanStatus(x.lead_status) }));
-}
-
-function css() {
-return `
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-margin:0;
-color:white;
-font-family:Arial,Helvetica,sans-serif;
-background:
-radial-gradient(circle at 15% 0%,rgba(37,99,235,.28),transparent 30%),
-radial-gradient(circle at 88% 18%,rgba(168,85,247,.20),transparent 32%),
-linear-gradient(180deg,#030817 0%,#020617 45%,#020817 100%);
-min-height:100vh;
-}
-body:before{
-content:"";
-position:fixed;
-inset:0;
-pointer-events:none;
-background-image:
-linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
-linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
-background-size:34px 34px;
-mask-image:linear-gradient(to bottom,rgba(0,0,0,.85),transparent 80%);
-}
-a{text-decoration:none;color:white}
-.landing{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.home-card,.login-box,.card,.panel,.job,.action{
-background:linear-gradient(180deg,rgba(10,22,44,.88),rgba(5,13,30,.94));
-border:1px solid rgba(95,132,190,.26);
-box-shadow:0 18px 55px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.03);
-backdrop-filter:blur(18px);
-}
-.home-card{width:100%;max-width:430px;border-radius:30px;padding:30px}
-.logo-img{width:190px;max-width:82%;display:block;margin:0 auto 14px}
-.brand{text-align:center;font-size:34px;font-weight:900;background:linear-gradient(90deg,#3b82f6,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.muted{color:#94a3b8}
-.center{text-align:center}
-.home-btn{display:block;width:100%;padding:19px;margin-top:16px;border-radius:20px;text-align:center;font-size:21px;font-weight:900}
-.admin-btn{background:linear-gradient(90deg,#2563eb,#7c3aed)}
-.provider-btn{background:linear-gradient(90deg,#059669,#22c55e)}
-.support-btn{background:#111827;border:1px solid #374151}
-
-.layout{display:flex;min-height:100vh}
-.side{
-width:250px;
-background:rgba(3,11,26,.85);
-border-right:1px solid rgba(95,132,190,.16);
-padding:22px;
-position:fixed;
-top:0;bottom:0;left:0;
-overflow:auto;
-}
-.side-logo{font-size:42px;font-weight:900;font-style:italic;line-height:.85}
-.side-logo small{display:block;font-size:12px;margin-top:8px;color:#94a3b8}
-.nav-title{font-size:12px;color:#64748b;margin:28px 0 10px;text-transform:uppercase}
-.nav a{display:block;padding:13px 14px;border-radius:13px;margin:7px 0;color:#dbeafe;font-weight:800}
-.nav a.active,.nav a:hover{background:linear-gradient(90deg,#0867ff,#7c3aed)}
-
-.main{margin-left:250px;width:calc(100% - 250px);padding:22px;position:relative;z-index:2}
-.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}
-.top h1{margin:0;font-size:32px;line-height:1.05}
-.avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#22c55e);display:grid;place-items:center;font-weight:900}
-.top-icons{display:flex;gap:16px;align-items:center}
-
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
-.card,.panel,.job{border-radius:22px;padding:20px}
-.big{font-size:36px;font-weight:900}
-.actions{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:18px}
-.action{border-radius:18px;min-height:105px;display:grid;place-items:center;text-align:center;font-weight:900}
-.action span{display:block;font-size:32px;margin-bottom:8px}
-.grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:18px}
-.mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
-.mini-card{background:#020817;border-radius:18px;padding:20px;border:1px solid #1e293b}
-.mini-label{font-size:13px;color:#94a3b8}
-.mini-number{font-size:34px;font-weight:900;margin-top:8px}
-.pay{font-size:44px;color:#22c55e;font-weight:900;text-align:center}
-.bar{height:13px;border-radius:99px;background:#102544;overflow:hidden;margin:18px 0}
-.bar div{height:100%;width:86%;background:#2563eb}
-
-.jobs{display:flex;flex-direction:column;gap:16px}
-.job-head{display:flex;justify-content:space-between;gap:14px;align-items:start}
-.job-title{font-size:24px;font-weight:900;line-height:1.3;word-break:break-word}
-.status{padding:9px 13px;border-radius:12px;font-size:12px;font-weight:900}
-.NEW{background:#2563eb}.ASSIGNED{background:#d97706}.ENROUTE{background:#7c3aed}.ARRIVED{background:#0ea5e9}.COMPLETED{background:#16a34a}.PAID{background:#475569}.DECLINED,.CANCELLED{background:#991b1b}
-.sub{color:#cbd5e1;line-height:1.55;margin-top:7px;word-break:break-word}
-.note{background:#020817;border-radius:16px;padding:14px;margin-top:12px;color:#dbeafe;line-height:1.55;max-height:95px;overflow:auto}
-.buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
-.btn{border:0;border-radius:12px;padding:12px 15px;color:white;font-weight:900;cursor:pointer;display:inline-block;text-align:center}
-.blue{background:#2563eb}.purple{background:#9333ea}.green{background:#16a34a}.orange{background:#ea580c}.red{background:#991b1b}.dark{background:#111827}
-input,select,textarea{width:100%;padding:14px;border:0;border-radius:13px;background:#0f172a;color:white;margin-top:10px}
-.formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.submit{width:100%;margin-top:12px;padding:15px;border:0;border-radius:13px;background:linear-gradient(90deg,#2563eb,#7c3aed);color:white;font-weight:900;font-size:16px}
-form.inline{display:inline}
-
-.tabs{display:flex;gap:10px;margin:0 0 18px}
-.tab{flex:1;text-align:center;padding:14px;border-radius:16px;background:#101a35;color:white;font-weight:900;border:1px solid #1e293b}
-.tab.active{background:linear-gradient(90deg,#2563eb,#7c3aed)}
-
-.mobile-nav{display:none}
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.login-box{width:100%;max-width:430px;border-radius:28px;padding:28px}
-.login-box h1{margin:0 0 8px;font-size:34px}
-
-@media(max-width:900px){
-.side{display:none}
-.main{margin-left:0;width:100%;padding:18px 14px 115px}
-.top{align-items:flex-start}
-.top h1{font-size:28px}
-.top-icons{gap:12px}
-.stats{grid-template-columns:1fr 1fr}
-.actions{grid-template-columns:1fr 1fr}
-.grid2{grid-template-columns:1fr}
-.mini-stats{grid-template-columns:1fr 1fr}
-.formgrid{grid-template-columns:1fr}
-.job-title{font-size:22px}
-.buttons{display:grid;grid-template-columns:1fr 1fr}
-.btn{width:100%}
-.mobile-nav{display:flex;position:fixed;left:14px;right:14px;bottom:14px;height:78px;background:#071226;border:1px solid #1e293b;border-radius:28px;justify-content:space-around;align-items:center;z-index:999}
-.mobile-nav a{font-weight:900;text-align:center}
-.mobile-nav span{display:block;font-size:22px;margin-bottom:4px}
-}
-`;
-}
-
-function callRailSummary(b) {
-const summary = b.call_summary || b.summary || b.transcription || b.transcript || b.note || "";
-const city = b.customer_city || b.formatted_customer_location || "";
-const tracking = b.tracking_phone_number || b.formatted_tracking_phone_number || "";
-const source = b.source_name || b.source || "";
-let clean = "";
-if (source) clean += `Source: ${source}\n`;
-if (tracking) clean += `Tracking Number: ${tracking}\n`;
-if (city) clean += `Location: ${city}\n`;
-if (summary) clean += `Summary: ${summary}`;
-return clean || "Incoming CallRail phone lead";
-}
-
-function callRailCustomerPhone(b) {
-return b.customer_phone_number || b.formatted_customer_phone_number || b.customer_number || b.caller_number || b.customer_phone || b.from || b.phone || "Unknown";
-}
-
-function callRailCustomerName(b) {
-return b.formatted_customer_name || b.customer_name || b.name || b.company || "Phone Lead";
-}
-
-function callRailRecording(b) {
-return b.recording || b.recording_url || b.call_recording || b.recording_player || "";
-}
-
-function renderJob(job, providerMode = false, providerName = "") {
-const providerPhone = providers[job.provider_assigned] || "";
-const smsBody = encodeURIComponent(
-`New NLN Job\nService: ${job.service || "Service"}\nCustomer: ${job.customer_name || "Unknown"}\nPhone: ${job.customer_phone || "Unknown"}\nNotes: ${job.notes || ""}`
-);
-
-return `
-<div class="job">
-<div class="job-head">
-<div>
-<div class="job-title">${safe(job.service || "Locksmith Service")}</div>
-<div class="sub">${safe(job.customer_name || "Unknown")} • ${safe(job.customer_phone || "No Phone")}</div>
-<div class="sub">Provider: ${safe(job.provider_assigned || "Not Assigned")} • Amount: ${money(job.job_amount)}</div>
-</div>
-<div class="status ${safe(job.lead_status)}">${safe(job.lead_status)}</div>
-</div>
-
-<div class="note">${safe(job.notes || "No notes yet.")}</div>
-
-<div class="buttons">
-<a class="btn blue" href="tel:${safe(job.customer_phone)}">📞 Call</a>
-<a class="btn purple" href="sms:${safe(job.customer_phone)}">💬 Text</a>
-
-${!providerMode ? `<a class="btn orange" href="${safe(job.recording || "#")}">🎧 Recording</a>` : ""}
-${!providerMode && providerPhone ? `<a class="btn green" href="sms:${providerPhone}?body=${smsBody}">📲 Text Provider</a>` : ""}
-
-${
-providerMode
-? `
-<form class="inline" method="POST" action="/provider/${encodeURIComponent(providerName)}/status/${job.id}?code=${providerCode(providerName)}">
-<input type="hidden" name="status" value="ENROUTE">
-<button class="btn orange" type="submit">🚗 En Route</button>
-</form>
-<form class="inline" method="POST" action="/provider/${encodeURIComponent(providerName)}/status/${job.id}?code=${providerCode(providerName)}">
-<input type="hidden" name="status" value="COMPLETED">
-<button class="btn green" type="submit">✅ Complete</button>
-</form>
-<form class="inline" method="POST" action="/provider/${encodeURIComponent(providerName)}/status/${job.id}?code=${providerCode(providerName)}">
-<input type="hidden" name="status" value="CANCELLED">
-<button class="btn red" type="submit">❌ Cancel</button>
-</form>
-`
-: `
-<form class="inline" method="POST" action="/admin/status/${job.id}?token=${ADMIN_TOKEN}">
-<input type="hidden" name="status" value="COMPLETED">
-<button class="btn green" type="submit">✅ Complete</button>
-</form>
-<form class="inline" method="POST" action="/admin/status/${job.id}?token=${ADMIN_TOKEN}">
-<input type="hidden" name="status" value="PAID">
-<button class="btn dark" type="submit">💰 Paid</button>
-</form>
-<form class="inline" method="POST" action="/admin/status/${job.id}?token=${ADMIN_TOKEN}">
-<input type="hidden" name="status" value="CANCELLED">
-<button class="btn red" type="submit">❌ Cancel</button>
-</form>
-<form class="inline" method="POST" action="/admin/delete/${job.id}?token=${ADMIN_TOKEN}">
-<button class="btn red" type="submit">🗑 Delete</button>
-</form>
-`
-}
-</div>
-
-${
-!providerMode
-? `
-<form method="POST" action="/admin/assign/${job.id}?token=${ADMIN_TOKEN}" style="margin-top:14px">
-<select name="provider_assigned">
-<option value="">Send To Provider</option>
-${Object.keys(providers).map(p => `<option value="${safe(p)}">${safe(p)}</option>`).join("")}
-</select>
-<button class="submit" type="submit">Assign / Send Job</button>
-</form>`
-: ""
-}
-</div>
-`;
-}
-
-app.get("/", (req, res) => {
-res.send(`
-<html>
-<head>
-<title>NLN Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="manifest" href="/manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<style>${css()}</style>
-</head>
-<body>
-<div class="landing">
-<div class="home-card">
-<img class="logo-img" src="/logo.png" onerror="this.style.display='none'">
-<div class="brand">NLN DASHBOARD</div>
-<p class="center muted">Dispatch • Routing • Results</p>
-<a class="home-btn admin-btn" href="/admin-login">🛡️ Admin Login</a>
-<a class="home-btn provider-btn" href="/provider-access">🚗 Provider Access</a>
-<a class="home-btn support-btn" href="tel:${ADMIN_PHONE}">📞 Support</a>
-</div>
-</div>
-</body>
-</html>
-`);
+app.get('/robots.txt', (_, res) => {
+  const origin = publicSiteUrl();
+  res.type('text/plain').send(!requiredLive() ? 'User-agent: *\nDisallow: /\n' : `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\n${origin ? `Sitemap: ${origin}/sitemap.xml\n` : ''}`);
+});
+app.get('/sitemap.xml', (_, res) => {
+  const origin = publicSiteUrl();
+  if (!origin) return res.status(503).type('text/plain').send('Set SITE_URL to the verified HTTPS website URL before publishing sitemap.');
+  const escapeXml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const links = indexablePaths.map(p => `<url><loc>${escapeXml(origin + p)}</loc></url>`).join('');
+  res.type('application/xml').send(`<?xml version="1.0" encoding="utf-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${links}</urlset>`);
 });
 
-app.get("/health", (req, res) => res.send("SERVER RUNNING"));
+app.get('/healthz', (_, res) => res.json({ status: 'ok' }));
+app.get('/api/config', (_, res) => res.json(config()));
+const asText = (v, max) => typeof v === 'string' ? v.trim().slice(0, max) : '';
+const allowedCategories = new Set(['locksmith']);
+const allowedJobs = new Set([
+  'Car lockout', 'Home lockout', 'Business lockout', 'Rekey locks',
+  'Lock replacement / installation', 'Car key replacement', 'Car key programming',
+  'Mailbox lock', 'Smart / keypad lock', 'Commercial lock / panic bar',
+  'Access control / magnetic lock', 'Safe lockout', 'Other locksmith job'
+]);
+const allowedUrgencies = new Set(['Emergency / ASAP', 'Today', 'Schedule later']);
+const allowedProperties = new Set(['Home', 'Vehicle', 'Office', 'Storefront', 'Other']);
+const statuses = new Set(['new', 'contacted', 'booked', 'completed', 'closed']);
+const assignments = new Set(['unassigned', 'Citywide', 'partner']);
 
-app.get("/manifest.json", (req, res) => {
-res.json({
-name: "NLN Provider",
-short_name: "NLN",
-start_url: "/",
-display: "standalone",
-background_color: "#020817",
-theme_color: "#020817",
-orientation: "portrait",
-icons: [
-{ src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-{ src: "/icon-512.png", sizes: "512x512", type: "image/png" }
-]
-});
-});
-
-app.get("/admin-login", (req, res) => {
-res.send(`
-<html>
-<head><title>Admin Login</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css()}</style></head>
-<body>
-<div class="login-wrap">
-<div class="login-box">
-<img class="logo-img" src="/logo.png" onerror="this.style.display='none'">
-<h1>Admin Login</h1>
-<p class="muted">Enter admin username and password.</p>
-<form method="POST" action="/admin-login">
-<input name="username" placeholder="Username">
-<input name="password" type="password" placeholder="Password">
-<button class="submit">Login</button>
-</form>
-</div>
-</div>
-</body>
-</html>
-`);
-});
-
-app.post("/admin-login", (req, res) => {
-if (req.body.username === ADMIN_USER && req.body.password === ADMIN_PASS) {
-return res.redirect(`/admin?token=${ADMIN_TOKEN}`);
+async function notifyLead(lead) {
+  const attempts = [];
+  if (process.env.LEAD_WEBHOOK_URL) {
+    const json = JSON.stringify({ event: 'service.lead.created', lead });
+    const headers = { 'content-type': 'application/json' };
+    if (process.env.LEAD_WEBHOOK_SECRET) {
+      headers['x-lead-signature'] = createHmac('sha256', process.env.LEAD_WEBHOOK_SECRET).update(json).digest('hex');
+    }
+    attempts.push(fetch(process.env.LEAD_WEBHOOK_URL, { method: 'POST', headers, body: json, signal: AbortSignal.timeout(7000) })
+      .then(r => { if (!r.ok) throw new Error(`Webhook HTTP ${r.status}`); }));
+  }
+  if (process.env.RESEND_API_KEY && process.env.FROM_EMAIL && process.env.DISPATCH_EMAIL) {
+    const body = {
+      from: process.env.FROM_EMAIL, to: [process.env.DISPATCH_EMAIL],
+      subject: `New ${lead.urgency} job: ${lead.jobType} (${lead.zipCode})`,
+      text: `New job request (${lead.id})\nCategory: ${lead.serviceCategory}\nJob: ${lead.jobType}\nWhen: ${lead.urgency}\nProperty: ${lead.propertyType}\nCustomer: ${lead.fullName}\nPhone: ${lead.phone}\nEmail: ${lead.email}\nLocation: ${lead.streetAddress}, ${lead.city}, ${lead.zipCode}\nDetails: ${lead.projectDetails}\nSource: ${lead.source}`
+    };
+    attempts.push(fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify(body), signal: AbortSignal.timeout(7000)
+    }).then(r => { if (!r.ok) throw new Error(`Email HTTP ${r.status}`); }));
+  }
+  if (!attempts.length) return 'not_configured';
+  const settled = await Promise.allSettled(attempts);
+  const success = settled.some(s => s.status === 'fulfilled');
+  if (settled.some(s => s.status === 'rejected')) console.error('Dispatch notification error; inspect alert settings');
+  return success ? 'sent' : 'failed';
 }
-res.send("Wrong admin login");
+
+const leadsLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: 'draft-7', legacyHeaders: false,
+  message: { error: 'Too many requests. Please call if your issue is urgent.' } });
+app.post('/api/leads', leadsLimiter, async (req, res) => {
+  if (!requiredLive()) return res.status(503).json({ error: 'This is a demonstration. Real job requests are not active yet.' });
+  const b = req.body || {};
+  if (b.companyWebsite) return res.status(202).json({ demo: true }); // bot honeypot
+  const lead = {
+    id: randomUUID(),
+    serviceCategory: asText(b.serviceCategory, 30),
+    jobType: asText(b.jobType, 100),
+    propertyType: asText(b.propertyType, 30),
+    urgency: asText(b.urgency, 30),
+    zipCode: asText(b.zipCode, 10),
+    streetAddress: asText(b.streetAddress, 180),
+    city: asText(b.city, 80),
+    fullName: asText(b.fullName, 100),
+    phone: asText(b.phone, 35),
+    email: asText(b.email, 140),
+    projectDetails: asText(b.projectDetails, 1200),
+    marketingOptIn: b.marketingOptIn === true,
+    source: asText(b.source, 150)
+  };
+  const digits = lead.phone.replace(/\D/g, '');
+  if (!allowedCategories.has(lead.serviceCategory)
+      || !allowedJobs.has(lead.jobType) || !allowedUrgencies.has(lead.urgency)
+      || !allowedProperties.has(lead.propertyType)
+      || !/^\d{5}$/.test(lead.zipCode)
+      || !lead.fullName || digits.length < 10 || digits.length > 15
+      || (lead.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email))
+      || b.contactConsent !== true) {
+    return res.status(400).json({ error: 'Please check your request details and contact permission.' });
+  }
+  try {
+    await pool.query(`INSERT INTO service_leads
+      (id, service_category, job_type, property_type, urgency, zip_code, street_address, city,
+       full_name, phone, email, project_details, consent_at, marketing_opt_in, source)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,now(),$13,$14)`,
+      [lead.id, lead.serviceCategory, lead.jobType, lead.propertyType, lead.urgency,
+       lead.zipCode, lead.streetAddress, lead.city, lead.fullName, lead.phone,
+       lead.email, lead.projectDetails, lead.marketingOptIn, lead.source]);
+    // A committed lead is never lost if an optional external alert fails.
+    const status = await notifyLead(lead);
+    await pool.query('UPDATE service_leads SET notification_status=$1 WHERE id=$2', [status, lead.id]).catch(() => {});
+    res.status(201).json({ ok: true, requestId: lead.id.slice(0, 8), notification: status });
+  } catch (err) {
+    console.error('Lead save failed', err.message);
+    res.status(500).json({ error: 'Could not save your request. Please call our dispatch team.' });
+  }
 });
 
-app.get("/provider-access", (req, res) => {
-res.send(`
-<html>
-<head><title>Provider Access</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css()}</style></head>
-<body>
-<div class="login-wrap">
-<div class="login-box">
-<h1>Provider Access</h1>
-<p class="muted">Use your private provider login link from dispatch.</p>
-<a class="home-btn support-btn" href="tel:${ADMIN_PHONE}">📞 Contact Dispatch</a>
-</div>
-</div>
-</body>
-</html>
-`);
-});
-
-app.get("/provider-login/:name", (req, res) => {
-const name = req.params.name;
-if (!providers[name]) return res.send("Provider not found");
-
-res.send(`
-<html>
-<head><title>${safe(name)} Login</title><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="manifest" href="/manifest.json"><style>${css()}</style></head>
-<body>
-<div class="login-wrap">
-<div class="login-box">
-<img class="logo-img" src="/logo.png" onerror="this.style.display='none'">
-<h1>${safe(name)} Login</h1>
-<p class="muted">Enter your private 4-digit code.</p>
-<input id="code" maxlength="4" placeholder="4 digit code">
-<button class="submit" onclick="login()">Login</button>
-</div>
-</div>
-<script>
-function login(){
-const code = document.getElementById("code").value;
-if(!code){ alert("Enter your code"); return; }
-window.location.href = "/provider/${encodeURIComponent(name)}?code=" + encodeURIComponent(code);
+function secureEquals(a, b) {
+  const ba = Buffer.from(String(a)); const bb = Buffer.from(String(b));
+  return ba.length === bb.length && timingSafeEqual(ba, bb);
 }
-</script>
-</body>
-</html>
-`);
-});
-
-app.get("/callrail/test", async (req, res) => {
-await pool.query(
-`INSERT INTO leads (customer_name, customer_phone, service, source, provider_assigned, lead_status, recording, notes, job_amount, lead_cost)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-["CallRail Test Lead", "+14430000000", "Incoming Phone Call", "CallRail Test", "", "NEW", "", "Manual test lead", "0", "35"]
-);
-res.send("CallRail test lead added");
-});
-
-app.post("/callrail/webhook", async (req, res) => {
-try {
-const b = req.body || {};
-await pool.query(
-`INSERT INTO leads (customer_name, customer_phone, service, source, provider_assigned, lead_status, recording, notes, job_amount, lead_cost)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-[callRailCustomerName(b), callRailCustomerPhone(b), b.service || b.call_type || "Phone Call", "CallRail", "", "NEW", callRailRecording(b), callRailSummary(b), "0", "35"]
-);
-res.json({ success: true });
-} catch (err) {
-res.status(500).json({ success: false, error: err.message });
+function adminAuth(req, res, next) {
+  if (!process.env.ADMIN_PASSWORD) return res.status(503).send('Admin access not configured.');
+  const raw = req.get('authorization') || '';
+  const [kind, payload] = raw.split(' ');
+  let user = '', password = '';
+  if (kind === 'Basic' && payload && payload.length < 1000) {
+    const combo = Buffer.from(payload, 'base64').toString('utf8');
+    const colon = combo.indexOf(':');
+    if (colon > -1) { user = combo.slice(0, colon); password = combo.slice(colon + 1); }
+  }
+  if (secureEquals(user, process.env.ADMIN_USERNAME || 'dispatch') && secureEquals(password, process.env.ADMIN_PASSWORD)) return next();
+  res.set('WWW-Authenticate', 'Basic realm="Dispatch Admin"');
+  return res.status(401).send('Authentication required');
 }
+app.get('/admin', adminAuth, (req, res) => res.sendFile(path.join(__dirname, 'private', 'admin.html')));
+app.get('/api/admin/leads', adminAuth, async (req, res) => {
+  if (!pool) return res.status(503).json({ error: 'Database not configured' });
+  try {
+    const { rows } = await pool.query('SELECT * FROM service_leads ORDER BY created_at DESC LIMIT 250');
+    res.json({ leads: rows });
+  } catch { res.status(500).json({ error: 'Could not retrieve leads' }); }
+});
+app.patch('/api/admin/leads/:id', adminAuth, async (req, res) => {
+  if (!pool) return res.status(503).json({ error: 'Database not configured' });
+  const status = asText(req.body?.status, 30);
+  const assignedTo = asText(req.body?.assignedTo, 30);
+  if (!statuses.has(status) || !assignments.has(assignedTo)) return res.status(400).json({ error: 'Invalid status or assignment' });
+  try {
+    const result = await pool.query(`UPDATE service_leads SET status=$1, assigned_to=$2, updated_at=now()
+      WHERE id=$3 RETURNING id, status, assigned_to`, [status, assignedTo, req.params.id]);
+    if (!result.rowCount) return res.status(404).json({ error: 'Not found' });
+    res.json(result.rows[0]);
+  } catch { res.status(500).json({ error: 'Could not update request' }); }
 });
 
-app.post("/sms/webhook", async (req, res) => {
-try {
-const b = req.body || {};
-const from = b.From || b.from || b.customer_phone_number || b.customer_phone || b.formatted_customer_phone_number || "Unknown";
-const message = b.Body || b.body || b.message || b.text || b.content || "Incoming SMS lead";
-
-await pool.query(
-`INSERT INTO leads (customer_name, customer_phone, service, source, provider_assigned, lead_status, recording, notes, job_amount, lead_cost)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-["SMS Lead", from, "Text Message Lead", "CallRail SMS", "", "NEW", "", message, "0", "35"]
-);
-
-res.status(200).send("OK");
-} catch (err) {
-res.status(500).send("ERROR");
-}
-});
-
-app.post("/admin/add-job", requireAdmin, async (req, res) => {
-await pool.query(
-`INSERT INTO leads (customer_name, customer_phone, service, source, provider_assigned, lead_status, recording, notes, job_amount, lead_cost)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-[
-req.body.customer_name || "Unknown",
-req.body.customer_phone || "Unknown",
-req.body.service || "Locksmith Service",
-req.body.source || "Manual",
-req.body.provider_assigned || "",
-req.body.provider_assigned ? "ASSIGNED" : "NEW",
-req.body.recording || "",
-req.body.notes || "",
-req.body.job_amount || "0",
-req.body.lead_cost || "35"
-]
-);
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/admin/assign/:id", requireAdmin, async (req, res) => {
-await pool.query(`UPDATE leads SET provider_assigned=$1, lead_status='ASSIGNED' WHERE id=$2`, [req.body.provider_assigned || "", req.params.id]);
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/admin/status/:id", requireAdmin, async (req, res) => {
-await pool.query(`UPDATE leads SET lead_status=$1 WHERE id=$2`, [cleanStatus(req.body.status), req.params.id]);
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/admin/delete/:id", requireAdmin, async (req, res) => {
-await pool.query("DELETE FROM leads WHERE id=$1", [req.params.id]);
-res.redirect(`/admin?token=${ADMIN_TOKEN}`);
-});
-
-app.post("/provider/:name/status/:id", async (req, res) => {
-const name = req.params.name;
-if (!providers[name]) return res.send("Provider not found");
-if (req.query.code !== providerCode(name)) return res.send("LOCKED");
-
-await pool.query(`UPDATE leads SET provider_assigned=$1, lead_status=$2 WHERE id=$3`, [name, cleanStatus(req.body.status), req.params.id]);
-res.redirect(`/provider/${encodeURIComponent(name)}?code=${providerCode(name)}`);
-});
-
-app.get("/admin", requireAdmin, async (req, res) => {
-const allLeads = await getLeads();
-const activeLeads = allLeads.filter(l => !["COMPLETED", "PAID", "DECLINED", "CANCELLED"].includes(l.lead_status));
-const closedLeads = allLeads.filter(l => ["COMPLETED", "PAID", "DECLINED", "CANCELLED"].includes(l.lead_status));
-const revenue = allLeads.reduce((s, l) => s + (Number(l.job_amount) || 0), 0);
-
-res.send(`
-<html>
-<head><title>NLN Admin</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css()}</style></head>
-<body>
-<div class="layout">
-<aside class="side">
-<img class="logo-img" src="/logo.png" onerror="this.style.display='none'">
-<div class="side-logo">NLN<small>CITYWIDE ROUTING</small></div>
-<div class="nav-title">Dashboard</div>
-<div class="nav">
-<a class="active" href="#top">📊 Overview</a>
-<a href="#jobs">💼 Jobs</a>
-<a href="#addJob">➕ Add Job</a>
-<a href="#providers">👥 Providers</a>
-<a href="#closed">✅ Closed</a>
-</div>
-</aside>
-
-<main class="main" id="top">
-<div class="top">
-<div>
-<h1><span style="color:#3b82f6">NLN</span> Admin Dashboard</h1>
-<div class="muted">Luxury Dispatch Command Center</div>
-</div>
-<div class="top-icons"><span>💬</span><span>🔔</span><div class="avatar">A</div></div>
-</div>
-
-<div class="stats">
-<div class="card"><div class="big">${activeLeads.length}</div><div class="muted">Active Jobs</div><div class="muted" style="color:#3b82f6">+ live</div></div>
-<div class="card"><div class="big">${money(revenue)}</div><div class="muted">Revenue</div><div class="muted" style="color:#22c55e">+ tracking</div></div>
-<div class="card"><div class="big">${closedLeads.length}</div><div class="muted">Closed Jobs</div><div class="muted" style="color:#a855f7">history</div></div>
-<div class="card"><div class="big">${Object.keys(providers).length}</div><div class="muted">Providers</div><div class="muted" style="color:#22c55e">Online</div></div>
-</div>
-
-<div class="actions">
-<a class="action" href="#addJob"><div><span>➕</span>Add New Job</div></a>
-<a class="action" href="#providers"><div><span>👥</span>Providers</div></a>
-<a class="action" href="#jobs"><div><span>💼</span>Jobs</div></a>
-<a class="action" href="#payments"><div><span>💳</span>Payments</div></a>
-<a class="action" href="/callrail/test"><div><span>📞</span>Test CallRail</div></a>
-<a class="action" href="/health"><div><span>⚙️</span>System</div></a>
-</div>
-
-<div class="grid2">
-<section class="panel">
-<h2>Jobs Overview</h2>
-<div class="mini-stats">
-<div class="mini-card"><div class="mini-label">Today Leads</div><div class="mini-number">${activeLeads.length}</div></div>
-<div class="mini-card"><div class="mini-label">Closed Jobs</div><div class="mini-number" style="color:#22c55e">${closedLeads.length}</div></div>
-<div class="mini-card"><div class="mini-label">Revenue</div><div class="mini-number" style="font-size:28px;color:#3b82f6">${money(revenue)}</div></div>
-<div class="mini-card"><div class="mini-label">Providers</div><div class="mini-number" style="color:#a855f7">${Object.keys(providers).length}</div></div>
-</div>
-</section>
-
-<section class="panel" id="payments">
-<h2>Payment Threshold</h2>
-<div class="pay">$0.00</div>
-<div class="muted center">No balance due</div>
-<div class="bar"><div></div></div>
-<p class="muted">Your entire $10,000 payment threshold is available.</p>
-<button class="submit">MAKE A PAYMENT</button>
-</section>
-</div>
-
-<section class="panel" id="providers">
-<h2>Providers</h2>
-<div class="stats">
-${Object.entries(providers).map(([n,p]) => `
-<div class="card">
-<h3>${safe(n)}</h3>
-<div class="muted">${safe(p)}</div>
-<div class="buttons">
-<a class="btn blue" href="tel:${safe(p)}">Call</a>
-<a class="btn purple" href="sms:${safe(p)}">Text</a>
-<a class="btn green" href="/provider-login/${encodeURIComponent(n)}">Login Page</a>
-</div>
-</div>`).join("")}
-</div>
-</section>
-
-<section class="panel" id="addJob" style="margin-top:18px">
-<h2>Add Quick Job</h2>
-<form method="POST" action="/admin/add-job?token=${ADMIN_TOKEN}">
-<div class="formgrid">
-<input name="customer_name" placeholder="Customer Name">
-<input name="customer_phone" placeholder="Customer Phone">
-<input name="service" placeholder="Service">
-<input name="source" placeholder="Source">
-<input name="job_amount" placeholder="Job Amount">
-<input name="lead_cost" placeholder="Lead Cost">
-<input name="recording" placeholder="Recording URL">
-<select name="provider_assigned"><option value="">Assign Provider</option>${Object.keys(providers).map(p => `<option value="${safe(p)}">${safe(p)}</option>`).join("")}</select>
-</div>
-<textarea name="notes" placeholder="Notes"></textarea>
-<button class="submit">Create Job</button>
-</form>
-</section>
-
-<section class="panel" id="jobs" style="margin-top:18px"><h2>Active Jobs</h2><div class="jobs">${activeLeads.map(j => renderJob(j)).join("") || "<div class='card'>No active jobs.</div>"}</div></section>
-<section class="panel" id="closed" style="margin-top:18px"><h2>Closed / Cancelled Jobs</h2><div class="jobs">${closedLeads.slice(0,20).map(j => renderJob(j)).join("") || "<div class='card'>No closed jobs.</div>"}</div></section>
-</main>
-</div>
-
-<div class="mobile-nav">
-<a href="#jobs"><span>💼</span>Jobs</a>
-<a href="#providers"><span>👥</span>Providers</a>
-<a href="#payments"><span>💳</span>Pay</a>
-<a href="javascript:location.reload()"><span>🔄</span>Refresh</a>
-</div>
-</body>
-</html>
-`);
-});
-
-app.get("/provider/:name", async (req, res) => {
-const name = req.params.name;
-if (!providers[name]) return res.send("Provider not found");
-if (req.query.code !== providerCode(name)) return res.redirect(`/provider-login/${encodeURIComponent(name)}`);
-
-const view = String(req.query.view || "active").toLowerCase();
-const allLeads = await getLeads();
-const mine = allLeads.filter(l => l.provider_assigned === name);
-
-const active = mine.filter(l => !["COMPLETED", "PAID", "DECLINED", "CANCELLED"].includes(l.lead_status));
-const completed = mine.filter(l => ["COMPLETED", "PAID"].includes(l.lead_status));
-const cancelled = mine.filter(l => ["DECLINED", "CANCELLED"].includes(l.lead_status));
-
-let leads = active;
-if (view === "completed") leads = completed;
-if (view === "cancelled") leads = cancelled;
-
-const base = `/provider/${encodeURIComponent(name)}?code=${providerCode(name)}`;
-
-res.send(`
-<html>
-<head><title>${safe(name)} Provider App</title><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="manifest" href="/manifest.json"><style>${css()}</style></head>
-<body>
-<main class="main" style="margin:0;width:100%">
-<div class="top">
-<div><h1>${safe(name)} Dashboard</h1><div class="muted">Provider Dispatch App</div></div>
-<div class="avatar">${safe(name[0])}</div>
-</div>
-
-<div class="stats">
-<div class="card"><div class="big">${active.length}</div><div class="muted">Active</div></div>
-<div class="card"><div class="big">${completed.length}</div><div class="muted">Completed</div></div>
-</div>
-
-<div class="tabs">
-<a class="tab ${view === "active" ? "active" : ""}" href="${base}&view=active">Active</a>
-<a class="tab ${view === "completed" ? "active" : ""}" href="${base}&view=completed">Completed</a>
-<a class="tab ${view === "cancelled" ? "active" : ""}" href="${base}&view=cancelled">Cancelled</a>
-</div>
-
-<section class="panel" id="jobs">
-<h2>${view === "active" ? "My Active Jobs" : view === "completed" ? "Completed Jobs" : "Cancelled Jobs"}</h2>
-<div class="jobs">${leads.map(j => renderJob(j, true, name)).join("") || "<div class='card'>No jobs in this section.</div>"}</div>
-</section>
-</main>
-
-<audio id="notifySound" src="/notify.mp3"></audio>
-
-<div class="mobile-nav">
-<a href="${base}&view=active"><span>🏠</span>Active</a>
-<a href="${base}&view=completed"><span>✅</span>Done</a>
-<a href="tel:${ADMIN_PHONE}"><span>📞</span>Dispatch</a>
-<a href="javascript:location.reload()"><span>🔄</span>Refresh</a>
-</div>
-</body>
-</html>
-`);
-});
-
-initDB().then(() => {
-app.listen(PORT, () => {
-console.log("SERVER RUNNING");
-});
-});
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], maxAge: 0 }));
+app.use((_, res) => res.status(404).sendFile(path.join(__dirname, 'public', '404.html')));
+const port = Number(process.env.PORT || 3000);
+initializeDb().then(() => app.listen(port, () => {
+  console.log(`Find Me a Locksmith on port ${port}. Live submissions: ${requiredLive()}`);
+})).catch(err => { console.error('Database initialization failed:', err.message); process.exit(1); });
