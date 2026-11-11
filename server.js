@@ -34,13 +34,13 @@ app.use((req, res, next) => {
 
 const requiredLive = () => process.env.ENABLE_LIVE_SUBMISSIONS === 'true'
   && !!process.env.DATABASE_URL
-  && !!process.env.LICENSE_NUMBER
+  && process.env.COMPLIANCE_REVIEW_COMPLETE === 'true'
   && !!process.env.ADMIN_PASSWORD;
 const config = () => ({
   contactPhone: process.env.CONTACT_PHONE || '',
   contactEmail: process.env.CONTACT_EMAIL || '',
-  providerName: process.env.LEGAL_LOCKSMITH_NAME || 'Citywide Roadside Lock & Key',
-  licenseNumber: process.env.LICENSE_NUMBER || '',
+  platformName: 'Find Me a Locksmith',
+  platformType: 'locksmith_referral',
   serviceRegion: process.env.SERVICE_REGION || 'Harford County, Baltimore County & Baltimore City, Maryland',
   live: requiredLive(),
   siteUrl: process.env.SITE_URL || ''
@@ -111,7 +111,7 @@ const allowedJobs = new Set([
 const allowedUrgencies = new Set(['Emergency / ASAP', 'Today', 'Schedule later']);
 const allowedProperties = new Set(['Home', 'Vehicle', 'Office', 'Storefront', 'Other']);
 const statuses = new Set(['new', 'contacted', 'booked', 'completed', 'closed']);
-const assignments = new Set(['unassigned', 'Citywide', 'partner']);
+const assignments = new Set(['unassigned', 'licensed provider']);
 
 async function notifyLead(lead) {
   const attempts = [];
