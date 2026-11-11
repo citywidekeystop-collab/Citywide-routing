@@ -72,3 +72,7 @@
 @media(prefers-reduced-motion:reduce) {
   .brand-symbol-turn{animation:none;will-change:auto}
 }
+
+/* Put car-key replacement on its own first row ahead of lockouts. */
+.hero-chips .hero-feature-chip{flex:0 0 100%;display:flex;max-width:100%;}
+.hero-chips .hero-feature-chip span{display:inline-flex;align-items:center;gap:7px;}
