@@ -5,6 +5,21 @@ const locksmithJobs = [
   'Mailbox lock', 'Smart / keypad lock', 'Commercial lock / panic bar',
   'Access control / magnetic lock', 'Safe lockout', 'Other locksmith job'
 ];
+const jobIconNames = Object.freeze({
+  'Car lockout': 'car',
+  'Home lockout': 'house',
+  'Business lockout': 'building',
+  'Rekey locks': 'key',
+  'Lock replacement / installation': 'lock',
+  'Car key replacement': 'car',
+  'Car key programming': 'keypad',
+  'Mailbox lock': 'mailbox',
+  'Smart / keypad lock': 'keypad',
+  'Commercial lock / panic bar': 'briefcase',
+  'Access control / magnetic lock': 'shield',
+  'Safe lockout': 'safe',
+  'Other locksmith job': 'tool'
+});
 const form = document.getElementById('leadForm');
 const state = { serviceCategory: 'locksmith', jobType: '', urgency: 'Emergency / ASAP' };
 let step = 1;
@@ -15,7 +30,15 @@ function renderJobs() {
   locksmithJobs.forEach(name => {
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'job-choice' + (state.jobType === name ? ' selected' : '');
-    btn.textContent = name; btn.dataset.job = name;
+    btn.dataset.job = name;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'ui-icon');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', '/icons.svg#' + jobIconNames[name]);
+    svg.append(use);
+    btn.append(svg, document.createTextNode(name));
     btn.setAttribute('aria-pressed', String(state.jobType === name));
     btn.addEventListener('click', () => { state.jobType = name; renderJobs(); showError(step,''); });
     target.append(btn);
