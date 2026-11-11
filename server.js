@@ -16,7 +16,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'https://images.pexels.com'],
+      imgSrc: ["'self'", 'data:', 'https://cdn.shopify.com'],
       fontSrc: ["'self'"],
       connectSrc: ["'self'"],
       frameAncestors: ["'none'"],
