@@ -1,6 +1,6 @@
 'use strict';
 const statusTypes = ['new','contacted','booked','completed','closed'];
-const assignmentTypes = ['unassigned','Citywide','partner'];
+const assignmentTypes = ['unassigned','licensed provider'];
 let leads = [];
 const tbody = document.getElementById('leadRows');
 const errorEl = document.getElementById('adminError');
