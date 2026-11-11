@@ -73,7 +73,7 @@ form.addEventListener('submit', async e => {
   if (error) return showError(3,error);
   const submit = document.getElementById('submitBtn');
   if (!isLive) {
-    return showResult('This is a working preview', 'Your form is filled in, but no personal information was sent or stored. The database, dispatch alerts and verified license number must be configured before accepting real requests.');
+    return showResult('This is a working preview', 'Your form is filled in, but no personal information was sent or stored. The database, contact details, dispatch alerts and legal compliance review must be completed before accepting real requests.');
   }
   submit.disabled = true; submit.textContent = 'Sending request…';
   const url = new URLSearchParams(location.search);
@@ -114,9 +114,6 @@ renderJobs(); document.getElementById('year').textContent = String(new Date().ge
 fetch('/api/config').then(r => r.json()).then(config => {
   isLive = !!config.live;
   document.getElementById('demoRibbon').hidden = isLive;
-  if (config.licenseNumber) {
-    document.getElementById('licenseText').textContent = `Licensed locksmith provider: ${config.providerName}. Maryland license #${config.licenseNumber}.`;
-  }
   if (config.contactPhone) {
     const link = document.getElementById('phoneLink');
     link.hidden = false; link.href = `tel:${config.contactPhone.replace(/[^\d+]/g,'')}`;
