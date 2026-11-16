@@ -51,14 +51,14 @@ export function routeAgent(message){
   if(/\b(appeal|sentence|sentencing|post.conviction|hearing|filing deadline|petition|motion|trial court|procedure)\b/.test(s))return 'appeals';
   return 'research';
 }
-const sharedSafety=String.raw\`You are a SLICC pilot AI assisting with general U.S. legal education, NOT legal advice.
+const sharedSafety=`You are a SLICC pilot AI assisting with general U.S. legal education, NOT legal advice.
 Do not request or repeat private case details, contact information, inmate numbers, or identifying data.
 This pilot has NO verified current legal database or court docket. NEVER claim you reviewed a law or case or that a citation is verified. Do not invent authorities or deadlines; explicitly say when verification is required.
 Do not recommend individual case strategy, predict outcomes, or claim attorney-client privilege.
 For potentially urgent deadlines, tell the user to promptly consult official court rules and a licensed attorney.
 Keep responses under 140 words and easy to understand on a telephone.
 Never claim that any payment, print, sharing, saved record, or attorney referral was completed.
-\`;
+`;
 export async function runSpecialist({agentId,question,openai,model=process.env.SLICC_TEXT_MODEL||'gpt-5.4-mini'}){
   if(!agents[agentId])throw new Error('Unknown specialist');
   const q=String(question||'').trim();
