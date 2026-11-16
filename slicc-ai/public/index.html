@@ -18,5 +18,19 @@ footer{margin-top:22px;font-size:12px;color:var(--muted)}a{color:#91d2e8}#copy{b
 <div class="sectionline">Choose a bot to preview</div><div class="cards" id="cards"></div>
 <div class="workspace"><section class="panel"><div class="hline"><span class="label">DEMONSTRATION CONVERSATION</span><span class="label" id="mode">SCRIPTED</span></div><h3 id="botTitle">Legal Research</h3><div class="muted">Example caller question</div><div class="sample" id="question">Loading example...</div><div class="muted">Specialist reply</div><div class="sample" id="answer" aria-live="polite">Choose a specialist to view its sample response.</div><div class="hline"><button id="print" type="button">Print example</button><button id="copy" type="button">Copy example</button></div><div class="callout">Important: This is not a lawyer, confidential attorney-client consultation, verified legal database or replacement for required legal assistance. Do not enter private case details. Printouts are informational only.</div></section>
 <section class="panel"><span class="label">SYSTEM READINESS</span><h3>What is connected?</h3><ul><li>Four separate specialist workflows</li><li>Automatic specialist routing for future voice calls</li><li>Example questions and sample answers</li><li>Print and copy demonstration</li></ul><h3>Still required</h3><ul><li>SLICC OpenAI API billing and private credentials</li><li>CallRail SIP compatibility and approved routing</li><li>Current official legal source library and attorney oversight</li><li>Private user authentication, consent, and secure family document permissions</li><li>Facility authorization before inmate use</li></ul><div class="callout">The pilot has no access to inmate records or billing accounts. Only fictional sample topics are available on this public demo page.</div></section></div>
+<section class="panel" style="margin-top:20px">
+ <div class="label">PRIVATE AI TEXT TESTING · API KEY REQUIRED</div>
+ <h3>Ask a SLICC specialist</h3>
+ <p class="muted">After your OpenAI API key and private SLICC test token are configured in Render, you can test actual AI-generated answers here. Until then, the examples above are scripted. Use fictional questions only.</p>
+ <form id="liveForm" style="display:grid;gap:12px">
+  <label class="muted" for="token">Private test token (never share this code)</label>
+  <input id="token" type="password" autocomplete="off" minlength="20" placeholder="Your SLICC test token" required style="width:100%;padding:13px;border:1px solid #46647d;border-radius:10px;background:#07182b;color:white">
+  <label class="muted" for="liveQuestion">Your fictional legal-information question</label>
+  <textarea id="liveQuestion" maxlength="1200" rows="3" placeholder="For example: What is the general purpose of a notice of appeal?" required style="width:100%;padding:13px;border:1px solid #46647d;border-radius:10px;background:#07182b;color:white;font:inherit"></textarea>
+  <div><button type="submit" id="askLive">Ask selected specialist</button></div>
+ </form>
+ <div id="liveResult" class="sample" aria-live="polite" style="white-space:pre-wrap">This private AI test is inactive until the SLICC project credentials are configured.</div>
+ <p class="muted">No information here is saved to an inmate account, payment account or family document center. No official legal database is connected. Do not enter sensitive information.</p>
+</section>
 <footer>© SLICC • SL Inside Case Connect • Product prototype • Do not submit real legal information through this preview.</footer></main>
 <script src="/app.js" defer></script></body></html>
