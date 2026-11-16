@@ -36,3 +36,23 @@ document.querySelector('#copy').addEventListener('click',async()=>{
  try{await navigator.clipboard.writeText(text);document.querySelector('#copy').textContent='Copied';setTimeout(()=>document.querySelector('#copy').textContent='Copy example',1200);}catch{document.querySelector('#copy').textContent='Copy unavailable';}
 });
 load();
+document.querySelector('#liveForm').addEventListener('submit',async(ev)=>{
+ ev.preventDefault();
+ const button=document.querySelector('#askLive'),result=document.querySelector('#liveResult');
+ const token=document.querySelector('#token').value.trim();
+ const question=document.querySelector('#liveQuestion').value.trim();
+ if(!token||!question)return;
+ button.disabled=true;button.textContent='Checking specialist…';
+ result.textContent='Sending a fictional test question to the selected specialist...';
+ try{
+  const response=await fetch('/api/internal/assist',{
+   method:'POST',
+   headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+   body:JSON.stringify({agentId:current,question})
+  });
+  const data=await response.json();
+  result.textContent=response.ok?data.agent.name+':\n\n'+data.response+'\n\n'+data.disclaimer:
+    'Not yet available: '+(data.error||'Unable to reach the specialist.');
+ }catch{result.textContent='The private AI test could not connect. Check the Render configuration.';}
+ finally{button.disabled=false;button.textContent='Ask selected specialist';}
+});
