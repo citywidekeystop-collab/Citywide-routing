@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Nationwide Leads Network",
+    "slug": "nln-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "nln",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nationwideleadsnetwork.app"
+    },
+    "android": {
+      "package": "com.nationwideleadsnetwork.app"
+    }
+  }
+}
