@@ -10,6 +10,7 @@ const colors={navy:'#152141',blue:'#2456f5',muted:'#68768c',line:'#e6ecf4',bg:'#
 const services=[
  {title:'Build a website',sub:'Custom business websites',icon:'globe-outline',color:'#2456f5',path:'/services.html'},
  {title:'Get business leads',sub:'Grow your customer base',icon:'people-outline',color:'#07876d',path:'/services.html'},
+ {title:'Google Business Profile Setup',sub:'One-time setup or claim assistance for eligible businesses, including profile details and help with Google verification. Request a quote.',icon:'location-outline',color:'#07876d',path:'/services.html'},
  {title:'Google Ads & SEO',sub:'Reach customers online',icon:'megaphone-outline',color:'#c75a19',path:'/services.html'},
  {title:'Logo & branding',sub:'Make your business stand out',icon:'color-palette-outline',color:'#7655cc',path:'/services.html'},
  {title:'E-commerce',sub:'Build an online storefront',icon:'cart-outline',color:'#047ca1',path:'/ecommerce.html'},
