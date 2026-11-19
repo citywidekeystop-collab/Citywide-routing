@@ -11,6 +11,7 @@ const services=[
  {title:'Build a website',sub:'Custom business websites',icon:'globe-outline',color:'#2456f5',path:'/services.html'},
  {title:'Get business leads',sub:'Grow your customer base',icon:'people-outline',color:'#07876d',path:'/services.html'},
  {title:'Google Business Profile Setup',sub:'We set up or help you claim your Google Business Profile, add your business details, and guide you through the verification method Google offers. Request a quote.',notice:'Verification must be handled by the customer.',icon:'location-outline',color:'#07876d',path:'/services.html'},
+ {title:'Google Local Services Ads Setup',sub:'We check eligibility for your business category and location, help set up your ads, and guide you through any screening Google requires. Request a quote.',icon:'megaphone-outline',color:'#c75a19',path:'/services.html'},
  {title:'Google Ads & SEO',sub:'Reach customers online',icon:'megaphone-outline',color:'#c75a19',path:'/services.html'},
  {title:'Logo & branding',sub:'Make your business stand out',icon:'color-palette-outline',color:'#7655cc',path:'/services.html'},
  {title:'E-commerce',sub:'Build an online storefront',icon:'cart-outline',color:'#047ca1',path:'/ecommerce.html'},
