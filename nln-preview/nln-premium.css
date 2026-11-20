@@ -109,3 +109,69 @@
 #builder .nln-builder-icons label .nln-premium-icon{width:34px;height:34px}
 #root .small-grid button .nln-premium-icon{width:54px;height:54px}
 }
+
+/* NLN v2: correct real-world icon proportions and compact, two-column Marketplace services. */
+#root .grid.small-grid{
+ display:grid!important;
+ grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ gap:12px!important;
+ align-items:stretch!important;
+}
+#root .grid.small-grid button.nln-trade-tile{
+ display:flex!important;flex-direction:column!important;
+ align-items:center!important;justify-content:center!important;
+ text-align:center!important;
+ gap:9px!important;
+ width:100%!important;min-width:0!important;
+ min-height:144px!important;max-height:165px!important;
+ padding:14px 8px!important;
+ border-radius:20px!important;
+ border:1px solid #dce6f3!important;
+ background:linear-gradient(155deg,#fff,#f8fbff)!important;
+ box-shadow:0 9px 22px rgba(13,44,89,.075)!important;
+ -webkit-tap-highlight-color:transparent;
+}
+#root .grid.small-grid button.nln-trade-tile[aria-pressed="true"]{
+ border:2px solid #276ed6!important;
+ background:linear-gradient(150deg,#eef5ff,#fff)!important;
+ box-shadow:0 0 0 3px #3176d215,0 12px 27px #1959b017!important;
+}
+#root .nln-trade-graphic{display:flex!important;justify-content:center;align-items:center;min-height:75px;width:100%}
+#root .nln-trade-graphic>.nln-premium-icon{
+ width:76px!important;height:76px!important;min-width:76px!important;
+ border-radius:19px!important;
+ background:linear-gradient(140deg,#fff 0%,#eff5fe 80%,#e0ecfc 100%)!important;
+ border:1px solid #e0e9f6!important;
+ box-shadow:0 8px 16px #265a9a1a,inset 0 2px 0 #fff!important;
+}
+#root .nln-trade-graphic>.nln-premium-icon svg{width:79%!important;height:79%!important;filter:drop-shadow(0 3px 3px #17365826)}
+#root .nln-trade-tile h3{
+ font-size:14px!important;
+ font-weight:800!important;line-height:1.2!important;
+ margin:0!important;color:#15345c!important;
+ overflow-wrap:break-word!important;text-align:center!important;
+}
+#root .nln-trade-tile[aria-pressed="true"] h3{color:#135ac3!important}
+.nln-premium-icon.brand-google{background:linear-gradient(155deg,#fff,#f7fbff)!important}
+.nln-premium-icon.brand-google svg{width:86%!important;height:86%!important;filter:drop-shadow(0 3px 2px #153b751a)}
+.nln-premium-hero-icons{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px!important;align-items:stretch;margin-top:24px!important}
+.nln-hero-icon-chip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:0}
+.nln-hero-icon-chip b{font-size:12px;color:#f0f6ff;line-height:1.2;text-align:center;font-weight:750}
+.nln-premium-hero-icons .nln-hero-icon-chip>.nln-premium-icon{width:67px!important;height:67px!important;border-radius:17px!important;background:linear-gradient(135deg,#fff,#edf5ff)!important}
+.nln-premium-hero-icons .nln-hero-icon-chip>.nln-premium-icon svg{width:78%!important;height:78%!important}
+.nln-premium-hero-icons .nln-hero-icon-chip>.brand-google svg{width:89%!important;height:89%!important}
+.nln-premium-quick .nln-premium-icon{width:80px!important;height:80px!important}
+.nln-premium-feature .nln-premium-icon{width:68px!important;height:68px!important}
+@media(min-width:750px){#root .grid.small-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;}}
+@media(min-width:1100px){#root .grid.small-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;}}
+@media(max-width:420px){
+#root .grid.small-grid{gap:10px!important}
+#root .grid.small-grid button.nln-trade-tile{min-height:134px!important;max-height:150px!important;padding:12px 6px!important}
+#root .nln-trade-graphic{min-height:67px}
+#root .nln-trade-graphic>.nln-premium-icon{width:67px!important;height:67px!important;min-width:67px!important}
+#root .nln-trade-tile h3{font-size:13px!important}
+.nln-premium-hero-icons{gap:7px!important}
+.nln-premium-hero-icons .nln-hero-icon-chip>.nln-premium-icon{width:53px!important;height:53px!important}
+.nln-hero-icon-chip b{font-size:10px}
+.nln-premium-quick .nln-premium-icon{width:68px!important;height:68px!important}
+}
