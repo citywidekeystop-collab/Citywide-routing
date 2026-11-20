@@ -1,24 +1,37 @@
-# Nationwide Leads Network — mobile app starter
+# Nationwide Leads Network — Unified Marketplace & Business Solutions
 
-React Native / Expo, iOS and Android. Isolated from the existing static website.
+React Native / Expo (iOS and Android) alongside a responsive browser demonstration in `../nln-preview/app.html`.
 
-## Run the preview
-Install Node.js 20.19+ and run from this folder:
-```
+## Run the mobile preview
+Install Node.js 20.19+ and run:
+
+```bash
+cd nln-mobile
 npm install
 npx expo install --fix
 npx expo-doctor
 npx expo start
 ```
-SDK 54 is intentionally used for the iOS App Store version of Expo Go. Scan the QR code with your iPhone camera or Android Expo Go (compatible SDK required). Use a current SDK and an EAS development build for production before submitting to stores. Package identifiers are proposals and must be claimed in the developer accounts.
 
-## Included
-Native Home, Services, Leads, Orders, Account tabs, customer/provider/admin preview modes, service request drafts with validation, delete drafts, and links to the existing NLN website. Drafts exist only in memory, never send to a server, and disappear when the app closes. Preview roles are not secure authorization.
+Expo SDK 54 is used. Use a compatible Expo Go or development build. No App Store or Google Play builds have been published.
 
-## Production gates
-- Confirm dedicated NLN API and database; implement account creation, login, deletion, and server-enforced roles.
-- Add real requests, provider onboarding, lead consent/assignment, order status, notifications and support.
-- Verify NLN payment isolation, webhook signatures, idempotency and Apple/Google payment policies before enabling any in-app purchase or payment links.
-- Upgrade Expo and validate native builds; create branded icons, privacy policy, permissions, terms, store listings, test on real devices.
-- Do not store secrets or personal data in the public repository. Website is currently a static preview; no production NLN API was verified.
-- App source only; no native binaries generated or store submissions made.
+## Included in the app source
+- A clear homepage with two distinct options: **NLN Marketplace** (hire a professional) and **NLN Business Solutions** (done-for-you websites and marketing).
+- Marketplace: service categories, sample job request form with basic validation and request list.
+- Provider view: sample lead opportunities filtered by category, quote entry, sample quote selection.
+- Business Solutions: $199 / $399 / $699 / $999 / $1,999 / $3,995.50 setup packages and $99 / $299 / $499 per-month management packages.
+- Business project inquiry drafts and an owner demo overview with counts for requests, inquiries and quotes.
+- Customer / Provider / Admin **preview role switching** and editable demo profile fields.
+- Payments are intentionally disabled. Advertising spend and third-party fees are separate.
+
+## Important limits
+The Expo app currently saves form entries **in app memory** only. They disappear when the app closes. No account authentication, actual registration, production permissions, real leads, provider matching, notification delivery, messaging or payments are connected. Preview role selection is **not a security boundary**.
+
+The browser preview uses browser-local storage only, not a server. Anyone using that browser can switch to the Owner demo view. Do not enter real customer information during preview testing.
+
+## Requirements before public launch
+1. Implement a separately secured NLN API and database, real email verification and server-enforced customer / provider / owner roles. Never expose customer records in a public demo.
+2. Connect matching, provider onboarding and verification, consent-based notifications, quote acceptance and job lifecycle, moderation, support and abuse protections.
+3. Add privacy policy, terms, account deletion, analytics and monitoring; test all forms on mobile and desktop.
+4. Connect payments **only when authorized later**, with appropriate verification, disclosures and platform-policy review.
+5. Confirm hosting workspace, publish the website and app, run smoke tests, and verify real builds before store submission.
