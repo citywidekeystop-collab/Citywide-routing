@@ -219,3 +219,51 @@
 #root .nln-home-support p{font-size:12px!important}
 #root .nln-home-support .btn{white-space:normal;font-size:11px!important}
 @media(max-width:410px){.nln-entry-card{padding:12px!important;min-height:242px}.nln-entry-card h3{font-size:16px!important}.nln-entry-card p{font-size:12px!important}.nln-entry-action{font-size:11px}.nln-entry-label{font-size:9px}#root .nln-home-options>.panel.choice{padding:11px 9px!important}#root .nln-home-options .choice{gap:7px!important}#root .nln-home-options h2{font-size:15px!important}}
+
+/* Domain setup: clear annual renewal pricing without bulky boxes */
+.nln-domain-pricing-section{margin:28px 0 40px;padding:clamp(22px,3.4vw,34px);background:linear-gradient(130deg,#f4f8ff,#ffffff);border:1px solid #dfebf8;border-radius:25px}
+.nln-domain-top{display:flex;align-items:flex-start;gap:17px}
+.nln-domain-top>.nln-premium-icon{min-width:74px}
+.nln-domain-top h2{font-size:clamp(23px,3.5vw,36px)!important;color:#102b50!important;margin:5px 0 9px!important;letter-spacing:-.045em}
+.nln-domain-top p{font-size:15px;color:#5c6f87;line-height:1.6;margin:0}
+.nln-domain-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:24px 0 20px}
+.nln-domain-options article{background:#fff;border:1px solid #dce7f5;border-radius:19px;padding:21px;box-shadow:0 10px 25px #1e4f880b}
+.nln-domain-options h3{font-size:20px!important;margin:6px 0 8px!important;color:#102b50!important}
+.nln-domain-option-label{font-size:11px;letter-spacing:.08em;font-weight:900;color:#1a69cc}
+.nln-domain-price{font-size:35px;font-weight:900;letter-spacing:-.055em;color:#135ccc;line-height:1.05}
+.nln-domain-price span{font-size:13px;font-weight:650;letter-spacing:normal;color:#5c6f87;margin-left:4px}
+.nln-domain-options p{font-size:14px;line-height:1.55;color:#425973;margin:12px 0}
+.nln-domain-options small{display:block;font-size:12px;color:#66768a;line-height:1.5}
+.nln-domain-disclosure{font-size:13px;line-height:1.65;color:#50647e;margin:15px 0 21px}
+.nln-domains-inline{padding:26px 0;background:#f0f6ff}
+.nln-domains-inline-inner{display:flex;align-items:center;gap:22px}
+.nln-domains-inline-inner>.nln-premium-icon{min-width:72px}
+.nln-domains-inline-inner>div{flex:1;min-width:0}
+.nln-domains-inline h2{font-size:clamp(21px,3vw,30px)!important;margin:4px 0!important;color:#102b50!important}
+.nln-domains-inline p{font-size:14px;line-height:1.6;color:#415777;margin:0 0 5px!important}
+.nln-domains-inline small{font-size:12px;color:#667890}
+.nln-domains-inline .btn{white-space:nowrap;font-size:13px}
+.nln-domain-form-section{margin:18px 0 15px;padding:17px;background:#f3f8ff;border:1px solid #dfebf9;border-radius:15px}
+.nln-domain-form-heading{display:flex;align-items:flex-start;gap:12px}
+.nln-domain-form-heading>.nln-premium-icon{min-width:51px;width:51px!important;height:51px!important}
+.nln-domain-form-heading strong{display:block;color:#163d72;font-weight:850;margin:2px 0 4px}
+.nln-domain-form-heading p{font-size:12px;line-height:1.55;color:#536b85;margin:0 0 11px}
+.nln-domain-footnote{font-size:11px;color:#566c85;line-height:1.6;margin:2px 0}
+.nln-domain-review-note{background:#f1f7ff;color:#164678;border-radius:11px;padding:12px 14px;font-size:13px;line-height:1.5;margin:12px 0}
+#root .nln-domain-app{padding:17px;margin:16px 0;background:#f0f6ff;border:1px solid #d8e8fc;border-radius:17px}
+#root .nln-domain-app-heading{display:flex;align-items:center;gap:13px}
+#root .nln-domain-app-heading .nln-premium-icon{width:59px!important;height:59px!important;min-width:59px!important;border-radius:15px}
+#root .nln-domain-app-heading strong{color:#123b71}
+#root .nln-domain-app-heading p{font-size:13px;color:#536b83;line-height:1.5;margin:4px 0 0}
+#root .nln-domain-app .field{margin:13px 0 5px}
+@media(max-width:700px){
+.nln-domain-top{gap:12px}
+.nln-domain-top>.nln-premium-icon{width:58px!important;height:58px!important;min-width:58px}
+.nln-domain-pricing-section{padding:17px}
+.nln-domain-options{grid-template-columns:1fr;gap:10px;margin:18px 0}
+.nln-domain-options article{padding:17px}
+.nln-domains-inline-inner{align-items:flex-start;gap:12px;flex-wrap:wrap}
+.nln-domains-inline-inner>.nln-premium-icon{width:56px!important;height:56px!important;min-width:56px}
+.nln-domains-inline-inner>div{flex:1 1 calc(100% - 82px)}
+.nln-domains-inline .btn{width:100%;text-align:center}
+}
