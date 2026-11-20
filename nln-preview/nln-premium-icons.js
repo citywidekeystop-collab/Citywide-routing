@@ -35,6 +35,7 @@ function icon(type,size){const name=Object.hasOwn(shapes,type)?type:'growth';con
 function prependIcon(el,type){if(el&&!el.querySelector('.nln-premium-icon'))el.insertAdjacentHTML('afterbegin',icon(type))}
 function improve(){
 document.documentElement.classList.add('nln-preview-upgraded');
+document.querySelectorAll('[data-nln-icon]').forEach(el=>{if(!el.querySelector('.nln-premium-icon'))el.innerHTML=icon(el.dataset.nlnIcon,el.dataset.nlnSize||'')});
 const serviceIcons=['website','seo','ads','social','store','branding','phone','automation'];
 document.querySelectorAll('#services .cardIcon').forEach((el,i)=>{el.textContent='';el.innerHTML=icon(serviceIcons[i]||'growth')});
 document.querySelectorAll('#homeView .plan').forEach(el=>{
