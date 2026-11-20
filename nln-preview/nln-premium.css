@@ -1,0 +1,86 @@
+
+/* Nationwide Leads Network — premium responsive icon & editorial system */
+:root{--nln-ink:#0d2445;--nln-blue:#1358d4;--nln-blue-2:#2a84ff;--nln-gold:#dfad45;--nln-soft:#f5f8fe;--nln-line:#dce6f4;--nln-radius:22px}
+.nln-premium-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:76px;height:76px;border-radius:21px;background:linear-gradient(145deg,#fff,#edf4ff);border:1px solid #e0eaf8;box-shadow:0 12px 27px #17417c17,inset 0 1px 0 #fff;vertical-align:middle}
+.nln-premium-icon svg{width:71%;height:71%;overflow:visible;filter:drop-shadow(0 3px 3px #20447815)}
+.nln-premium-icon.sm{width:51px;height:51px;border-radius:15px}.nln-premium-icon.lg{width:92px;height:92px;border-radius:25px}
+.nln-premium-icon.brand-google,.nln-premium-icon.brand-social{background:linear-gradient(145deg,#fff,#f8fbff)}
+#homeView .cardIcon{background:transparent!important;box-shadow:none!important;border:0!important;width:auto!important;height:auto!important;font-size:0!important;padding:0!important;display:flex!important;margin-bottom:14px}
+#homeView .cardIcon .nln-premium-icon{font-size:initial}
+#homeView .cards>.card{padding:clamp(22px,2.8vw,33px)!important;border:1px solid #e3ebf6!important;border-radius:22px!important;background:#fff!important;box-shadow:0 12px 32px #153b7712!important;transition:transform .2s,box-shadow .2s}
+#homeView .cards>.card:hover{transform:translateY(-3px);box-shadow:0 18px 40px #153b7719!important}
+#homeView .cards>.card h3{font-size:clamp(18px,1.6vw,23px);color:#102a4a}
+#homeView .cards>.card p{line-height:1.65}
+#homeView>.section .intro h2{line-height:1.1}
+.nln-premium-value{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin:35px 0 10px}
+.nln-premium-value article{display:flex;align-items:center;gap:13px;padding:17px 15px;background:#fff;border-radius:17px;border:1px solid #e1eaf7;min-width:0;box-shadow:0 8px 25px #0d315d0a}
+.nln-premium-value b{display:block;color:#122c4b;font-size:14px;line-height:1.25}
+.nln-premium-value small{display:block;color:#63748a;line-height:1.45;margin-top:3px}
+#homeView .nln-premium-plan{border:1px solid #e0e8f5!important;border-radius:23px!important;background:#fff!important;padding:26px!important;box-shadow:0 13px 34px #142b5411!important;min-width:0}
+.nln-premium-plan .nln-premium-icon{margin:0 0 16px}
+.nln-premium-plan .price{color:#1255c4!important;font-size:clamp(27px,3.2vw,36px)!important;line-height:1.15;margin:12px 0!important;font-weight:900}
+.nln-premium-plan h3{font-size:22px;color:#112846}
+.nln-premium-plan ul{padding-left:22px;line-height:1.55;color:#4a5970}
+.nln-premium-plan ul li{margin-bottom:10px}
+.nln-premium-plan .btn{align-self:stretch;white-space:normal!important;padding:13px 15px!important}
+.nln-premium-package{margin:55px 0 34px;overflow:hidden}
+.nln-premium-hero{position:relative;isolation:isolate;background:linear-gradient(130deg,#0e2a4b,#153e70 72%,#1c64a9);color:#fff;padding:clamp(29px,6vw,70px);border-radius:28px;overflow:hidden}
+.nln-premium-hero:after{content:"";position:absolute;width:360px;height:360px;border-radius:50%;border:65px solid #ffffff09;right:-130px;top:-190px;z-index:-1}
+.nln-premium-hero .nln-premium-eyebrow{color:#ffdd92;letter-spacing:.14em;text-transform:uppercase;font-weight:900;font-size:12px}
+.nln-premium-hero h2{font-family:system-ui,Arial,sans-serif!important;letter-spacing:-.055em!important;font-size:clamp(32px,5.8vw,65px)!important;line-height:1.05!important;margin:17px 0 20px!important;color:#fff!important;font-weight:850!important}
+.nln-premium-hero p{color:#deebfb;font-size:clamp(15px,1.6vw,18px);line-height:1.65;max-width:760px}
+.nln-premium-price{font-size:clamp(35px,7vw,72px);font-weight:900;letter-spacing:-.06em;color:#ffd87f;margin:15px 0}
+.nln-premium-price span{font-size:clamp(15px,1.6vw,20px);font-weight:600;letter-spacing:normal;color:#e4effb}
+.nln-premium-hero-icons{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:27px}
+.nln-premium-hero-icons .nln-premium-icon{width:59px;height:59px;background:#ffffffef}
+.nln-premium-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:22px 0 35px}
+.nln-premium-quick article{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;gap:9px;background:#fff;border:1px solid #e2ebf7;padding:22px 13px;border-radius:19px;box-shadow:0 9px 25px #0b3a7b10}
+.nln-premium-quick b{color:#10284a;font-size:15px}
+.nln-premium-quick small{color:#62748c;font-size:12px;line-height:1.4}
+.nln-premium-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.nln-premium-feature{display:flex;gap:16px;align-items:flex-start;background:#fff;border:1px solid #e2eaf4;border-radius:19px;padding:22px;box-shadow:0 8px 22px #0e30600a}
+.nln-premium-feature h3{font-family:system-ui,Arial,sans-serif!important;font-size:18px!important;color:#112b4c!important;font-weight:800!important;margin:0 0 6px!important}
+.nln-premium-feature p{color:#5a6b83;margin:0;font-size:14px;line-height:1.55}
+.nln-premium-feature .nln-premium-icon{width:62px;height:62px;border-radius:17px}
+.nln-premium-cta{display:flex;gap:18px;align-items:center;justify-content:space-between;background:#eaf2ff;border-radius:21px;padding:25px;margin-top:22px;flex-wrap:wrap}
+.nln-premium-cta h3{color:#112b4c!important;margin:0 0 6px!important;font-size:22px}
+.nln-premium-cta p{margin:0;color:#536882;max-width:550px;font-size:14px}
+.nln-premium-cta button{background:linear-gradient(110deg,#0e55bd,#1c73e0)!important;border-radius:14px!important;box-shadow:0 9px 22px #0e55bd29!important}
+.nln-premium-disclaimer{font-size:12px;color:#526884;line-height:1.7;margin-top:17px}
+#choose-path a{transition:transform .2s,box-shadow .2s;border-radius:23px!important;padding:clamp(22px,3vw,31px)!important;box-shadow:0 15px 37px #204c8112}
+#choose-path a:hover{transform:translateY(-3px)}
+#choose-path .nln-choice-icon{margin:0 0 13px}
+#choose-path .nln-choice-icon .nln-premium-icon{width:91px;height:91px;border-radius:23px}
+#homeView .nln-showcase-tile .nln-premium-icon{width:66px;height:66px;margin:12px 0}
+.nln-steps-premium{position:relative}
+.nln-steps-premium .step{padding:25px!important;border:1px solid #e2eaf5!important;border-radius:20px!important;background:#fff!important;box-shadow:0 10px 29px #0d2f5c0d!important}
+.nln-steps-premium .step b{font-size:12px;color:#a16f1d}
+.nln-steps-premium .step .nln-premium-icon{display:flex;margin:9px 0 15px}
+.nln-steps-premium .step h3{font-size:20px;color:#132f50}
+.nln-work-name .nln-premium-icon{margin:12px 0 14px}
+.nln-premium-store-features{list-style:none!important;padding:0!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:22px 0 28px}
+.nln-premium-store-features li{background:#fff;padding:20px!important;border:1px solid #e0e9f5;border-radius:18px;display:flex;align-items:center;gap:14px;min-width:0;box-shadow:0 9px 24px #143e6e09}
+.nln-premium-store-features .nln-premium-icon{width:63px;height:63px;border-radius:17px}
+.nln-premium-showcase .nln-premium-icon{margin-bottom:14px}
+.nln-preview-upgraded .chatbubble{right:17px!important;bottom:18px!important;padding:10px 16px!important;font-size:12px!important;max-width:190px!important;opacity:.94}
+.nln-preview-upgraded .nln-front .nln-front-art .nln-premium-icon{width:90px}
+.nln-preview-upgraded .btn,.nln-preview-upgraded button.btn{border-radius:999px}
+@media(max-width:950px){.nln-premium-value,.nln-premium-quick{grid-template-columns:repeat(2,minmax(0,1fr))}.nln-premium-feature-grid{grid-template-columns:1fr}}
+@media(max-width:600px){
+.nln-premium-icon{width:67px;height:67px;border-radius:18px}
+.nln-premium-value,.nln-premium-quick{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.nln-premium-value article{display:block;padding:13px}
+.nln-premium-value article .nln-premium-icon{margin-bottom:9px;width:54px;height:54px}
+.nln-premium-hero{padding:27px 20px;border-radius:20px}
+.nln-premium-price{font-size:clamp(34px,9vw,52px)}
+.nln-premium-feature{padding:17px 13px;gap:12px}
+.nln-premium-feature .nln-premium-icon{width:53px;height:53px;min-width:53px}
+.nln-premium-feature h3{font-size:16px!important}
+.nln-premium-quick article{padding:14px 10px}
+.nln-premium-quick .nln-premium-icon{width:57px;height:57px}
+.nln-premium-cta{padding:19px}
+.nln-premium-cta button{width:100%}
+.nln-premium-store-features{grid-template-columns:1fr}
+#homeView .nln-premium-plan{padding:21px!important}
+#homeView .cards>.card{padding:22px!important}
+}
