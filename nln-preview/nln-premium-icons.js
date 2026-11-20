@@ -81,7 +81,7 @@ document.querySelectorAll('#homeView .plan').forEach(el=>{
  const head=(el.querySelector('h3')?.textContent||'').toLowerCase();let typ=head.includes('e-commerce')?'store':head.includes('social')?'social':head.includes('maintenance')?'security':head.includes('marketing')?'ads':head.includes('complete')?'growth':head.includes('professional')?'laptop':head.includes('growth')?'seo':head.includes('essentials')?'business':'website';
  el.classList.add('nln-premium-plan');prependIcon(el,typ)
 });
-const options=document.querySelectorAll('#choose-path a');options.forEach((el,i)=>{const old=el.querySelector('span[style*="font-size"]');const wrap=document.createElement('div');wrap.className='nln-choice-icon';wrap.innerHTML=icon(i===0?'marketplace':'growth','lg');if(old)old.replaceWith(wrap);else el.prepend(wrap)});
+const options=document.querySelectorAll('#choose-path a');options.forEach((el,i)=>{if(el.querySelector('.nln-choice-icon'))return;const old=el.querySelector('span[style*="font-size"]');const wrap=document.createElement('div');wrap.className='nln-choice-icon';wrap.innerHTML=icon(i===0?'marketplace':'growth','lg');if(old)old.replaceWith(wrap);else el.prepend(wrap)});
 const steps=document.querySelectorAll('.howGrid .step');if(steps.length){document.querySelector('.howGrid')?.classList.add('nln-steps-premium');steps.forEach((el,i)=>prependIcon(el,['branding','website','security','growth'][i]))}
 document.querySelectorAll('.nln-work-name').forEach((el,i)=>prependIcon(el,['repair','store','marketplace'][i]));
 document.querySelectorAll('.nln-showcase-tile .nln-showcase-inner').forEach((el,i)=>prependIcon(el,['store','repair','branding'][i],'sm'));
