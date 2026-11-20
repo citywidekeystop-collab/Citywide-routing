@@ -49,6 +49,7 @@ document.querySelectorAll('.nln-showcase-tile .nln-showcase-inner').forEach((el,
 const list=document.querySelector('main#homeView>section:nth-of-type(2) ul');if(document.title.includes('E-commerce')&&list){list.classList.add('nln-premium-store-features');list.querySelectorAll('li').forEach((el,i)=>prependIcon(el,['store','security','location','email'][i]))}
 const labels=document.querySelectorAll('#builder .checkgrid label');labels.forEach((el,i)=>{el.childNodes.forEach(n=>{if(n.nodeType===3)n.textContent=n.textContent.replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu,'')});el.insertAdjacentHTML('afterbegin',icon(['seo','ads','social','automation','branding','store'][i],'sm'))});
 const quote=document.querySelector('#builder .checkgrid');if(quote)quote.classList.add('nln-builder-icons');
+decorateApp(document.getElementById('root'));
 }
 function decorateApp(root){if(!root)return;root.querySelectorAll('.choice .pic').forEach((el,i)=>{el.textContent='';el.innerHTML=icon(i===0?'marketplace':'growth','lg')});
 root.querySelectorAll('.small-grid button').forEach((el,i)=>{const sp=el.querySelector('span');if(sp&&/[\u{1F300}-\u{1FAFF}]/u.test(sp.textContent)){const names=['key','repair','electrician','automation','clean','repair','branding','marketplace','growth','leads','repair','repair','website','marketplace'];sp.innerHTML=icon(names[i]||'repair','sm')}});
