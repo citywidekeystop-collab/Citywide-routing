@@ -55,8 +55,22 @@ Object.assign(shapes,{
  other:'<rect x="17" y="13" width="32" height="45" rx="5" fill="#EDF5FE" stroke="#5281B7" stroke-width="2.5"/><rect x="25" y="8" width="16" height="10" rx="3" fill="#83ADD7"/><path d="M23 29h20m-20 8h20m-20 8h13" stroke="#85B2E3" stroke-width="3" stroke-linecap="round"/>'
 });
 
+const lucideTypes={"website":"monitor","laptop":"laptop","seo":"chart-no-axes-combined","branding":"palette","domain":"globe","email":"mail","phone":"phone","store":"shopping-cart","booking":"calendar-check","leads":"users","marketplace":"house","growth":"briefcase-business","automation":"workflow","security":"shield-check","repair":"wrench","key":"key-round","plumbing":"wrench","electrical":"zap","hvac":"fan","clean":"spray-can","handyman":"hammer","painting":"paint-roller","roofing":"house","landscaping":"trees","auto":"car-front","moving":"truck","contractor":"hard-hat","appliance":"refrigerator","pest":"bug","other":"shapes","location":"map-pin"};
+const originalBrandImages={"ads":"https://www.gstatic.com/marketing-cms/assets/images/a0/c7/a37cda3447639b52f627e91993ee/ads.webp=s80-fcrop64=1,00000000ffffffff-rw","google":"https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png","business":"https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png","facebook":"https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg","instagram":"https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png","tiktok":"https://upload.wikimedia.org/wikipedia/commons/a/a6/Tiktok_icon.svg"};
 const gradientFor=t=>t==='facebook'?['#3289ff','#1356c4']:t==='electrician'?['#ffe17c','#f8ab27']:t==='growth'?['#2b91fa','#0e53c0']:t==='phone'?['#415f83','#172c49']:['#5ca6fa','#165bd1'];
-function icon(type,size){const name=Object.hasOwn(shapes,type)?type:'growth';const guid='nln-grade-'+(++counter);const g=gradientFor(name);const defs='<defs><linearGradient id="'+guid+'" x1="0" y1="0" x2="1" y2="1"><stop stop-color="'+g[0]+'"/><stop offset="1" stop-color="'+g[1]+'"/></linearGradient></defs>';return '<span class="nln-premium-icon '+(size||'')+(name==='social'||name==='google'||name==='ads'?' brand-google':'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false">'+defs+shapes[name].replaceAll('@G@','url(#'+guid+')')+'</svg></span>'}
+function icon(type,size){
+ const name=String(type||'website');
+ const cls='nln-premium-icon '+(size||'')+(originalBrandImages[name]||name==='social'?' nln-real-brand':' nln-lucide-mark');
+ if(name==='social'){
+   const marks=['facebook','instagram','tiktok'].map(n=>'<img class="nln-social-mark" loading="lazy" decoding="async" src="'+originalBrandImages[n]+'" alt="" />').join('');
+   return '<span class="'+cls+' nln-real-social" aria-hidden="true">'+marks+'</span>';
+ }
+ if(originalBrandImages[name])return '<span class="'+cls+'" aria-hidden="true"><img class="nln-original-brand" loading="lazy" decoding="async" src="'+originalBrandImages[name]+'" alt="" /></span>';
+ if(lucideTypes[name])return '<span class="'+cls+'" aria-hidden="true"><img class="nln-original-lucide" loading="lazy" decoding="async" src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/'+lucideTypes[name]+'.svg" alt="" /></span>';
+ const chosen=Object.hasOwn(shapes,name)?name:'website',guid='nln-grade-'+(++counter);
+ const g=gradientFor(chosen);
+ return '<span class="'+cls+'" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><defs><linearGradient id="'+guid+'"><stop stop-color="'+g[0]+'"/><stop offset="1" stop-color="'+g[1]+'"/></linearGradient></defs>'+shapes[chosen].replaceAll('@G@','url(#'+guid+')')+'</svg></span>';
+}
 function prependIcon(el,type){if(el&&!el.querySelector('.nln-premium-icon'))el.insertAdjacentHTML('afterbegin',icon(type))}
 function improve(){
 document.documentElement.classList.add('nln-preview-upgraded');
