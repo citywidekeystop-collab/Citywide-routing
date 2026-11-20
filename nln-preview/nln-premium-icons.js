@@ -90,7 +90,7 @@ const labels=document.querySelectorAll('#builder .checkgrid label');labels.forEa
 const quote=document.querySelector('#builder .checkgrid');if(quote)quote.classList.add('nln-builder-icons');
 decorateApp(document.getElementById('root'));
 }
-function decorateApp(root){if(!root)return;root.querySelectorAll('.choice .pic').forEach((el,i)=>{el.textContent='';el.innerHTML=icon(i===0?'marketplace':'growth','lg')});
+function decorateApp(root){if(!root)return;root.querySelectorAll("[data-nln-icon]").forEach(el=>{if(!el.querySelector(".nln-premium-icon"))el.innerHTML=icon(el.dataset.nlnIcon,el.dataset.nlnSize||"")});root.querySelectorAll('.choice .pic').forEach((el,i)=>{el.textContent='';el.innerHTML=icon(i===0?'marketplace':'growth','lg')});
 const serviceIconMap={'Locksmith':'key','Plumbing':'plumbing','Electrical':'electrical','HVAC':'hvac','House Cleaning':'clean','Cleaning':'clean','Handyman':'handyman','Painting':'painting','Roofing':'roofing','Landscaping':'landscaping','Auto Repair':'auto','Moving':'moving','General Contractor':'contractor','Appliance Repair':'appliance','Pest Control':'pest','Web Design':'laptop','Other':'other'};
 root.querySelectorAll('[data-service-icon]').forEach(el=>{const kind=serviceIconMap[el.dataset.serviceIcon]||'other';el.innerHTML=icon(kind,'lg')});
 root.querySelectorAll('.small-grid button').forEach(btn=>{const kind=btn.querySelector('[data-service-icon]');if(kind){btn.setAttribute('aria-label',kind.dataset.serviceIcon);const title=btn.querySelector('h3');if(title)title.textContent=kind.dataset.serviceIcon}});
