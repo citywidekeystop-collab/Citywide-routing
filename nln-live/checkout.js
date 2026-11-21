@@ -93,6 +93,20 @@ function registerRoutes(app, {pool,isDatabaseReady,requestLimit,isSameOrigin}) {
     res.status(503).json({ok:false,message:'Unable to open secure payment. Your agreement was saved; please contact NLN.'});
   }
  });
+ app.get('/api/payment-status',requestLimit,async(req,res)=>{
+  const sessionId=String(req.query.session_id||'');
+  if(!/^cs_(test|live)_[a-zA-Z0-9]{8,200}$/.test(sessionId)||!checkoutOn()||!isDatabaseReady())
+   return res.status(400).json({ok:false,message:'Payment status is not available for that session.'});
+  try{
+   const stripe=stripeClient();
+   const session=await stripe.checkout.sessions.retrieve(sessionId);
+   const record=await pool.query('SELECT status FROM nln_service_orders WHERE stripe_session_id=$1 LIMIT 1',[sessionId]);
+   if(!record.rowCount)return res.status(404).json({ok:false,message:'Order not found'});
+   const webhookConfirmed=record.rows[0].status==='PAID';
+   const processorConfirmed=session.payment_status==='paid';
+   res.set('Cache-Control','no-store').json({ok:true,status:webhookConfirmed&&processorConfirmed?'PAID':'VERIFYING'});
+  }catch(_){return res.status(503).json({ok:false,message:'Unable to verify the payment yet.'})}
+ });
 }
 async function initOrderTable(pool){
  if(!pool)return;
