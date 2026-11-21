@@ -56,6 +56,8 @@ function registerRoutes(app, {pool,isDatabaseReady,requestLimit,isSameOrigin}) {
   const signature=String(b.signedName||'').trim().slice(0,100),business=String(b.business||'').trim().slice(0,130);
   const phone=String(b.phone||'').trim().slice(0,35),packageName=String(b.package||'');
   const p=PACKAGES[packageName];
+  const requestKey=String(b.idempotencyKey||'');
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestKey))return res.status(400).json({message:'Invalid checkout request. Reload the page and try again.'});
   if(!p||name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||signature.toLocaleLowerCase()!==name.toLocaleLowerCase()
    ||b.agreed!==true||b.eSignConsent!==true||b.agreementVersion!==AGREEMENT_VERSION) {
     return res.status(400).json({message:'Select a package and provide a matching electronic signature, email and consent.'});
@@ -64,12 +66,19 @@ function registerRoutes(app, {pool,isDatabaseReady,requestLimit,isSameOrigin}) {
   if(b.website)return res.json({ok:true});
   const id=crypto.randomUUID();
   const auditHash=hash((req.ip||'')+'|'+(req.get('user-agent')||'')+'|'+id);
-  const record=[id,name,business,email,phone,packageName,p.cents,AGREEMENT_VERSION,signatureVersionHash,signature,auditHash];
+  const record=[id,name,business,email,phone,packageName,p.cents,AGREEMENT_VERSION,signatureVersionHash,signature,auditHash,requestKey];
+  let storedOrderId=id;
   try{
-    await pool.query("INSERT INTO nln_service_orders (id,customer_name,business_name,email,phone,package_name,amount_cents,agreement_version,agreement_hash,signed_name,signature_audit_hash,status,agreed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'AGREEMENT_RECEIVED',NOW())",record);
+    const ins=await pool.query("INSERT INTO nln_service_orders (id,customer_name,business_name,email,phone,package_name,amount_cents,agreement_version,agreement_hash,signed_name,signature_audit_hash,idempotency_key,status,agreed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'AGREEMENT_RECEIVED',NOW()) ON CONFLICT (idempotency_key) DO NOTHING RETURNING id",record);
+    if(!ins.rowCount){
+      const existing=await pool.query('SELECT id,email,package_name,amount_cents FROM nln_service_orders WHERE idempotency_key=$1 LIMIT 1',[requestKey]);
+      if(!existing.rowCount||existing.rows[0].email!==email||existing.rows[0].package_name!==packageName||existing.rows[0].amount_cents!==p.cents)
+        return res.status(409).json({message:'This request was already used. Please reload the page.'});
+      storedOrderId=existing.rows[0].id;
+    }
   }catch(e){console.error('NLN agreement save error',e.code||'unknown');return res.status(503).json({message:'Unable to save your agreement right now.'})}
   if(!checkoutOn()){
-    return res.status(202).json({ok:true,orderId:id,next:'agreement_recorded',message:'Your package and service agreement have been recorded. NLN will contact you to arrange the next step.'});
+    return res.status(202).json({ok:true,orderId:storedOrderId,next:'agreement_recorded',message:'Your package and service agreement have been recorded. NLN will contact you to arrange the next step.'});
   }
   const site=String(process.env.SITE_URL||process.env.RENDER_EXTERNAL_URL||'').replace(/\/+$/,'');
   if(!site.startsWith('https://'))return res.status(503).json({message:'Secure checkout address not configured.'});
@@ -78,16 +87,16 @@ function registerRoutes(app, {pool,isDatabaseReady,requestLimit,isSameOrigin}) {
     const session=await stripe.checkout.sessions.create({
       mode:'payment',
       customer_email:email,
-      client_reference_id:id,
+      client_reference_id:storedOrderId,
       line_items:[{price_data:{currency:'usd',unit_amount:p.cents,product_data:{name:'NLN — '+packageName,description:'Website development and setup services under agreement '+AGREEMENT_VERSION}},quantity:1}],
       payment_method_types:['card'],
-      metadata:{nln_order_id:id,agreement_version:AGREEMENT_VERSION},
-      payment_intent_data:{metadata:{nln_order_id:id}},
+      metadata:{nln_order_id:storedOrderId,agreement_version:AGREEMENT_VERSION},
+      payment_intent_data:{metadata:{nln_order_id:storedOrderId}},
       success_url:site+'/order-confirmation?session_id={CHECKOUT_SESSION_ID}',
       cancel_url:site+'/start?package='+encodeURIComponent(packageName)
-    });
+    },{idempotencyKey:'nln-checkout-'+storedOrderId});
     await pool.query("UPDATE nln_service_orders SET status='PENDING_PAYMENT',stripe_session_id=$1,updated_at=NOW() WHERE id=$2",[session.id,id]);
-    res.json({ok:true,orderId:id,next:'stripe_checkout',url:session.url});
+    res.json({ok:true,orderId:storedOrderId,next:'stripe_checkout',url:session.url});
   }catch(e){
     console.error('NLN secure checkout create failed:',e.type||e.code||'unavailable');
     res.status(503).json({ok:false,message:'Unable to open secure payment. Your agreement was saved; please contact NLN.'});
@@ -117,5 +126,7 @@ async function initOrderTable(pool){
  "signed_name VARCHAR(100) NOT NULL, signature_audit_hash VARCHAR(64) NOT NULL, agreed_at TIMESTAMPTZ NOT NULL,"+
  "status VARCHAR(40) NOT NULL DEFAULT 'AGREEMENT_RECEIVED', stripe_session_id VARCHAR(150),"+
  "paid_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+ await pool.query('ALTER TABLE nln_service_orders ADD COLUMN IF NOT EXISTS idempotency_key UUID');
+ await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS nln_service_orders_idempotency ON nln_service_orders(idempotency_key)');
 }
 module.exports={AGREEMENT_VERSION,PACKAGES,terms,signatureVersionHash,checkoutOn,initOrderTable,registerWebhook,registerRoutes};
