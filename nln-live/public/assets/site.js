@@ -30,6 +30,6 @@ form.addEventListener('submit',async ev=>{
   form.reset();
   result.hidden=false;result.className='result good';result.textContent='Request received! Your reference is #'+answer.id+'. We will review your project details.';
  }catch(err){result.hidden=false;result.className='result bad';result.textContent=err.message||'Unable to send. Please try again.'}
- finally{button.disabled=false;button.textContent='Request My Free Consultation'}
+ finally{button.disabled=false;button.textContent='Send My Message'}
 });
 })();
