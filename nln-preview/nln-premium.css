@@ -300,3 +300,47 @@
   .nln-premium-ten-icons .nln-hero-icon-chip>.nln-premium-icon{width:clamp(37px,11vw,50px)!important;height:clamp(37px,11vw,50px)!important;border-radius:12px!important}
   .nln-premium-ten-icons .nln-hero-icon-chip b{font-size:9px!important;line-height:1.2!important}
 }
+
+/* Genuine photographic service imagery, not outline icon substitutes. */
+.nln-premium-icon.nln-real-photo{
+  display:inline-flex!important;
+  align-items:stretch!important;
+  justify-content:stretch!important;
+  position:relative;
+  overflow:hidden!important;
+  padding:0!important;
+  background:#dbe7f5!important;
+  border:2px solid #ffffffb8!important;
+  box-shadow:0 7px 16px #00000024,inset 0 0 0 1px #0a2f5119!important;
+  isolation:isolate;
+}
+.nln-premium-icon.nln-real-photo>img{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:100%!important;
+  min-height:100%!important;
+  object-fit:cover!important;
+  object-position:center center!important;
+  border-radius:inherit!important;
+  filter:none!important;
+  transform:none!important;
+}
+.nln-premium-hero-icons .nln-real-photo{
+  background:#fff!important;
+  box-shadow:0 8px 22px #061c3b50!important;
+}
+.nln-premium-quick .nln-real-photo,.nln-premium-feature .nln-real-photo{
+  background:#fff!important;
+  border:2px solid #fff!important;
+  box-shadow:0 9px 19px #102b4e2b!important;
+}
+.nln-premium-hero-icons .nln-real-photo>img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+}
+.nln-premium-ten-icons .nln-real-photo{border-radius:13px!important}
+@media(max-width:620px){
+  .nln-premium-ten-icons .nln-real-photo{border-radius:11px!important}
+}
