@@ -88,7 +88,7 @@ app.get('/sitemap.xml',(req,res)=>{
   if(!launchReady())return res.status(503).type('text/plain').send('Sitemap available after launch verification');
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
-    pages.filter(p=>!['/terms','/privacy'].includes(p)).map(p=>
+    pages.filter(p=>!['/terms','/privacy','/start','/order-confirmation'].includes(p)).map(p=>
       '<url><loc>' + escapeHtml(domain+p) + '</loc></url>').join('') + '</urlset>');
 });
 app.get('/health',async(req,res)=>{
