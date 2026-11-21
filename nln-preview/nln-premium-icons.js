@@ -56,6 +56,8 @@ Object.assign(shapes,{
 });
 
 const lucideTypes={"website":"monitor","laptop":"laptop","seo":"chart-no-axes-combined","branding":"palette","domain":"globe","email":"mail","phone":"phone","store":"shopping-cart","booking":"calendar-check","leads":"users","marketplace":"house","growth":"briefcase-business","automation":"workflow","security":"shield-check","repair":"wrench","key":"key-round","plumbing":"wrench","electrical":"zap","hvac":"fan","clean":"spray-can","handyman":"hammer","painting":"paint-roller","roofing":"house","landscaping":"trees","auto":"car-front","moving":"truck","contractor":"hard-hat","appliance":"refrigerator","pest":"bug","other":"shapes","location":"map-pin"};
+lucideTypes['call-routing']='phone-forwarded';
+lucideTypes['auto-answer']='headset';
 const originalBrandImages={"ads":"https://www.gstatic.com/marketing-cms/assets/images/a0/c7/a37cda3447639b52f627e91993ee/ads.webp=s80-fcrop64=1,00000000ffffffff-rw","google":"https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png","business":"https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png","facebook":"https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg","instagram":"https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png","tiktok":"https://upload.wikimedia.org/wikipedia/commons/a/a6/Tiktok_icon.svg"};
 const gradientFor=t=>t==='facebook'?['#3289ff','#1356c4']:t==='electrician'?['#ffe17c','#f8ab27']:t==='growth'?['#2b91fa','#0e53c0']:t==='phone'?['#415f83','#172c49']:['#5ca6fa','#165bd1'];
 function icon(type,size){
