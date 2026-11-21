@@ -267,3 +267,36 @@
 .nln-domains-inline-inner>div{flex:1 1 calc(100% - 82px)}
 .nln-domains-inline .btn{width:100%;text-align:center}
 }
+
+/* Ten genuine service pictograms in a compact two-row premium hero. */
+.nln-premium-hero-icons.nln-premium-ten-icons{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:13px 9px!important;
+  align-items:start!important;
+  margin-top:22px!important;
+  max-width:750px;
+}
+.nln-premium-ten-icons .nln-hero-icon-chip{
+  gap:6px!important;
+  justify-content:flex-start!important;
+  min-width:0!important;
+}
+.nln-premium-ten-icons .nln-hero-icon-chip>.nln-premium-icon{
+  width:clamp(46px,5vw,64px)!important;
+  height:clamp(46px,5vw,64px)!important;
+  border-radius:15px!important;
+}
+.nln-premium-ten-icons .nln-hero-icon-chip>.nln-premium-icon .nln-original-lucide{width:68%!important;height:68%!important}
+.nln-premium-ten-icons .nln-hero-icon-chip b{
+  font-size:clamp(10px,1.1vw,12px)!important;
+  line-height:1.2!important;
+  letter-spacing:0!important;
+  overflow-wrap:break-word!important;
+  text-wrap:balance;
+}
+@media(max-width:620px){
+  .nln-premium-hero-icons.nln-premium-ten-icons{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px 5px!important;max-width:100%!important}
+  .nln-premium-ten-icons .nln-hero-icon-chip>.nln-premium-icon{width:clamp(37px,11vw,50px)!important;height:clamp(37px,11vw,50px)!important;border-radius:12px!important}
+  .nln-premium-ten-icons .nln-hero-icon-chip b{font-size:9px!important;line-height:1.2!important}
+}
