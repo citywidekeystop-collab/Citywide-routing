@@ -80,3 +80,7 @@
  .mp-checks{grid-template-columns:repeat(2,minmax(0,1fr))}
  .mp-categories{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+.mp-category svg{width:23px;height:23px;color:#1e69c6;flex-shrink:0;stroke-width:1.7}
+.mp-category:hover svg{color:#114785}
+@media(max-width:620px){.mp-category{font-size:12px;gap:8px;padding:8px 10px}.mp-category svg{width:20px;height:20px}}
