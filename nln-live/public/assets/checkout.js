@@ -44,7 +44,7 @@ form.addEventListener('submit',async ev=>{
   result.hidden=false;result.className='result bad';text(result,'Your electronic signature must match your legal name above.');return;
  }
  const payload={name,email:b.email,business:b.business||'',phone:b.phone||'',package:picker.value,signedName,
-  agreed:form.elements.namedItem('agreed').checked,eSignConsent:form.elements.namedItem('eSignConsent').checked,
+  agreed:form.elements.namedItem('agreed').checked,eSignConsent:form.elements.namedItem('eSignConsent').checked,privacyConsent:form.elements.namedItem('privacyConsent').checked,
   agreementVersion:data.agreementVersion,idempotencyKey:requestKey,website:b.website||''};
  btn.disabled=true;text(btn,'Recording agreement…');
  result.hidden=true;
