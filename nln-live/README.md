@@ -73,3 +73,39 @@ Current gates:
 If payments aren't configured, the system saves the signed agreement and displays a truthful next-step confirmation instead of attempting to charge or falsely claiming that checkout succeeded. The site stays noindex until separate public SEO go-live review.
 
 The existing general contact form is for questions/custom work. Published package sales should route through /pricing and /start instead of free quotes.
+
+## First unified Marketplace pilot (2026-11-21)
+
+The homepage now prominently serves two audiences with separate working paths:
+- \`/find-a-pro\` – **customers** submit a service category, service ZIP, timeframe, contact details, and job description.
+- \`/join-as-pro\` – **professionals** submit business details, selected trade categories, served ZIP codes, and verification information.
+- \`/pricing\` / \`/start\` – **business services** retain the existing fixed-price packages and e-signature-before-payment flow.
+
+The original separate \`nln-preview/app.html\` remains an interactive **demo only**, not a shared real-user provider dashboard.
+
+### What genuinely works
+- New shared Postgres tables \`nln_marketplace_requests\`, \`nln_marketplace_providers\`, \`nln_marketplace_matches\`, separate from legacy \`leads\` and website package purchases.
+- POST \`/api/marketplace/request\` validates the service request and safely saves it; new requests are \`NEW\`.
+- POST \`/api/marketplace/provider\` validates and saves applications; new applications are \`PENDING\` and are **not listed as approved**.
+- All matching queries are private, restricted to administrators, and only consider \`APPROVED\` providers whose trade **and ZIP code** match.
+- Authorized administrators review business documents/qualification details, record a meaningful verification note, approve or reject applicants, and can record internal candidate matches.
+- Customer and pro submissions do not create Stripe charges, paid leads or subscriptions. Search indexing remains off until production launch.
+
+### Not yet implemented
+- Identity verification automation, self-service provider login, instant lead alerts, customer/pro messaging, job completion tracking, customer ratings or automatic lead charges.
+- Recording a potential match in the admin inbox **does not notify either party or indicate the job was booked**.
+- Customer and pro applications are not silently shared publicly. The privacy notice describes the limited data processing and future contact with vetted professionals.
+- A public searchable directory requires verified real providers, explicit publication consent and more controls.
+
+### Pilot manual process
+1. Receive one legitimate customer request and a compatible provider application for the same ZIP/trade.
+2. Independently verify the professional's business identity, relevant licensing/insurance where required and contact details. Record an admin verification note.
+3. Mark the provider \`APPROVED\` in the protected NLN command center.
+4. Match the customer request to the approved provider and **manually** contact both sides for permission and job scheduling.
+5. Record job outcome manually until provider login, automated messaging and completed-job status are developed.
+
+### Live testing notes
+- The Render site uses the existing paid \`nln-database\` PostgreSQL instance.
+- Confirm the new tables exist after deployment and test BOTH forms with obviously synthetic data.
+- Verify \`/api/admin/marketplace\` returns 401 without the admin key; never expose \`ADMIN_KEY\` to clients.
+- **Do not approve synthetic test providers as genuine professionals.**
