@@ -60,6 +60,8 @@ lucideTypes['call-routing']='phone-forwarded';
 lucideTypes['auto-answer']='headset';
 const originalBrandImages={"ads":"https://www.gstatic.com/marketing-cms/assets/images/a0/c7/a37cda3447639b52f627e91993ee/ads.webp=s80-fcrop64=1,00000000ffffffff-rw","google":"https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png","business":"https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png","facebook":"https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg","instagram":"https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png","tiktok":"https://upload.wikimedia.org/wikipedia/commons/a/a6/Tiktok_icon.svg"};
 const gradientFor=t=>t==='facebook'?['#3289ff','#1356c4']:t==='electrician'?['#ffe17c','#f8ab27']:t==='growth'?['#2b91fa','#0e53c0']:t==='phone'?['#415f83','#172c49']:['#5ca6fa','#165bd1'];
+// Real, freely usable Pexels photographs; platform brands remain official images.
+const photographicServiceImages={"laptop":"https://images.pexels.com/photos/7801139/pexels-photo-7801139.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop","website":"https://images.pexels.com/photos/7801139/pexels-photo-7801139.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop","call-routing":"https://images.pexels.com/photos/7580908/pexels-photo-7580908.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop","auto-answer":"https://images.pexels.com/photos/7682353/pexels-photo-7682353.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop","branding":"https://images.pexels.com/photos/38840594/pexels-photo-38840594.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop","seo":"https://images.pexels.com/photos/3861957/pexels-photo-3861957.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop","booking":"https://images.pexels.com/photos/28353121/pexels-photo-28353121.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop","store":"https://images.pexels.com/photos/6214474/pexels-photo-6214474.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop"};
 function icon(type,size){
  const name=String(type||'website');
  const cls='nln-premium-icon '+(size||'')+(originalBrandImages[name]||name==='social'?' nln-real-brand':' nln-lucide-mark');
@@ -68,6 +70,7 @@ function icon(type,size){
    return '<span class="'+cls+' nln-real-social" aria-hidden="true">'+marks+'</span>';
  }
  if(originalBrandImages[name])return '<span class="'+cls+'" aria-hidden="true"><img class="nln-original-brand" loading="lazy" decoding="async" src="'+originalBrandImages[name]+'" alt="" /></span>';
+ if(photographicServiceImages[name])return '<span class="nln-premium-icon '+(size||'')+' nln-real-photo" aria-hidden="true"><img loading="lazy" decoding="async" src="'+photographicServiceImages[name]+'" alt="" /></span>';
  if(lucideTypes[name])return '<span class="'+cls+'" aria-hidden="true"><img class="nln-original-lucide" loading="lazy" decoding="async" src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/'+lucideTypes[name]+'.svg" alt="" /></span>';
  const chosen=Object.hasOwn(shapes,name)?name:'website',guid='nln-grade-'+(++counter);
  const g=gradientFor(chosen);
