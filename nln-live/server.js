@@ -159,6 +159,13 @@ function adminAuth(req,res,next){
     return res.status(401).json({ok:false,message:'Not authorized'});
   next();
 }
+app.get('/api/admin/orders',adminAuth,async(req,res)=>{
+ if(!dbReady)return res.status(503).json({ok:false});
+ try{
+  const result=await pool.query("SELECT id,customer_name,business_name,email,phone,package_name,amount_cents,agreement_version,signed_name,agreed_at,status,paid_at,created_at FROM nln_service_orders ORDER BY created_at DESC LIMIT 250");
+  res.set('Cache-Control','no-store').json({ok:true,items:result.rows});
+ }catch(_){res.status(503).json({ok:false})}
+});
 app.get('/api/admin/inquiries',adminAuth,async(req,res)=>{
   if(!dbReady)return res.status(503).json({ok:false});
   try{const result=await pool.query('SELECT * FROM nln_business_inquiries ORDER BY created_at DESC LIMIT 250');res.json({ok:true,items:result.rows})}
