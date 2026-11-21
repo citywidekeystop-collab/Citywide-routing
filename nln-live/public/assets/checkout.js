@@ -10,6 +10,7 @@ const featureList=document.getElementById('plan-features');
 const agreementText=document.getElementById('agreement-text');
 const versionText=document.getElementById('agreement-version');
 let data=null;
+const requestKey=window.crypto?.randomUUID?.()||('00000000-0000-4000-8000-'+Math.random().toString(16).slice(2).padEnd(12,'0').slice(0,12));
 const money=cents=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);
 function text(el,value){el.textContent=value}
 function renderPlan(){
@@ -44,7 +45,7 @@ form.addEventListener('submit',async ev=>{
  }
  const payload={name,email:b.email,business:b.business||'',phone:b.phone||'',package:picker.value,signedName,
   agreed:form.elements.namedItem('agreed').checked,eSignConsent:form.elements.namedItem('eSignConsent').checked,
-  agreementVersion:data.agreementVersion,website:b.website||''};
+  agreementVersion:data.agreementVersion,idempotencyKey:requestKey,website:b.website||''};
  btn.disabled=true;text(btn,'Recording agreement…');
  result.hidden=true;
  try{
