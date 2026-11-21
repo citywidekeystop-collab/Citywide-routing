@@ -38,7 +38,7 @@ app.use((req, res, next) => {
   if (!launchReady() || req.path.startsWith('/admin') || req.path.startsWith('/api') || req.path === '/start' || req.path === '/order-confirmation') {
     res.set('X-Robots-Tag', 'noindex, nofollow');
   }
-  res.set('Cache-Control', req.path.startsWith('/api') || req.path.startsWith('/admin') ? 'no-store' : 'public, max-age=300');
+  res.set('Cache-Control', req.path.startsWith('/assets/') ? 'public, max-age=3600' : 'no-store');
   next();
 });
 checkout.registerWebhook(app, pool, () => dbReady);
