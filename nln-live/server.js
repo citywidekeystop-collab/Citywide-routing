@@ -7,6 +7,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const checkout = require('./checkout');
+const marketplace = require('./marketplace');
 
 const app = express();
 const PORT = Number(process.env.PORT || 10000);
@@ -28,7 +29,8 @@ const launchReady = () => Boolean(
 const pages = Object.freeze([
   '/', '/website-design', '/websites-for-contractors', '/google-business-profile-help',
   '/business-launch', '/ecommerce-websites', '/pricing', '/portfolio', '/contact',
-  '/privacy', '/terms', '/start', '/order-confirmation'
+  '/privacy', '/terms', '/start', '/order-confirmation',
+  '/find-a-pro','/join-as-pro'
 ]);
 
 app.disable('x-powered-by');
@@ -56,6 +58,7 @@ async function initDb(){
     "status VARCHAR(20) NOT NULL DEFAULT 'NEW', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()," +
     "updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
   await checkout.initOrderTable(pool);
+  await marketplace.initMarketplaceTables(pool);
   dbReady = true;
   console.log('NLN inquiry database ready');
 }
@@ -88,7 +91,7 @@ app.get('/sitemap.xml',(req,res)=>{
   if(!launchReady())return res.status(503).type('text/plain').send('Sitemap available after launch verification');
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
-    pages.filter(p=>!['/terms','/privacy','/start','/order-confirmation'].includes(p)).map(p=>
+    pages.filter(p=>!['/terms','/privacy','/start','/order-confirmation','/join-as-pro','/find-a-pro'].includes(p)).map(p=>
       '<url><loc>' + escapeHtml(domain+p) + '</loc></url>').join('') + '</urlset>');
 });
 app.get('/health',async(req,res)=>{
@@ -188,5 +191,6 @@ app.get('/api/admin/export.csv',adminAuth,async(req,res)=>{
     res.type('text/csv').send(csv);
   }catch(e){res.status(503).json({ok:false})}
 });
+marketplace.registerMarketplaceRoutes(app,{pool,isDatabaseReady:()=>dbReady,requestLimit,isSameOrigin,adminAuth});
 app.use((req,res)=>res.status(404).send('Not found'));
 app.listen(PORT, '0.0.0.0',()=>console.log('NLN marketing site listening on '+PORT));
