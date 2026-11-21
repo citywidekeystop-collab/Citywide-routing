@@ -71,8 +71,8 @@ function registerRoutes(app, {pool,isDatabaseReady,requestLimit,isSameOrigin}) {
   try{
     const ins=await pool.query("INSERT INTO nln_service_orders (id,customer_name,business_name,email,phone,package_name,amount_cents,agreement_version,agreement_hash,signed_name,signature_audit_hash,idempotency_key,status,agreed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'AGREEMENT_RECEIVED',NOW()) ON CONFLICT (idempotency_key) DO NOTHING RETURNING id",record);
     if(!ins.rowCount){
-      const existing=await pool.query('SELECT id,email,package_name,amount_cents FROM nln_service_orders WHERE idempotency_key=$1 LIMIT 1',[requestKey]);
-      if(!existing.rowCount||existing.rows[0].email!==email||existing.rows[0].package_name!==packageName||existing.rows[0].amount_cents!==p.cents)
+      const existing=await pool.query('SELECT id,email,customer_name,signed_name,package_name,amount_cents FROM nln_service_orders WHERE idempotency_key=$1 LIMIT 1',[requestKey]);
+      if(!existing.rowCount||existing.rows[0].email!==email||existing.rows[0].customer_name!==name||existing.rows[0].signed_name!==signature||existing.rows[0].package_name!==packageName||existing.rows[0].amount_cents!==p.cents)
         return res.status(409).json({message:'This request was already used. Please reload the page.'});
       storedOrderId=existing.rows[0].id;
     }
@@ -95,7 +95,7 @@ function registerRoutes(app, {pool,isDatabaseReady,requestLimit,isSameOrigin}) {
       success_url:site+'/order-confirmation?session_id={CHECKOUT_SESSION_ID}',
       cancel_url:site+'/start?package='+encodeURIComponent(packageName)
     },{idempotencyKey:'nln-checkout-'+storedOrderId});
-    await pool.query("UPDATE nln_service_orders SET status='PENDING_PAYMENT',stripe_session_id=$1,updated_at=NOW() WHERE id=$2",[session.id,id]);
+    await pool.query("UPDATE nln_service_orders SET status='PENDING_PAYMENT',stripe_session_id=$1,updated_at=NOW() WHERE id=$2",[session.id,storedOrderId]);
     res.json({ok:true,orderId:storedOrderId,next:'stripe_checkout',url:session.url});
   }catch(e){
     console.error('NLN secure checkout create failed:',e.type||e.code||'unavailable');
