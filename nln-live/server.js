@@ -6,6 +6,7 @@ const { Pool } = require('pg');
 const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
+const checkout = require('./checkout');
 
 const app = express();
 const PORT = Number(process.env.PORT || 10000);
@@ -27,19 +28,20 @@ const launchReady = () => Boolean(
 const pages = Object.freeze([
   '/', '/website-design', '/websites-for-contractors', '/google-business-profile-help',
   '/business-launch', '/ecommerce-websites', '/pricing', '/portfolio', '/contact',
-  '/privacy', '/terms'
+  '/privacy', '/terms', '/start', '/order-confirmation'
 ]);
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use((req, res, next) => {
-  if (!launchReady() || req.path.startsWith('/admin') || req.path.startsWith('/api')) {
+  if (!launchReady() || req.path.startsWith('/admin') || req.path.startsWith('/api') || req.path === '/start' || req.path === '/order-confirmation') {
     res.set('X-Robots-Tag', 'noindex, nofollow');
   }
   res.set('Cache-Control', req.path.startsWith('/api') || req.path.startsWith('/admin') ? 'no-store' : 'public, max-age=300');
   next();
 });
+checkout.registerWebhook(app, pool, () => dbReady);
 app.use(express.json({ limit: '12kb', strict: true }));
 app.use('/assets', express.static(path.join(publicDir,'assets'), { index: false, extensions: false, maxAge: '1h' }));
 const escapeHtml = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -53,6 +55,7 @@ async function initDb(){
     "details TEXT NOT NULL, source_page VARCHAR(150), consent_at TIMESTAMPTZ NOT NULL," +
     "status VARCHAR(20) NOT NULL DEFAULT 'NEW', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()," +
     "updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+  await checkout.initOrderTable(pool);
   dbReady = true;
   console.log('NLN inquiry database ready');
 }
@@ -110,6 +113,7 @@ function isSameOrigin(req){
   const host = req.get('host');
   return !!host && (origin === 'https://' + host || origin === 'http://' + host);
 }
+checkout.registerRoutes(app, {pool,isDatabaseReady:()=>dbReady,requestLimit,isSameOrigin});
 app.post('/api/inquiries',requestLimit,async(req,res)=>{
   if(req.get('content-type')?.split(';')[0].trim() !== 'application/json')return res.status(415).json({ok:false,message:'Invalid request format'});
   if(!isSameOrigin(req))return res.status(403).json({ok:false,message:'Request source not allowed'});
