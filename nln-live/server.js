@@ -41,7 +41,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '12kb', strict: true }));
-app.use(express.static(publicDir, { index: false, extensions: false, maxAge: '1h' }));
+app.use('/assets', express.static(path.join(publicDir,'assets'), { index: false, extensions: false, maxAge: '1h' }));
 const escapeHtml = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 async function initDb(){
@@ -74,6 +74,7 @@ for(const route of pages){
   app.get(route, (req,res)=>servePage(req,res,filename));
 }
 app.get('/index.html',(req,res)=>res.redirect(301,'/'));
+app.get('/:slug.html',(req,res)=>{const route='/'+req.params.slug;if(pages.includes(route))return res.redirect(301,route);res.status(404).send('Not found')});
 app.get('/admin',(req,res)=>servePage(req,res,'admin.html'));
 
 app.get('/robots.txt',(req,res)=>{
