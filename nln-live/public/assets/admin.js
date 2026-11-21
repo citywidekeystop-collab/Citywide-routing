@@ -39,7 +39,8 @@ async function load(){
   if(orderContainer){
    orderContainer.replaceChildren();
    try{
-    const orders=(await (await request('/api/admin/orders')).json()).items||[];
+    const allOrders=(await (await request('/api/admin/orders')).json()).items||[];
+    const orders=allOrders.filter(o=>document.getElementById('show-qa')?.checked||!String(o.customer_name||'').startsWith('NLN QA TEST ONLY'));
     if(!orders.length)orderContainer.appendChild(element('p','note','No signed package orders yet.'));
     for(const order of orders){
      const row=element('article','admin-row');
@@ -57,6 +58,7 @@ async function load(){
 }
 document.getElementById('unlock').addEventListener('click',()=>{key=input.value.trim();if(!key){message('Enter your administrator key.',false);return}load()});
 document.getElementById('refresh').addEventListener('click',load);
+document.getElementById('show-qa')?.addEventListener('change',load);
 document.getElementById('export').addEventListener('click',async()=>{
  try{const r=await request('/api/admin/export.csv');const blob=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nln-business-inquiries.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){message(e.message,false)}
 });
