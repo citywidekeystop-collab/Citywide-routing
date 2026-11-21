@@ -35,6 +35,23 @@ async function load(){
    action.append(sel,btn);row.appendChild(action);list.appendChild(row);
   }
   if(!items.length)list.appendChild(element('p','note','No customer inquiries have been received yet.'));
+  const orderContainer=document.getElementById('orders');
+  if(orderContainer){
+   orderContainer.replaceChildren();
+   try{
+    const orders=(await (await request('/api/admin/orders')).json()).items||[];
+    if(!orders.length)orderContainer.appendChild(element('p','note','No signed package orders yet.'));
+    for(const order of orders){
+     const row=element('article','admin-row');
+     row.appendChild(element('strong','',order.package_name+' — '+new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(order.amount_cents/100)));
+     row.appendChild(element('p','',order.customer_name+' · '+order.email+' · '+(order.phone||'No phone')));
+     row.appendChild(element('p','',order.business_name||'Business not specified'));
+     row.appendChild(element('p','',('Status: '+order.status)+' · Signed: '+new Date(order.agreed_at).toLocaleString()));
+     row.appendChild(element('p','small','Agreement: '+order.agreement_version+' · Signature: '+order.signed_name));
+     orderContainer.appendChild(row);
+    }
+   }catch(e){orderContainer.appendChild(element('p','note','Unable to load signed package orders.'))}
+  }
   panel.hidden=false;
  }catch(e){message(e.message,false);panel.hidden=true}
 }
