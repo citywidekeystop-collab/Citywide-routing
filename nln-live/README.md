@@ -47,3 +47,29 @@ Render free web instances spin down after inactivity. Their `robots.txt` endpoin
 - Review access and rotate any known/legacy admin credentials in the separate old NLN routing app.
 - Add proper monitoring/backups, agreed privacy/terms review, abuse throttling by shared datastore and confirmed notification recipient.
 - Add email notifications using an authenticated provider (optional) and test delivery.
+
+## Fixed-price package purchase funnel (staging, November 21, 2026)
+
+The canonical flow is **Choose package → View listed scope & amount → Review and e-sign NLN service agreement → Secure Stripe Checkout → Webhook-verified payment → Project onboarding**.
+
+- /pricing advertises $199 / $399 / $699 / $999 / $1,999 / $3,995.50.
+- /start?package=Starter%20Website renders the e-signature package agreement and fixed upfront amount.
+- /api/packages returns the trusted server-side package table, exactly matching checkout.js.
+- /api/checkout/start writes the accepted package, electronic signature, agreement version/hash and price to nln_service_orders (separate from lead records). Card payment cannot start before the agreement is recorded.
+- Stripe Checkout Sessions are created on the backend only, with amount from the server package table and an order ID stored in Stripe metadata. No client-supplied amount is trusted.
+- /api/stripe/webhook verifies Stripe-Signature on the raw body, then marks the matched order paid ONLY when the signed paid event includes the correct matching session and amount.
+- /api/payment-status checks the Stripe session and verified database record; /order-confirmation never labels an order paid from the browser redirect alone.
+- /admin shows inquiries and signed package order/payment statuses.
+
+**Do not turn on live charges until the merchant approves final agreement terms, cancellation/refund policy and account branding; verifies NLS Stripe account use, receives/sets a Stripe API secret & webhook secret privately in Render; and completes a test-mode purchase + signature validation.**
+
+Current gates:
+- CHECKOUT_ENABLED=false (must be explicitly enabled via secure Render configuration)
+- AGREEMENT_APPROVED=false (must be explicitly enabled when owner approves agreement)
+- STRIPE_SECRET_KEY (not present; never write to GitHub)
+- STRIPE_WEBHOOK_SECRET (not present; never write to GitHub)
+- SITE_URL must be the verified live HTTPS domain before enabling charges
+
+If payments aren't configured, the system saves the signed agreement and displays a truthful next-step confirmation instead of attempting to charge or falsely claiming that checkout succeeded. The site stays noindex until separate public SEO go-live review.
+
+The existing general contact form is for questions/custom work. Published package sales should route through /pricing and /start instead of free quotes.
