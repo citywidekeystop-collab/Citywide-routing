@@ -1,0 +1,28 @@
+# NLN launch candidate. This creates a separate web service and attaches the
+# ALREADY EXISTING paid "nln-database" in My Workspace.
+# Do not add "databases:" here: existing NLN lead data is preserved.
+services:
+  - type: web
+    name: nln-business-solutions-web
+    runtime: node
+    plan: free
+    region: virginia
+    branch: nln-launch-ready-2026
+    buildCommand: npm install --prefix nln-live --omit=dev
+    startCommand: node nln-live/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nln-database
+          property: connectionString
+      - key: ADMIN_KEY
+        generateValue: true
+      - key: INTAKE_OPEN
+        value: "true"
+      - key: SEARCH_INDEXING_ENABLED
+        value: "false"
+      - key: SITE_URL
+        value: ""
