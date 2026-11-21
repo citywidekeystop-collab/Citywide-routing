@@ -59,7 +59,7 @@ function registerRoutes(app, {pool,isDatabaseReady,requestLimit,isSameOrigin}) {
   const requestKey=String(b.idempotencyKey||'');
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestKey))return res.status(400).json({message:'Invalid checkout request. Reload the page and try again.'});
   if(!p||name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||signature.toLocaleLowerCase()!==name.toLocaleLowerCase()
-   ||b.agreed!==true||b.eSignConsent!==true||b.agreementVersion!==AGREEMENT_VERSION) {
+   ||b.agreed!==true||b.eSignConsent!==true||b.privacyConsent!==true||b.agreementVersion!==AGREEMENT_VERSION) {
     return res.status(400).json({message:'Select a package and provide a matching electronic signature, email and consent.'});
   }
   if(phone&&!/^[+()\-\d .]{7,35}$/.test(phone))return res.status(400).json({message:'Enter a valid phone number.'});
