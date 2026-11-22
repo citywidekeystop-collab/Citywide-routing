@@ -76,6 +76,10 @@ active.addEventListener('submit',async event=>{
   if(!response.ok||!body.ok)throw new Error(body.message||'Your information could not be saved.');
   result.hidden=false;result.className='mp-status good';
   result.textContent=body.message+(body.id?' Reference: '+body.id.slice(0,8).toUpperCase()+'.':'');
+  active.prepend(result);
+  result.setAttribute('tabindex','-1');
+  result.focus({preventScroll:true});
+  result.scrollIntoView({behavior:'smooth',block:'center'});
   button.textContent='Received';
  }catch(e){
   result.hidden=false;result.className='mp-status bad';
