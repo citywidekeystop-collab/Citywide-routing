@@ -66,7 +66,9 @@ async function loadMarketplace(){
  counts.replaceChildren();reqBox.replaceChildren();proBox.replaceChildren();
  try{
   const data=await (await request('/api/admin/marketplace')).json();
-  const requests=data.requests||[],pros=data.providers||[];
+  const showQA=document.getElementById('show-qa')?.checked;
+  const requests=(data.requests||[]).filter(r=>showQA||r.email!=='nln-mp-qa@example.com');
+  const pros=(data.providers||[]).filter(p=>showQA||p.email!=='nln-pro-qa@example.com');
   const approved=pros.filter(p=>p.status==='APPROVED');
   counts.appendChild(element('div','stat','Requests: '+requests.length));
   counts.appendChild(element('div','stat','Pending pros: '+pros.filter(p=>p.status==='PENDING').length));
