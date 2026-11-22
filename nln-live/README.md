@@ -109,3 +109,12 @@ The original separate \`nln-preview/app.html\` remains an interactive **demo onl
 - Confirm the new tables exist after deployment and test BOTH forms with obviously synthetic data.
 - Verify \`/api/admin/marketplace\` returns 401 without the admin key; never expose \`ADMIN_KEY\` to clients.
 - **Do not approve synthetic test providers as genuine professionals.**
+
+### Actual staging QA results (2026-11-21)
+- Browser loaded the unified homepage and confirmed independent customer/pro links and website package links.
+- A synthetic Locksmith customer request in ZIP 21014 was saved in PostgreSQL with status NEW.
+- A synthetic Locksmith provider application covering 21014 and 21015 was saved in PostgreSQL with status PENDING.
+- GET /api/admin/marketplace without the private key returned Not authorized.
+- No professional was approved, no match was delivered, and no job was booked as part of testing.
+- The test-only email addresses nln-mp-qa@example.com and nln-pro-qa@example.com are hidden from the normal admin view but retained in the database for audit.
+- Improved on-page submission confirmation visibility after browser testing.
