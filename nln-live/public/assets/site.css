@@ -84,3 +84,32 @@
 .mp-category svg{width:23px;height:23px;color:#1e69c6;flex-shrink:0;stroke-width:1.7}
 .mp-category:hover svg{color:#114785}
 @media(max-width:620px){.mp-category{font-size:12px;gap:8px;padding:8px 10px}.mp-category svg{width:20px;height:20px}}
+
+/* Three fixed-price NLN website bundles — premium presentation */
+.bundle-hero{background:radial-gradient(ellipse at 85% 15%,rgba(62,126,207,.31),transparent 42%),linear-gradient(122deg,#0c1d35,#173e65 76%,#102849)!important;position:relative;overflow:hidden}
+.bundle-hero .wrap{position:relative;max-width:1050px}
+.bundle-hero h1{font-size:clamp(39px,5.35vw,69px);letter-spacing:-.055em;line-height:1.065;margin:16px 0 20px;max-width:910px}
+.bundle-hero p{font-size:clamp(15px,1.6vw,19px);line-height:1.7;max-width:710px;color:#e0eafb}
+.bundle-hero .eyebrow{color:#eec77e}
+.bundle-hero .trustline{color:#deebfa}
+.bundle-hero .btn.alt{background:#ffffff1c;color:#fff!important;border:1px solid #cdddf755}
+.bundle-cards{align-items:stretch;gap:20px}
+.bundle-card{display:flex;flex-direction:column;min-width:0;border-radius:25px;border:1px solid #d7e4f2;box-shadow:0 20px 45px #132e4c12;padding:30px 27px;transition:transform .2s,box-shadow .2s}
+.bundle-card:hover{transform:translateY(-4px);box-shadow:0 25px 65px #10264d1d}
+.bundle-card .eyebrow{font-size:10px;letter-spacing:.16em;margin:4px 0 7px}
+.bundle-card h3{font-size:clamp(22px,2.2vw,29px);line-height:1.18;letter-spacing:-.04em;margin:8px 0 10px}
+.bundle-card .price{font-size:clamp(36px,3.6vw,50px);font-weight:900;margin:4px 0;line-height:1.1}
+.bundle-card .price small{font-size:12px;letter-spacing:0;color:#65788f;font-weight:750}
+.bundle-card .bundle-count{background:#eef5ff;border-radius:13px;color:#16437a;padding:10px 14px;font-weight:800;font-size:13px;margin:13px 0 8px}
+.bundle-card .bundle-count strong{font-size:20px}
+.bundle-card ul{margin:13px 0 25px;flex:1}
+.bundle-card .btn{width:100%;padding:15px 10px}
+.bundle-card.featured{position:relative;background:linear-gradient(160deg,#132f53 0%,#224c80 100%);border:1px solid #446b96;color:white;box-shadow:0 26px 65px #142e4b35}
+.bundle-card.featured .eyebrow{color:#eac37f}
+.bundle-card.featured h3{color:#fff}
+.bundle-card.featured .price{color:#f7d08c}
+.bundle-card.featured .price small{color:#e5effc}
+.bundle-card.featured .bundle-count{background:#ffffff16;color:#e5eefb}
+.bundle-card.featured .list li{color:#eaf3ff}
+.bundle-ribbon{align-self:flex-start;border-radius:30px;background:#efc37e;color:#17365a;font-size:10px;letter-spacing:.09em;text-transform:uppercase;font-weight:900;padding:6px 12px;margin-bottom:10px}
+@media (max-width:800px){.bundle-cards{grid-template-columns:1fr}.bundle-card{padding:25px 21px}.bundle-card h3{font-size:27px}}
