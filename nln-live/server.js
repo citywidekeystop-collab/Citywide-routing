@@ -40,12 +40,12 @@ app.use((req, res, next) => {
   if (!launchReady() || req.path.startsWith('/admin') || req.path.startsWith('/api') || req.path === '/start' || req.path === '/order-confirmation') {
     res.set('X-Robots-Tag', 'noindex, nofollow');
   }
-  res.set('Cache-Control', req.path.startsWith('/assets/') ? 'public, max-age=3600' : 'no-store');
+  res.set('Cache-Control', 'no-store');
   next();
 });
 checkout.registerWebhook(app, pool, () => dbReady);
 app.use(express.json({ limit: '12kb', strict: true }));
-app.use('/assets', express.static(path.join(publicDir,'assets'), { index: false, extensions: false, maxAge: '1h' }));
+app.use('/assets', express.static(path.join(publicDir,'assets'), { index: false, extensions: false, maxAge: 0 }));
 const escapeHtml = s => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 async function initDb(){
