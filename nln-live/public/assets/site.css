@@ -368,3 +368,77 @@ footer{
 @media(prefers-reduced-motion:reduce){
  .duo-panel,.bundle-card,.btn{transition:none!important;transform:none!important}
 }
+
+
+/* Cosmic visibility repair — fixed viewport wallpaper, including iOS. */
+html{background:#040b1e}
+body{
+ position:relative;
+ isolation:isolate;
+ min-height:100vh;
+ background:#06132b!important;
+ background-image:none!important;
+}
+body::before{
+ content:"";
+ display:block;
+ position:fixed;
+ inset:0;
+ z-index:-1;
+ pointer-events:none;
+ background-color:#040b1e;
+ background-image:
+  linear-gradient(160deg,rgba(1,7,24,.28),rgba(6,13,37,.12) 55%,rgba(3,9,25,.44)),
+  url('/assets/nln-cosmic-background.svg');
+ background-size:cover;
+ background-position:center,center 44%;
+ background-repeat:no-repeat;
+}
+.duo-hero{
+ min-height:690px;
+ background-position:center,center 38%!important;
+ background-image:
+  linear-gradient(103deg,rgba(2,10,30,.80) 0%,rgba(5,15,40,.56) 49%,rgba(4,13,35,.06) 100%),
+  url('/assets/nln-cosmic-background.svg')!important;
+}
+.duo-hero .duo-cards{margin-top:34px}
+.duo-hero .duo-title em{color:#ffd27d}
+.bundle-hero,.hero.dark,.mp-intro{
+ background-image:
+  linear-gradient(100deg,rgba(3,12,32,.78),rgba(7,21,53,.4) 55%,rgba(6,17,42,.08)),
+  url('/assets/nln-cosmic-background.svg')!important;
+ background-position:center,center 40%!important;
+}
+.section:not(.alt){background:rgba(3,10,28,.28)}
+.section.alt{background:linear-gradient(110deg,rgba(6,17,42,.76),rgba(9,28,57,.65),rgba(5,16,39,.78))}
+.section .intro h2{color:#fff}
+.section .note{color:#eef5ff}
+.site-head{background:rgba(4,11,28,.96)}
+@media(max-width:900px){
+ .duo-hero{min-height:0;background-position:center,69% 31%!important}
+ .bundle-hero,.hero.dark,.mp-intro{background-position:center,70% 36%!important}
+ .duo-cards{gap:13px}
+}
+@media(max-width:620px){
+ body{background-attachment:initial!important}
+ body::before{
+  background-size:cover;
+  background-position:center,70% center;
+ }
+ .duo-hero{
+  background-image:
+    linear-gradient(135deg,rgba(3,11,32,.79),rgba(4,13,36,.42) 62%,rgba(5,13,35,.18)),
+    url('/assets/nln-cosmic-background.svg')!important;
+  background-position:center,73% 36%!important;
+ }
+ .duo-cards{grid-template-columns:minmax(0,1fr);gap:14px}
+ .duo-panel{min-height:218px;padding:20px 21px;border-radius:21px}
+ .duo-panel h2{font-size:28px}
+ .duo-panel p{font-size:14px;max-width:390px}
+ .duo-panel .duo-kicker{font-size:11px;letter-spacing:.08em}
+ .duo-icon{width:49px;height:49px}
+ .duo-link{width:auto;min-width:175px;font-size:13px;padding:12px 20px}
+ .duo-title{font-size:clamp(36px,9.2vw,52px)}
+ .bundle-hero,.hero.dark,.mp-intro{background-position:center,74% 34%!important}
+ .section:not(.alt){background:rgba(4,13,34,.36)}
+}
