@@ -2,21 +2,46 @@
 const crypto = require('node:crypto');
 const express = require('express');
 
-const AGREEMENT_VERSION = 'nln-services-v1-2026-11-21';
+const AGREEMENT_VERSION = 'nln-services-v2-2026-11-22';
 const PACKAGES = Object.freeze({
-  'Starter Website': { cents:19900, details: ['One custom mobile-friendly web page','Click-to-call and business inquiry form','Basic SEO page setup'] },
-  'Business Essentials': { cents:39900, details: ['Up to three custom web pages','Service information and contact details','Business photos, map and social link integration'] },
-  'Business Growth': { cents:69900, details: ['Up to five custom web pages','Enhanced SEO and keyword research','Google Business Profile setup assistance where eligible'] },
-  'Professional Website': { cents:99900, details: ['Up to five custom web pages and local SEO','Booking and payment integration configuration','Analytics and conversion tracking setup'] },
-  'Complete Business Launch': { cents:199900, details: ['Up to ten custom web pages and one business logo','Google Ads and eligible Business Profile setup assistance','Facebook, Instagram and TikTok business account setup assistance'] },
-  'Complete Business & Marketing Premium': { cents:399550, details: ['Twenty-five or more custom web pages and branding','Advanced business setup and lead capture tools','Marketing, booking, and call handling options subject to agreed scope; third-party service costs are separate'] }
+  'Basic Website': {
+    cents: 59900,
+    details: [
+      'Six custom mobile-friendly website pages',
+      'Professional design with your logo or business name, service information, and images you provide or authorize',
+      'Click-to-call buttons and a customer inquiry/contact form',
+      'Basic on-page SEO and search-friendly page titles'
+    ]
+  },
+  'Business Website': {
+    cents: 79900,
+    details: [
+      'Nine custom mobile-friendly website pages',
+      'Professional design with your branding, service information, and calls to action',
+      'Click-to-call buttons and customer inquiry/contact forms',
+      'Basic on-page SEO, search-friendly page titles, and location/service page structure'
+    ]
+  },
+  'Business Growth Plus': {
+    cents: 99900,
+    details: [
+      'Thirteen custom mobile-friendly website pages',
+      'Professional design, contact forms, click-to-call buttons and basic on-page SEO',
+      'Google Business Profile setup or optimization assistance where the business is eligible; Google controls verification and approval',
+      'One Google Ads Search campaign setup with initial keywords, copy and targeting (campaign activation and ad spend not included)',
+      'One Meta Facebook/Instagram advertising campaign setup with introductory copy and targeting (campaign activation and ad spend not included)',
+      'Customer retains ownership of eligible advertising accounts; ongoing ad management is not included'
+    ]
+  }
 });
 const terms = [
-  'NLN will provide the deliverables listed in the selected website package at the published fixed upfront price. Additional services are not automatically included.',
-  'The customer authorizes NLN to begin work after verified payment and completed onboarding, and will supply accurate content, assets, required credentials through approved secure channels, and feedback.',
-  'Any domain registration, ongoing hosting, paid advertising spend, premium integrations or other outside services must be separately described and accepted before charging.',
-  'Google rankings, advertising results, customer volume, and third-party account verification or approval cannot be guaranteed.',
-  'A separate project schedule, revision scope, cancellation/refund arrangements and continuing-service terms will be provided for review before a real payment is activated. Recurring charges require separate explicit enrollment.'
+  'NLN will design and set up the number of pages and other deliverables included in the selected fixed-price website package. The published price is a one-time website development and setup fee, not an ongoing advertising or hosting subscription.',
+  'The customer authorizes NLN to begin project work after verified payment and completed onboarding, and will provide accurate business details, brand assets, approved content and necessary account access through secure channels.',
+  'The Basic Website package includes six website pages. The Business Website package includes nine website pages. The Business Growth Plus package includes thirteen website pages, Google Business Profile setup or optimization assistance for eligible businesses, one Google Ads Search campaign setup, and one Meta Facebook/Instagram advertising campaign setup. Additional pages or campaigns require a separate agreement.',
+  'Google Ads and social advertising setup means creating or configuring an initial draft campaign and related settings. Activating campaigns, running ads, monthly management, ad-platform charges and advertising budgets are not included in the one-time package price and require the customer to authorize and fund them separately.',
+  'Google Business Profile eligibility and verification, Google Search rankings, campaign approval, ad results, customer calls, leads and sales are controlled by outside factors and are not guaranteed by NLN.',
+  'Any domain registration, hosting, maintenance, paid ads, premium integrations or outside services must be separately disclosed and accepted before charging. No recurring fees are charged unless a customer separately enrolls.',
+  'A separate project schedule, number of included revisions, delivery milestones and cancellation/refund arrangements must be agreed before real payment is activated. Any additional work is separately scoped and approved.'
 ].join('\n');
 const hash = s => crypto.createHash('sha256').update(s).digest('hex');
 const signatureVersionHash = hash(AGREEMENT_VERSION + '\n' + terms + '\n' + JSON.stringify(PACKAGES));
