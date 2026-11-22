@@ -4,7 +4,7 @@ Separate from the existing `nln-preview/` concept and the older NLN dispatch ser
 
 ## Implemented
 - Responsive, mobile-first business website and 5 dedicated SEO service pages
-- Accurate $199 / $399 / $699 / $999 / $1,999 / $3,995.50 package pricing
+- Three current one-time website bundles: $599 Basic (6 pages), $799 Business (9 pages), $999 Business Growth Plus (13 pages with eligible GBP assistance, Google Search Ads and Meta campaign setup)
 - Separate optional $39/year .com domain registration offer
 - Portfolio referencing the owner's Citywide website, NLS store project, and Find Me a Locksmith marketplace preview
 - Accessible AJAX contact form, privacy notice, terms, no payment collection
@@ -52,8 +52,8 @@ Render free web instances spin down after inactivity. Their `robots.txt` endpoin
 
 The canonical flow is **Choose package → View listed scope & amount → Review and e-sign NLN service agreement → Secure Stripe Checkout → Webhook-verified payment → Project onboarding**.
 
-- /pricing advertises $199 / $399 / $699 / $999 / $1,999 / $3,995.50.
-- /start?package=Starter%20Website renders the e-signature package agreement and fixed upfront amount.
+- /pricing advertises exactly three current one-time website bundles: Basic Website $599, Business Website $799, Business Growth Plus $999.
+- /start?package=Basic%20Website renders the e-signature package agreement and fixed upfront amount.
 - /api/packages returns the trusted server-side package table, exactly matching checkout.js.
 - /api/checkout/start writes the accepted package, electronic signature, agreement version/hash and price to nln_service_orders (separate from lead records). Card payment cannot start before the agreement is recorded.
 - Stripe Checkout Sessions are created on the backend only, with amount from the server package table and an order ID stored in Stripe metadata. No client-supplied amount is trusted.
@@ -118,3 +118,10 @@ The original separate \`nln-preview/app.html\` remains an interactive **demo onl
 - No professional was approved, no match was delivered, and no job was booked as part of testing.
 - The test-only email addresses nln-mp-qa@example.com and nln-pro-qa@example.com are hidden from the normal admin view but retained in the database for audit.
 - Improved on-page submission confirmation visibility after browser testing.
+
+### Website bundle relaunch (2026-11-22)
+- Only three currently selectable website bundles appear in /api/packages and the signed project agreement: Basic Website (6 pages, $599), Business Website (9 pages, $799), Business Growth Plus (13 pages, $999).
+- Growth Plus includes Google Business Profile setup/optimization assistance for eligible businesses, one Google Ads Search campaign setup and one Meta Facebook/Instagram campaign setup. Ad spend and launch are separately customer-approved; results, indexing, calls and verification are not guaranteed.
+- Existing previously signed agreements/orders retain their recorded historical names and prices in PostgreSQL. New orders use agreement version nln-services-v2-2026-11-22.
+- Customer-facing site pricing, homepage, contact choices and checkout selection have been synchronized.
+- CHARGING IS STILL OFF: CHECKOUT_ENABLED=false and AGREEMENT_APPROVED=false until agreement details, Stripe keys, merchant identity and testing are finalized.
