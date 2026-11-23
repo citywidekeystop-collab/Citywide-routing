@@ -164,13 +164,6 @@ body{
 @media(prefers-reduced-motion:reduce){
  .brandmark::before{animation:none}
 }
-.brandmark::after{
- content:"";position:absolute;
- width:61px;height:17px;left:-4px;top:19px;z-index:0;
- border:3px solid #efb85d;border-top-color:rgba(245,204,116,.4);
- border-radius:50%;transform:rotate(-24deg);
- box-shadow:0 1px 3px rgba(3,13,30,.45);
-}
 .topnav a{color:#f4f7ff}
 .topnav a:hover{color:#f5cb76}
 .topnav a.btn,.site-head .btn{
