@@ -29,8 +29,7 @@ const launchReady = () => Boolean(
 const pages = Object.freeze([
   '/', '/website-design', '/websites-for-contractors', '/google-business-profile-help',
   '/business-launch', '/ecommerce-websites', '/pricing', '/portfolio', '/contact',
-  '/privacy', '/terms', '/start', '/order-confirmation',
-  '/find-a-pro','/join-as-pro'
+  '/privacy', '/terms', '/start', '/order-confirmation'
 ]);
 
 app.disable('x-powered-by');
@@ -79,6 +78,7 @@ for(const route of pages){
   const filename = route === '/' ? 'index.html' : route.slice(1) + '.html';
   app.get(route, (req,res)=>servePage(req,res,filename));
 }
+app.get(['/find-a-pro', '/join-as-pro', '/find-a-pro.html', '/join-as-pro.html'], (req,res)=>res.status(410).send('This service is no longer available.'));
 app.get('/index.html',(req,res)=>res.redirect(301,'/'));
 app.get('/:slug.html',(req,res)=>{const route='/'+req.params.slug;if(pages.includes(route))return res.redirect(301,route);res.status(404).send('Not found')});
 app.get('/admin',(req,res)=>servePage(req,res,'admin.html'));
@@ -91,7 +91,7 @@ app.get('/sitemap.xml',(req,res)=>{
   if(!launchReady())return res.status(503).type('text/plain').send('Sitemap available after launch verification');
   res.type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
-    pages.filter(p=>!['/terms','/privacy','/start','/order-confirmation','/join-as-pro','/find-a-pro'].includes(p)).map(p=>
+    pages.filter(p=>!['/terms','/privacy','/start','/order-confirmation'].includes(p)).map(p=>
       '<url><loc>' + escapeHtml(domain+p) + '</loc></url>').join('') + '</urlset>');
 });
 app.get('/health',async(req,res)=>{
@@ -191,6 +191,6 @@ app.get('/api/admin/export.csv',adminAuth,async(req,res)=>{
     res.type('text/csv').send(csv);
   }catch(e){res.status(503).json({ok:false})}
 });
-marketplace.registerMarketplaceRoutes(app,{pool,isDatabaseReady:()=>dbReady,requestLimit,isSameOrigin,adminAuth});
+marketplace.registerMarketplaceArchive(app,{pool,isDatabaseReady:()=>dbReady,adminAuth});
 app.use((req,res)=>res.status(404).send('Not found'));
 app.listen(PORT, '0.0.0.0',()=>console.log('NLN marketing site listening on '+PORT));

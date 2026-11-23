@@ -6,6 +6,13 @@ if(menu) menu.addEventListener('click',()=>{const nav=document.getElementById('t
 const form=document.getElementById('lead-form');
 if(!form)return;
 const params=new URLSearchParams(location.search);
+const service=form.elements.namedItem('service');
+const requestedService=new Map([
+ ['branding','Logo & Branding'],
+ ['leads','Lead Capture & Campaign Setup']
+]).get(params.get('service'));
+if(service && requestedService) service.value=requestedService;
+
 const choice=form.elements.namedItem('package');
 if(choice&&params.has('package')&&Array.from(choice.options).some(x=>x.value===params.get('package')))choice.value=params.get('package');
 const result=document.getElementById('result');
