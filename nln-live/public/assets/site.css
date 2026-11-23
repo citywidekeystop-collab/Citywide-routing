@@ -153,9 +153,17 @@ body{
 }
 .brandmark::before{
  content:"";position:absolute;inset:9px;border-radius:50%;
- background:radial-gradient(circle at 29% 29%,#9ddcf9 0%,#3b7bb8 20%,#13477a 55%,#091b41 80%);
- box-shadow:inset -6px -5px 6px rgba(1,11,30,.7),0 0 18px rgba(112,177,251,.32);
- border:1px solid #76b6f9;
+ /* Earth imagery: NASA/Goddard Space Flight Center Scientific Visualization Studio, Blue Marble. */
+ background:#13477a url("/assets/earth-rotation.webp") no-repeat 0 0 / 4800% 100%;
+ box-shadow:0 0 12px rgba(112,177,251,.38);
+ outline:1px solid #76b6f9;
+ animation:earth-rotation 12s steps(48,jump-none) infinite;
+}
+@keyframes earth-rotation{
+ to{background-position:100% 0}
+}
+@media(prefers-reduced-motion:reduce){
+ .brandmark::before{animation:none}
 }
 .brandmark::after{
  content:"";position:absolute;
