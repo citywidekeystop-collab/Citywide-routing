@@ -40,3 +40,14 @@ form.addEventListener('submit',async ev=>{
  finally{button.disabled=false;button.textContent='Send My Message'}
 });
 })();
+
+(function installLiveChat() {
+  if (/^\/(?:admin|start|order-confirmation|checkout|payment)(?:[/.]|$)/i.test(location.pathname)) return;
+  window.Tawk_API = window.Tawk_API || {};
+  window.Tawk_LoadStart = new Date();
+  const widget = document.createElement('script');
+  widget.async = true;
+  widget.src = 'https://embed.tawk.to/6b04bd9f8e6f59d4de49986f/1k8589dn6';
+  widget.crossOrigin = 'anonymous';
+  document.head.appendChild(widget);
+})();
