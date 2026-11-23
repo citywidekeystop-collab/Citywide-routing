@@ -2,8 +2,18 @@
 const crypto = require('node:crypto');
 const express = require('express');
 
-const AGREEMENT_VERSION = 'nln-services-v2-2026-11-22';
+const AGREEMENT_VERSION = 'nln-services-v3-2026-11-23';
 const PACKAGES = Object.freeze({
+  'Small Business Starter': {
+    cents: 49900,
+    manualPayment: true,
+    details: [
+      'One mobile-friendly page with your services, prices, photos, hours and location using materials you provide',
+      'Click-to-call and either a link to your existing booking page or a simple inquiry form',
+      'Basic on-page SEO, connection to your existing domain and one revision round',
+      '$250 to start and $249 before launch. NLN will contact you to arrange payment.'
+    ]
+  },
   'Basic Website': {
     cents: 59900,
     details: [
@@ -37,7 +47,7 @@ const PACKAGES = Object.freeze({
 const terms = [
   'NLN will design and set up the number of pages and other deliverables included in the selected fixed-price website package. The published price is a one-time website development and setup fee, not an ongoing advertising or hosting subscription.',
   'The customer authorizes NLN to begin project work after verified payment and completed onboarding, and will provide accurate business details, brand assets, approved content and necessary account access through secure channels.',
-  'The Basic Website package includes six website pages. The Business Website package includes nine website pages. The Business Growth Plus package includes thirteen website pages, Google Business Profile setup or optimization assistance for eligible businesses, one Google Ads Search campaign setup, and one Meta Facebook/Instagram advertising campaign setup. Additional pages or campaigns require a separate agreement.',
+  'The Small Business Starter includes one page and one revision round. NLN arranges a $250 deposit before work begins and collects the remaining $249 before launch. The Basic Website package includes six website pages. The Business Website package includes nine website pages. The Business Growth Plus package includes thirteen website pages, Google Business Profile setup or optimization assistance for eligible businesses, one Google Ads Search campaign setup, and one Meta Facebook/Instagram advertising campaign setup. Additional pages or campaigns require a separate agreement.',
   'Google Ads and social advertising setup means creating or configuring an initial draft campaign and related settings. Activating campaigns, running ads, monthly management, ad-platform charges and advertising budgets are not included in the one-time package price and require the customer to authorize and fund them separately.',
   'Google Business Profile eligibility and verification, Google Search rankings, campaign approval, ad results, customer calls, leads and sales are controlled by outside factors and are not guaranteed by NLN.',
   'Any domain registration, hosting, maintenance, paid ads, premium integrations or outside services must be separately disclosed and accepted before charging. No recurring fees are charged unless a customer separately enrolls.',
@@ -80,7 +90,7 @@ function registerRoutes(app, {pool,isDatabaseReady,requestLimit,isSameOrigin}) {
   const b=req.body||{},name=String(b.name||'').trim().slice(0,100),email=String(b.email||'').trim().toLowerCase().slice(0,180);
   const signature=String(b.signedName||'').trim().slice(0,100),business=String(b.business||'').trim().slice(0,130);
   const phone=String(b.phone||'').trim().slice(0,35),packageName=String(b.package||'');
-  const p=PACKAGES[packageName];
+  const p=Object.hasOwn(PACKAGES, packageName) ? PACKAGES[packageName] : null;
   const requestKey=String(b.idempotencyKey||'');
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestKey))return res.status(400).json({message:'Invalid checkout request. Reload the page and try again.'});
   if(!p||name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||signature.toLocaleLowerCase()!==name.toLocaleLowerCase()
@@ -102,6 +112,9 @@ function registerRoutes(app, {pool,isDatabaseReady,requestLimit,isSameOrigin}) {
       storedOrderId=existing.rows[0].id;
     }
   }catch(e){console.error('NLN agreement save error',e.code||'unknown');return res.status(503).json({message:'Unable to save your agreement right now.'})}
+  if(p.manualPayment){
+    return res.status(202).json({ok:true,orderId:storedOrderId,next:'agreement_recorded',message:'Your agreement was recorded. NLN will contact you to arrange the $250 deposit. The remaining $249 is due before launch.'});
+  }
   if(!checkoutOn()){
     return res.status(202).json({ok:true,orderId:storedOrderId,next:'agreement_recorded',message:'Your package and service agreement have been recorded. NLN will contact you to arrange the next step.'});
   }

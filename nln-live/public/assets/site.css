@@ -93,7 +93,7 @@
 .bundle-hero .eyebrow{color:#eec77e}
 .bundle-hero .trustline{color:#deebfa}
 .bundle-hero .btn.alt{background:#ffffff1c;color:#fff!important;border:1px solid #cdddf755}
-.bundle-cards{align-items:stretch;gap:20px}
+.bundle-cards{align-items:stretch;gap:20px;grid-template-columns:repeat(2,minmax(0,1fr))}
 .bundle-card{display:flex;flex-direction:column;min-width:0;border-radius:25px;border:1px solid #d7e4f2;box-shadow:0 20px 45px #132e4c12;padding:30px 27px;transition:transform .2s,box-shadow .2s}
 .bundle-card:hover{transform:translateY(-4px);box-shadow:0 25px 65px #10264d1d}
 .bundle-card .eyebrow{font-size:10px;letter-spacing:.16em;margin:4px 0 7px}
