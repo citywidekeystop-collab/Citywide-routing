@@ -149,12 +149,13 @@ body{
 .brandmark{
  width:54px;height:54px;flex:0 0 auto;position:relative;
  background:transparent;box-shadow:none;color:transparent;font-size:0;
- transform:rotate(-10deg);border-radius:50%;overflow:visible;
+ transform:rotate(-10deg);border-radius:50%;overflow:visible;isolation:isolate;
 }
 .brandmark::before{
- content:"";position:absolute;inset:9px;border-radius:50%;
+ content:"";position:absolute;inset:7px;border-radius:50%;z-index:1;
  /* Earth imagery: NASA/Goddard Space Flight Center Scientific Visualization Studio, Blue Marble. */
  background:#13477a url("/assets/earth-rotation.webp") no-repeat 0 0 / 4800% 100%;
+ filter:brightness(1.3) saturate(1.35);
  box-shadow:0 0 12px rgba(112,177,251,.38);
  outline:1px solid #76b6f9;
  animation:earth-rotation 12s steps(48,jump-none) infinite;
@@ -167,7 +168,7 @@ body{
 }
 .brandmark::after{
  content:"";position:absolute;
- width:61px;height:17px;left:-4px;top:19px;
+ width:61px;height:17px;left:-4px;top:19px;z-index:0;
  border:3px solid #efb85d;border-top-color:rgba(245,204,116,.4);
  border-radius:50%;transform:rotate(-24deg);
  box-shadow:0 1px 3px rgba(3,13,30,.45);
