@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: nln-lead-desk
+    runtime: python
+    plan: starter
+    region: virginia
+    branch: nln-lead-desk
+    rootDir: nln-lead-desk
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 app:application
+    healthCheckPath: /health
+    disk:
+      name: leads-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: LEAD_DESK_DB
+        value: /var/data/leads.sqlite3
+      - key: LEAD_DESK_PASSWORD
+        generateValue: true
+      - key: LEAD_WEBHOOK_TOKEN
+        generateValue: true
